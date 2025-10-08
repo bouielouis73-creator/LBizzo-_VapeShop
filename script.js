@@ -1,12 +1,8 @@
 // script.js
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.__LBIZZO_BOOTED__) {
-    console.warn("LBizzo already initialized — skipping second boot.");
-    return;
-  }
+document.addEventListener("DOMContentLoaded", async () => {
+  if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
-
-  console.log("✅ LBizzo Vape Shop Script Loaded");
+  console.log("✅ LBizzo Vape Shop booting...");
 
   // ---------- HELPERS ----------
   const $ = (sel, root = document) => root.querySelector(sel);
@@ -52,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
   const updateCart = () => {
-    // Clear current list
     cartItemsEl.innerHTML = "";
 
     if (cart.length === 0) {
@@ -74,7 +69,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     cartTotalEl.textContent = `Total: $${total.toFixed(2)}`;
 
-    // Enable remove buttons
     $$(".remove-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const index = e.target.dataset.index;
@@ -97,16 +91,13 @@ document.addEventListener("DOMContentLoaded", () => {
     productList.appendChild(card);
   });
 
-  // ---------- ADD TO CART ----------
   $$(".add-to-cart").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       const id = Number(e.target.dataset.id);
       const product = products.find((p) => p.id === id);
       const existing = cart.find((i) => i.id === id);
-
       if (existing) existing.qty++;
       else cart.push({ ...product, qty: 1 });
-
       saveCart();
       updateCart();
       alert(`${product.name} added to cart.`);
@@ -123,21 +114,120 @@ document.addEventListener("DOMContentLoaded", () => {
     cartPopup.classList.add("hidden");
   });
 
+  // ---------- SCANDIT CONFIG ----------
+  const SCANDIT_LICENSE_KEY = "YOUR_SCANDIT_LICENSE_KEY"; // replace with your real key
+  const SCANDIT_ENGINE = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/";
+
+  let picker = null;
+  let pickerReady = false;
+
+  async function ensureScanditReady() {
+    if (pickerReady) return;
+    await ScanditSDK.configure(SCANDIT_LICENSE_KEY, { engineLocation: SCANDIT_ENGINE });
+    pickerReady = true;
+  }
+
+  async function startScanner() {
+    await ensureScanditReady();
+    const modal = document.createElement("div");
+    modal.id = "scanner-modal";
+    modal.style = `
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.9);z-index:9999;color:#fff;flex-direction:column;
+    `;
+    modal.innerHTML = `
+      <div id="scandit-container" style="width:90%;max-width:480px;height:60vh;"></div>
+      <button id="cancelScan" style="margin-top:10px;padding:10px 20px;border:0;border-radius:6px;background:#ff8c00;color:#000;font-weight:700;">Cancel</button>
+    `;
+    document.body.appendChild(modal);
+
+    picker = await ScanditSDK.BarcodePicker.create($("#scandit-container"), {
+      playSoundOnScan: true,
+      vibrateOnScan: true,
+    });
+
+    const settings = new ScanditSDK.ScanSettings();
+    settings.setSymbologyEnabled(ScanditSDK.Barcode.Symbology.PDF417, true);
+    await picker.applyScanSettings(settings);
+
+    picker.on("scan", (result) => {
+      const raw = result?.barcodes?.[0]?.data || "";
+      const dob = extractDOB(raw);
+      if (!dob) {
+        alert("Could not read date of birth. Try again.");
+        return;
+      }
+      if (!is21Plus(dob)) {
+        alert("You must be 21+ to checkout.");
+        picker.pauseScanning();
+        modal.remove();
+        return;
+      }
+      localStorage.setItem("idVerified", Date.now());
+      picker.pauseScanning();
+      modal.remove();
+      proceedCheckout();
+    });
+
+    $("#cancelScan").addEventListener("click", () => {
+      picker.pauseScanning();
+      modal.remove();
+    });
+  }
+
+  function extractDOB(text) {
+    const m = text.match(/DBB(\d{8})/);
+    if (!m) return null;
+    const v = m[1];
+    let yyyy, mm, dd;
+    const firstTwo = parseInt(v.slice(0, 2), 10);
+    if (firstTwo > 12) {
+      yyyy = parseInt(v.slice(0, 4), 10);
+      mm = parseInt(v.slice(4, 6), 10) - 1;
+      dd = parseInt(v.slice(6, 8), 10);
+    } else {
+      mm = parseInt(v.slice(0, 2), 10) - 1;
+      dd = parseInt(v.slice(2, 4), 10);
+      yyyy = parseInt(v.slice(4, 8), 10);
+    }
+    const d = new Date(yyyy, mm, dd);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+
+  function is21Plus(dob) {
+    const now = new Date();
+    const age = new Date(dob.getFullYear() + 21, dob.getMonth(), dob.getDate());
+    return now >= age;
+  }
+
   // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", () => {
+  checkoutBtn.addEventListener("click", async () => {
     if (cart.length === 0) {
       alert("Your cart is empty!");
       return;
     }
 
-    // Replace this link with your actual Square checkout link
-    const checkoutLink = "https://square.link/u/GOvQxhqG";
-    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
+    const verified = localStorage.getItem("idVerified");
+    if (!verified) {
+      alert("Please scan your ID to verify you are 21+.");
+      try {
+        await startScanner();
+      } catch (err) {
+        alert("Scanner failed to start. Check camera permissions.");
+      }
+      return;
+    }
 
-    alert(`Proceeding to checkout. Total: $${total}`);
-    window.location.href = checkoutLink;
+    proceedCheckout();
   });
 
-  // ---------- INITIAL LOAD ----------
+  function proceedCheckout() {
+    const checkoutLink = "https://square.link/u/GOvQxhqG"; // your Square checkout link
+    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
+    alert(`Redirecting to checkout... Total: $${total}`);
+    window.location.href = checkoutLink;
+  }
+
+  // ---------- INIT ----------
   updateCart();
 });
