@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBizzo Vape Shop</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <script defer src="firebase.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div id="age-check">
+    <h2>Are you 21 or older?</h2>
+    <button id="yesBtn">Yes</button>
+    <button id="noBtn">No</button>
+  </div>
+
+  <header>
+    <h1>LBizzo Vape Shop</h1>
+    <button id="cartBtn">🛒 Cart</button>
+  </header>
+
+  <main id="product-list"></main>
+
+  <div id="cart-popup" class="hidden">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <p id="cart-total">Total: $0</p>
+    <button id="checkoutBtn">Checkout</button>
+    <button id="closeCart">Close</button>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
