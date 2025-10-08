@@ -1,11 +1,30 @@
-alert("JavaScript loaded successfully!");
-const productList = document.getElementById("product-list");
-const cartPopup = document.getElementById("cart-popup");
+// Test connection
+console.log("Script running ✅");
+
+// Get elements
 const cartBtn = document.getElementById("cartBtn");
+const yesBtn = document.getElementById("yesBtn");
+const noBtn = document.getElementById("noBtn");
+const cartPopup = document.getElementById("cart-popup");
 const closeCart = document.getElementById("closeCart");
-const checkoutBtn = document.getElementById("checkoutBtn");
-const cartItemsList = document.getElementById("cart-items");
-const cartTotalText = document.getElementById("cart-total");
+
+// Button actions
+yesBtn.onclick = () => {
+  document.getElementById("age-check").style.display = "none";
+};
+
+noBtn.onclick = () => {
+  alert("You must be 21 or older to enter this site.");
+  window.location.href = "https://google.com";
+};
+
+cartBtn.onclick = () => {
+  cartPopup.classList.remove("hidden");
+};
+
+closeCart.onclick = () => {
+  cartPopup.classList.add("hidden");
+};
 
 let cart = [];
 
