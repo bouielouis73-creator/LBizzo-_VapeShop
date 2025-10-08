@@ -2,40 +2,16 @@
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo Vape Shop booting…");
+  console.log("✅ LBizzo Vape Shop booting...");
 
   // ---------- HELPERS ----------
-  const $ = (sel, root = document) => root.querySelector(sel);
+  const $  = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-
-  // Try to get a Firebase Storage instance from globals (compat or custom).
-  function getCompatStorage() {
-    // If your firebase.js does: window._storage = firebase.storage();
-    if (window._storage && typeof window._storage.ref === "function") return window._storage;
-
-    // If using compat CDN directly (firebase-app-compat + firebase-storage-compat)
-    if (window.firebase && typeof window.firebase.storage === "function") {
-      try { return window.firebase.storage(); } catch {}
-    }
-    return null;
-  }
-
-  async function getImageURLFromFirebase(path) {
-    const storage = getCompatStorage();
-    if (!storage) return null; // no storage available; caller will fallback
-    try {
-      const url = await storage.ref(path).getDownloadURL();
-      return url;
-    } catch (e) {
-      console.warn("⚠️ Firebase getDownloadURL failed for:", path, e);
-      return null;
-    }
-  }
 
   // ---------- AGE VERIFICATION ----------
   const ageCheck = $("#age-check");
-  const yesBtn = $("#yesBtn");
-  const noBtn  = $("#noBtn");
+  const yesBtn   = $("#yesBtn");
+  const noBtn    = $("#noBtn");
 
   yesBtn?.addEventListener("click", () => {
     localStorage.setItem("ageVerified", "true");
@@ -48,34 +24,31 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   if (localStorage.getItem("ageVerified") === "true") {
-    ageCheck && (ageCheck.style.display = "none");
+    ageCheck.style.display = "none";
   }
 
-  // ---------- PRODUCTS ----------
-  // Put your Firebase Storage paths in `img`. If Firebase isn't ready, images are omitted but everything still works.
+  // ---------- PRODUCT DATA ----------
   const products = [
     { id: 1, name: "Disposable Vape", price: 19.99, img: "products/vape1.jpg" },
-    { id: 2, name: "Juice 60ml",     price: 14.99, img: "products/juice1.jpg" },
-    { id: 3, name: "Coil Pack",      price:  9.99, img: "products/coil.jpg"  },
+    { id: 2, name: "Juice 60ml", price: 14.99, img: "products/juice1.jpg" },
+    { id: 3, name: "Coil Pack", price: 9.99, img: "products/coil.jpg" },
   ];
 
-  const productList = $("#product-list");
-  const cartBtn     = $("#cartBtn");
-  const cartPopup   = $("#cart-popup");
-  const cartItemsEl = $("#cart-items");
-  const cartTotalEl = $("#cart-total");
-  const checkoutBtn = $("#checkoutBtn");
-  const closeCart   = $("#closeCart");
+  const productList  = $("#product-list");
+  const cartBtn      = $("#cartBtn");
+  const cartPopup    = $("#cart-popup");
+  const cartItemsEl  = $("#cart-items");
+  const cartTotalEl  = $("#cart-total");
+  const checkoutBtn  = $("#checkoutBtn");
+  const closeCart    = $("#closeCart");
 
   // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
-
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
-  const updateCart = () => {
-    if (!cartItemsEl || !cartTotalEl) return;
-
+  function updateCart() {
     cartItemsEl.innerHTML = "";
+    let total = 0;
 
     if (cart.length === 0) {
       cartItemsEl.innerHTML = "<li>Your cart is empty.</li>";
@@ -83,7 +56,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    let total = 0;
     cart.forEach((item, index) => {
       total += item.price * item.qty;
       const li = document.createElement("li");
@@ -96,36 +68,45 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     cartTotalEl.textContent = `Total: $${total.toFixed(2)}`;
 
+    // Remove item event
     $$(".remove-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const index = Number(e.currentTarget.dataset.index);
-        cart.splice(index, 1);
+        const i = Number(e.target.dataset.index);
+        cart.splice(i, 1);
         saveCart();
         updateCart();
       });
     });
-  };
+  }
 
-  // ---------- RENDER PRODUCTS (tries Firebase image, falls back) ----------
+  // ---------- FIREBASE IMAGE LOADER ----------
+  async function getFirebaseImage(path) {
+    try {
+      if (!window._storage) return null;
+      const url = await window._storage.ref(path).getDownloadURL();
+      return url;
+    } catch {
+      console.warn("⚠️ Image not found:", path);
+      return null;
+    }
+  }
+
+  // ---------- RENDER PRODUCTS ----------
   async function renderProducts() {
-    if (!productList) return;
     productList.innerHTML = "";
 
     for (const p of products) {
-      let imgHTML = "";
-      try {
-        const url = await getImageURLFromFirebase(p.img);
-        if (url) {
-          imgHTML = `<img src="${url}" alt="${p.name}" class="product-img" style="width:100%;max-width:180px;border-radius:12px;box-shadow:0 0 10px rgba(255,140,0,.6);margin-bottom:8px;" />`;
-        }
-      } catch (e) {
-        console.warn("Image load skipped:", p.img, e);
+      let imgTag = "";
+      const url = window._storage ? await getFirebaseImage(p.img) : null;
+      if (url) {
+        imgTag = `<img src="${url}" alt="${p.name}" class="product-img" 
+          style="width:100%;max-width:180px;border-radius:12px;box-shadow:0 0 10px rgba(255,140,0,0.6);margin-bottom:8px;">`;
       }
 
       const card = document.createElement("div");
       card.className = "product-card";
       card.innerHTML = `
-        ${imgHTML}
+        ${imgTag}
         <h3>${p.name}</h3>
         <p>$${p.price.toFixed(2)}</p>
         <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
@@ -133,10 +114,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       productList.appendChild(card);
     }
 
+    // Add to cart button
     $$(".add-to-cart").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const id = Number(e.currentTarget.dataset.id);
-        const product = products.find((x) => x.id === id);
+        const id = Number(e.target.dataset.id);
+        const product = products.find((p) => p.id === id);
         const existing = cart.find((i) => i.id === id);
         if (existing) existing.qty++;
         else cart.push({ ...product, qty: 1 });
@@ -148,20 +130,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- CART TOGGLE ----------
-  cartBtn?.addEventListener("click", () => {
-    cartPopup?.classList.toggle("hidden");
+  cartBtn.addEventListener("click", () => {
+    cartPopup.classList.toggle("hidden");
     updateCart();
   });
 
-  closeCart?.addEventListener("click", () => {
-    cartPopup?.classList.add("hidden");
+  closeCart.addEventListener("click", () => {
+    cartPopup.classList.add("hidden");
   });
 
   // ---------- SCANDIT CONFIG ----------
   const SCANDIT_LICENSE_KEY = "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=";
   const SCANDIT_ENGINE = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/";
-
-  let picker = null;
   let pickerReady = false;
 
   async function ensureScanditReady() {
@@ -184,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     `;
     document.body.appendChild(modal);
 
-    picker = await ScanditSDK.BarcodePicker.create($("#scandit-container"), {
+    const picker = await ScanditSDK.BarcodePicker.create($("#scandit-container"), {
       playSoundOnScan: true,
       vibrateOnScan: true,
     });
@@ -196,10 +176,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     picker.on("scan", (result) => {
       const raw = result?.barcodes?.[0]?.data || "";
       const dob = extractDOB(raw);
-      if (!dob) {
-        alert("Could not read date of birth. Try again.");
-        return;
-      }
+      if (!dob) return alert("Could not read date of birth. Try again.");
       if (!is21Plus(dob)) {
         alert("You must be 21+ to checkout.");
         picker.pauseScanning();
@@ -224,30 +201,34 @@ document.addEventListener("DOMContentLoaded", async () => {
     const v = m[1];
     let yyyy, mm, dd;
     const firstTwo = parseInt(v.slice(0, 2), 10);
-    if (firstTwo > 12) { // YYYYMMDD
-      yyyy = parseInt(v.slice(0, 4), 10);
-      mm   = parseInt(v.slice(4, 6), 10) - 1;
-      dd   = parseInt(v.slice(6, 8), 10);
-    } else {             // MMDDYYYY
-      mm   = parseInt(v.slice(0, 2), 10) - 1;
-      dd   = parseInt(v.slice(2, 4), 10);
-      yyyy = parseInt(v.slice(4, 8), 10);
-    }
+    if (firstTwo > 12) { yyyy = +v.slice(0, 4); mm = +v.slice(4, 6) - 1; dd = +v.slice(6, 8); }
+    else { mm = +v.slice(0, 2) - 1; dd = +v.slice(2, 4); yyyy = +v.slice(4, 8); }
     const d = new Date(yyyy, mm, dd);
-    return Number.isNaN(d.getTime()) ? null : d;
+    return isNaN(d.getTime()) ? null : d;
   }
 
-  function is21Plus(dob) {
-    const now = new Date();
-    const age = new Date(dob.getFullYear() + 21, dob.getMonth(), dob.getDate());
-    return now >= age;
-  }
+  const is21Plus = (dob) => new Date() >= new Date(dob.getFullYear() + 21, dob.getMonth(), dob.getDate());
 
   // ---------- CHECKOUT ----------
-  checkoutBtn?.addEventListener("click", async () => {
-    if (cart.length === 0) {
-      alert("Your cart is empty!");
+  checkoutBtn.addEventListener("click", async () => {
+    if (cart.length === 0) return alert("Your cart is empty!");
+    const verified = localStorage.getItem("idVerified");
+    if (!verified) {
+      alert("Please scan your ID to verify you are 21+.");
+      try { await startScanner(); } catch { alert("Scanner failed to start. Check camera permissions."); }
       return;
     }
+    proceedCheckout();
+  });
 
-   
+  function proceedCheckout() {
+    const link = "https://square.link/u/GOvQxhqG";
+    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
+    alert(`Redirecting to checkout... Total: $${total}`);
+    window.location.href = link;
+  }
+
+  // ---------- INIT ----------
+  await renderProducts();
+  updateCart();
+});
