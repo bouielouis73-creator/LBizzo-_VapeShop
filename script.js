@@ -1,11 +1,23 @@
 const productList = document.getElementById("product-list");
 const cartPopup = document.getElementById("cart-popup");
-const cartBtn = document.getElementById("cartBtn"); 
-cartBtn.addEventListener("click", () => {
-  alert("Cart button clicked!");
-});
+const cartBtn = document.getElementById("cartBtn");
 const closeCart = document.getElementById("closeCart");
 const checkoutBtn = document.getElementById("checkoutBtn");
+const cartItemsList = document.getElementById("cart-items");
+const cartTotalText = document.getElementById("cart-total");
+
+let cart = [];
+
+// Show the cart popup
+cartBtn.onclick = () => {
+  cartPopup.classList.remove("hidden");
+  renderCart();
+};
+
+// Close the cart popup
+closeCart.onclick = () => {
+  cartPopup.classList.add("hidden");
+};
 
 let cart = [];
 
@@ -55,14 +67,15 @@ function renderCart() {
   cart.forEach((item, i) => {
     sum += item.price;
     const li = document.createElement("li");
-    li.innerHTML = `${item.name} - $${item.price} <button onclick="removeItem(${i})">❌</button>`;
+    li.innerHTML = `${item.name} - $${item.price.toFixed(2)} 
+  <button onclick="deleteItem(${i})">❌</button>`;
     list.appendChild(li);
   });
   total.textContent = `Total: $${sum.toFixed(2)}`;
 }
 
-function removeItem(i) {
-  cart.splice(i, 1);
+function deleteItem(index) {
+  cart.splice(index, 1);
   renderCart();
 }
 
