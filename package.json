@@ -1,0 +1,9 @@
+{
+  "name": "lbizzo-vape-shop",
+  "version": "1.0.0",
+  "description": "LBizzo Vape Shop app with Firebase and Twilio functions",
+  "main": "index.js",
+  "dependencies": {
+    "twilio": "^4.22.0"
+  }
+}
