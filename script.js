@@ -8,15 +8,13 @@ const cartTotalText = document.getElementById("cart-total");
 
 let cart = [];
 
-// Show the cart popup
 cartBtn.onclick = () => {
-  cartPopup.classList.remove("hidden");
+  cartPopup.classList.add("show");
   renderCart();
 };
 
-// Close the cart popup
 closeCart.onclick = () => {
-  cartPopup.classList.add("hidden");
+  cartPopup.classList.remove("show");
 };
 
 let cart = [];
