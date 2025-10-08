@@ -1,6 +1,9 @@
 // Test connection
 console.log("Script running ✅");
-
+// Check if the buttons exist
+console.log("yesBtn:", document.getElementById("yesBtn"));
+console.log("noBtn:", document.getElementById("noBtn"));
+console.log("cartBtn:", document.getElementById("cartBtn"));
 // Get elements
 const cartBtn = document.getElementById("cartBtn");
 const yesBtn = document.getElementById("yesBtn");
