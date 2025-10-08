@@ -1,101 +1,37 @@
-// script.js
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("JavaScript loaded successfully ✅");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LBizzo Vape Shop</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="firebase.js"></script>
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <!-- AGE VERIFICATION -->
+  <div id="age-check">
+    <div class="age-box">
+      <h2>Are you 21 or older?</h2>
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
+    </div>
+  </div>
 
-  // --- AGE VERIFICATION (unchanged) ---
-  const ageCheck = document.getElementById("age-check");
-  const yesBtn = document.getElementById("yesBtn");
-  const noBtn = document.getElementById("noBtn");
+  <!-- HEADER -->
+  <header>
+    <h1>LBizzo Vape Shop</h1>
+    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+  </header>
 
-  if (yesBtn && noBtn && ageCheck) {
-    yesBtn.addEventListener("click", () => {
-      ageCheck.style.display = "none";
-      localStorage.setItem("ageVerified", "true");
-    });
+  <!-- PRODUCTS -->
+  <main id="product-list" class="product-grid"></main>
 
-    noBtn.addEventListener("click", () => {
-      alert("Sorry, you must be 21 or older to enter this site.");
-      window.location.href = "https://www.google.com";
-    });
-
-    if (localStorage.getItem("ageVerified") === "true") {
-      ageCheck.style.display = "none";
-    }
-  }
-
-  // --- CART FUNCTIONALITY ---
-  const cartBtn = document.getElementById("cart-btn");
-  const cartSection = document.getElementById("cart");
-  const cartItemsList = document.getElementById("cart-items");
-  const cartCount = document.getElementById("cart-count");
-  const checkoutBtn = document.getElementById("checkout-btn");
-
-  let cart = [];
-
-  // Update the cart display
-  function updateCart() {
-    if (!cartItemsList || !cartCount) return;
-    cartItemsList.innerHTML = "";
-    cart.forEach((item, index) => {
-      const li = document.createElement("li");
-      li.classList.add("cart-item");
-      li.innerHTML = `
-        <span>${item.name} - $${item.price.toFixed(2)}</span>
-        <button class="remove-btn">Remove</button>
-      `;
-      li.querySelector(".remove-btn").addEventListener("click", () => {
-        cart.splice(index, 1);
-        updateCart();
-      });
-      cartItemsList.appendChild(li);
-    });
-    cartCount.textContent = cart.length;
-  }
-
-  // Show/hide cart section
-  if (cartBtn && cartSection) {
-    cartBtn.addEventListener("click", () => {
-      cartSection.classList.toggle("active");
-    });
-  }
-
-  // --- PRODUCT LIST ---
-  const productList = document.getElementById("product-list");
-  if (productList) {
-    const products = [
-      { id: 1, name: "Disposable Vape", price: 19.99 },
-      { id: 2, name: "Vape Juice", price: 14.99 },
-      { id: 3, name: "Coil", price: 9.99 },
-      { id: 4, name: "Battery", price: 24.99 },
-    ];
-
-    // Create product cards dynamically
-    products.forEach((product) => {
-      const div = document.createElement("div");
-      div.classList.add("product");
-      div.innerHTML = `
-        <h3>${product.name}</h3>
-        <p>$${product.price.toFixed(2)}</p>
-        <button class="add-to-cart">Add to Cart</button>
-      `;
-      div.querySelector(".add-to-cart").addEventListener("click", () => {
-        cart.push(product);
-        updateCart();
-      });
-      productList.appendChild(div);
-    });
-  }
-
-  // --- CHECKOUT BUTTON ---
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", () => {
-      if (cart.length === 0) {
-        alert("Your cart is empty!");
-        return;
-      }
-      alert("Thank you for your order!");
-      cart = [];
-      updateCart();
-    });
-  }
-});
+  <!-- CART SECTION -->
+  <section id="cart" class="cart hidden">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <button id="checkout-btn">Checkout</button>
+  </section>
+</body>
+</html>
