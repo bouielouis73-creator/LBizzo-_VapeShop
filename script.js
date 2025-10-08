@@ -1,20 +1,41 @@
 // script.js
-import { storage } from "./firebase.js";
-import { ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
-
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo Vape Shop booting...");
+  console.log("✅ LBizzo Vape Shop booting…");
 
   // ---------- HELPERS ----------
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
+  // Try to get a Firebase Storage instance from globals (compat or custom).
+  function getCompatStorage() {
+    // If your firebase.js does: window._storage = firebase.storage();
+    if (window._storage && typeof window._storage.ref === "function") return window._storage;
+
+    // If using compat CDN directly (firebase-app-compat + firebase-storage-compat)
+    if (window.firebase && typeof window.firebase.storage === "function") {
+      try { return window.firebase.storage(); } catch {}
+    }
+    return null;
+  }
+
+  async function getImageURLFromFirebase(path) {
+    const storage = getCompatStorage();
+    if (!storage) return null; // no storage available; caller will fallback
+    try {
+      const url = await storage.ref(path).getDownloadURL();
+      return url;
+    } catch (e) {
+      console.warn("⚠️ Firebase getDownloadURL failed for:", path, e);
+      return null;
+    }
+  }
+
   // ---------- AGE VERIFICATION ----------
   const ageCheck = $("#age-check");
   const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
+  const noBtn  = $("#noBtn");
 
   yesBtn?.addEventListener("click", () => {
     localStorage.setItem("ageVerified", "true");
@@ -27,23 +48,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   if (localStorage.getItem("ageVerified") === "true") {
-    ageCheck.style.display = "none";
+    ageCheck && (ageCheck.style.display = "none");
   }
 
   // ---------- PRODUCTS ----------
+  // Put your Firebase Storage paths in `img`. If Firebase isn't ready, images are omitted but everything still works.
   const products = [
     { id: 1, name: "Disposable Vape", price: 19.99, img: "products/vape1.jpg" },
-    { id: 2, name: "Juice 60ml", price: 14.99, img: "products/juice1.jpg" },
-    { id: 3, name: "Coil Pack", price: 9.99, img: "products/coil.jpg" },
+    { id: 2, name: "Juice 60ml",     price: 14.99, img: "products/juice1.jpg" },
+    { id: 3, name: "Coil Pack",      price:  9.99, img: "products/coil.jpg"  },
   ];
 
   const productList = $("#product-list");
-  const cartBtn = $("#cartBtn");
-  const cartPopup = $("#cart-popup");
+  const cartBtn     = $("#cartBtn");
+  const cartPopup   = $("#cart-popup");
   const cartItemsEl = $("#cart-items");
   const cartTotalEl = $("#cart-total");
   const checkoutBtn = $("#checkoutBtn");
-  const closeCart = $("#closeCart");
+  const closeCart   = $("#closeCart");
 
   // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
@@ -51,6 +73,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
   const updateCart = () => {
+    if (!cartItemsEl || !cartTotalEl) return;
+
     cartItemsEl.innerHTML = "";
 
     if (cart.length === 0) {
@@ -74,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     $$(".remove-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const index = e.target.dataset.index;
+        const index = Number(e.currentTarget.dataset.index);
         cart.splice(index, 1);
         saveCart();
         updateCart();
@@ -82,41 +106,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  // ---------- LOAD PRODUCTS FROM FIREBASE ----------
+  // ---------- RENDER PRODUCTS (tries Firebase image, falls back) ----------
   async function renderProducts() {
+    if (!productList) return;
     productList.innerHTML = "";
-    for (const p of products) {
-      try {
-        const imgRef = ref(storage, p.img);
-        const imgURL = await getDownloadURL(imgRef);
 
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-          <img src="${imgURL}" alt="${p.name}" class="product-img" />
-          <h3>${p.name}</h3>
-          <p>$${p.price.toFixed(2)}</p>
-          <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
-        `;
-        productList.appendChild(card);
-      } catch (err) {
-        console.error("⚠️ Error loading image for", p.name, err);
-        // fallback if image fails
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-          <h3>${p.name}</h3>
-          <p>$${p.price.toFixed(2)}</p>
-          <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
-        `;
-        productList.appendChild(card);
+    for (const p of products) {
+      let imgHTML = "";
+      try {
+        const url = await getImageURLFromFirebase(p.img);
+        if (url) {
+          imgHTML = `<img src="${url}" alt="${p.name}" class="product-img" style="width:100%;max-width:180px;border-radius:12px;box-shadow:0 0 10px rgba(255,140,0,.6);margin-bottom:8px;" />`;
+        }
+      } catch (e) {
+        console.warn("Image load skipped:", p.img, e);
       }
+
+      const card = document.createElement("div");
+      card.className = "product-card";
+      card.innerHTML = `
+        ${imgHTML}
+        <h3>${p.name}</h3>
+        <p>$${p.price.toFixed(2)}</p>
+        <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+      `;
+      productList.appendChild(card);
     }
 
     $$(".add-to-cart").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const id = Number(e.target.dataset.id);
-        const product = products.find((p) => p.id === id);
+        const id = Number(e.currentTarget.dataset.id);
+        const product = products.find((x) => x.id === id);
         const existing = cart.find((i) => i.id === id);
         if (existing) existing.qty++;
         else cart.push({ ...product, qty: 1 });
@@ -128,13 +148,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- CART TOGGLE ----------
-  cartBtn.addEventListener("click", () => {
-    cartPopup.classList.toggle("hidden");
+  cartBtn?.addEventListener("click", () => {
+    cartPopup?.classList.toggle("hidden");
     updateCart();
   });
 
-  closeCart.addEventListener("click", () => {
-    cartPopup.classList.add("hidden");
+  closeCart?.addEventListener("click", () => {
+    cartPopup?.classList.add("hidden");
   });
 
   // ---------- SCANDIT CONFIG ----------
@@ -204,13 +224,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     const v = m[1];
     let yyyy, mm, dd;
     const firstTwo = parseInt(v.slice(0, 2), 10);
-    if (firstTwo > 12) {
+    if (firstTwo > 12) { // YYYYMMDD
       yyyy = parseInt(v.slice(0, 4), 10);
-      mm = parseInt(v.slice(4, 6), 10) - 1;
-      dd = parseInt(v.slice(6, 8), 10);
-    } else {
-      mm = parseInt(v.slice(0, 2), 10) - 1;
-      dd = parseInt(v.slice(2, 4), 10);
+      mm   = parseInt(v.slice(4, 6), 10) - 1;
+      dd   = parseInt(v.slice(6, 8), 10);
+    } else {             // MMDDYYYY
+      mm   = parseInt(v.slice(0, 2), 10) - 1;
+      dd   = parseInt(v.slice(2, 4), 10);
       yyyy = parseInt(v.slice(4, 8), 10);
     }
     const d = new Date(yyyy, mm, dd);
@@ -224,34 +244,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", async () => {
+  checkoutBtn?.addEventListener("click", async () => {
     if (cart.length === 0) {
       alert("Your cart is empty!");
       return;
     }
 
-    const verified = localStorage.getItem("idVerified");
-    if (!verified) {
-      alert("Please scan your ID to verify you are 21+.");
-      try {
-        await startScanner();
-      } catch (err) {
-        alert("Scanner failed to start. Check camera permissions.");
-      }
-      return;
-    }
-
-    proceedCheckout();
-  });
-
-  function proceedCheckout() {
-    const checkoutLink = "https://square.link/u/GOvQxhqG"; // your Square checkout link
-    const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
-    alert(`Redirecting to checkout... Total: $${total}`);
-    window.location.href = checkoutLink;
-  }
-
-  // ---------- INIT ----------
-  await renderProducts();
-  updateCart();
-});
+   
