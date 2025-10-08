@@ -1,4 +1,4 @@
-alert("JavaScript connected!");
+alert("JavaScript loaded successfully!");
 const productList = document.getElementById("product-list");
 const cartPopup = document.getElementById("cart-popup");
 const cartBtn = document.getElementById("cartBtn");
