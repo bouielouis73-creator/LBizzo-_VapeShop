@@ -40,14 +40,22 @@ button {
 
 #cart-popup {
   position: fixed;
-  bottom: 0;
+  bottom: -100%; /* Start hidden below the screen */
   left: 0;
   width: 100%;
   background: #111;
   border-top: 3px solid #ff8c00;
   padding: 1em;
   color: white;
-z-index: center;
+  z-index: 1000;
+  text-align: center;
+  transition: bottom 0.4s ease-in-out, opacity 0.3s ease-in-out; /* Smooth slide and fade */
+  opacity: 0;
+}
+
+#cart-popup.show {
+  bottom: 0; /* Slides up into view */
+  opacity: 1;
 }
 
 .hidden {
