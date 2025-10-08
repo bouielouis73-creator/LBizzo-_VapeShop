@@ -1,4 +1,7 @@
 // script.js
+import { storage } from "./firebase.js";
+import { ref, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
@@ -29,9 +32,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- PRODUCTS ----------
   const products = [
-    { id: 1, name: "Disposable Vape", price: 19.99 },
-    { id: 2, name: "Juice 60ml", price: 14.99 },
-    { id: 3, name: "Coil Pack", price: 9.99 },
+    { id: 1, name: "Disposable Vape", price: 19.99, img: "products/vape1.jpg" },
+    { id: 2, name: "Juice 60ml", price: 14.99, img: "products/juice1.jpg" },
+    { id: 3, name: "Coil Pack", price: 9.99, img: "products/coil.jpg" },
   ];
 
   const productList = $("#product-list");
@@ -79,30 +82,50 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   };
 
-  // ---------- RENDER PRODUCTS ----------
-  products.forEach((p) => {
-    const card = document.createElement("div");
-    card.className = "product-card";
-    card.innerHTML = `
-      <h3>${p.name}</h3>
-      <p>$${p.price.toFixed(2)}</p>
-      <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
-    `;
-    productList.appendChild(card);
-  });
+  // ---------- LOAD PRODUCTS FROM FIREBASE ----------
+  async function renderProducts() {
+    productList.innerHTML = "";
+    for (const p of products) {
+      try {
+        const imgRef = ref(storage, p.img);
+        const imgURL = await getDownloadURL(imgRef);
 
-  $$(".add-to-cart").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const id = Number(e.target.dataset.id);
-      const product = products.find((p) => p.id === id);
-      const existing = cart.find((i) => i.id === id);
-      if (existing) existing.qty++;
-      else cart.push({ ...product, qty: 1 });
-      saveCart();
-      updateCart();
-      alert(`${product.name} added to cart.`);
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+          <img src="${imgURL}" alt="${p.name}" class="product-img" />
+          <h3>${p.name}</h3>
+          <p>$${p.price.toFixed(2)}</p>
+          <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+        `;
+        productList.appendChild(card);
+      } catch (err) {
+        console.error("⚠️ Error loading image for", p.name, err);
+        // fallback if image fails
+        const card = document.createElement("div");
+        card.className = "product-card";
+        card.innerHTML = `
+          <h3>${p.name}</h3>
+          <p>$${p.price.toFixed(2)}</p>
+          <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+        `;
+        productList.appendChild(card);
+      }
+    }
+
+    $$(".add-to-cart").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const id = Number(e.target.dataset.id);
+        const product = products.find((p) => p.id === id);
+        const existing = cart.find((i) => i.id === id);
+        if (existing) existing.qty++;
+        else cart.push({ ...product, qty: 1 });
+        saveCart();
+        updateCart();
+        alert(`${product.name} added to cart.`);
+      });
     });
-  });
+  }
 
   // ---------- CART TOGGLE ----------
   cartBtn.addEventListener("click", () => {
@@ -229,5 +252,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- INIT ----------
+  await renderProducts();
   updateCart();
 });
