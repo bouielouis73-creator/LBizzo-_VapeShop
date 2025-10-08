@@ -1,3 +1,4 @@
+alert("JavaScript connected!");
 const productList = document.getElementById("product-list");
 const cartPopup = document.getElementById("cart-popup");
 const cartBtn = document.getElementById("cartBtn");
