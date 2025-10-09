@@ -50,10 +50,141 @@
 
   <!-- ✅ REQUIRED SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-  <script src="firebase.js"></script>
-  <script src="script.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      console.log("✅ LBizzo Vape Shop booting...");
+      const $ = s => document.querySelector(s);
+      const $$ = s => document.querySelectorAll(s);
+
+      const ageCheck = $("#age-check"), yesBtn = $("#yesBtn"), noBtn = $("#noBtn");
+      const productList = $("#product-list"), cartPopup = $("#cart-popup");
+      const cartBtn = $("#cartBtn"), cartItems = $("#cart-items"), cartTotal = $("#cart-total");
+      const keepShopping = $("#keepShopping"), clearCart = $("#clearCart"), checkoutBtn = $("#checkoutBtn");
+
+      // ---------- PRODUCTS ----------
+      const products = [
+        { id: 1, name: "Disposable Vape", price: 19.99 },
+        { id: 2, name: "Juice 60ml", price: 14.99 },
+        { id: 3, name: "Coil Pack", price: 9.99 }
+      ];
+
+      // ---------- CART ----------
+      let cart = JSON.parse(localStorage.getItem("cart")) || [];
+      function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
+
+      function updateCart() {
+        cartItems.innerHTML = "";
+        if (cart.length === 0) {
+          cartItems.innerHTML = "<li>Your cart is empty.</li>";
+          cartTotal.textContent = "Total: $0";
+          return;
+        }
+        let total = 0;
+        cart.forEach((item, i) => {
+          total += item.price * item.qty;
+          const li = document.createElement("li");
+          li.innerHTML = `${item.name} - $${item.price.toFixed(2)} × ${item.qty} <button data-i="${i}" class="remove-item">❌</button>`;
+          cartItems.appendChild(li);
+        });
+        cartTotal.textContent = `Total: $${total.toFixed(2)}`;
+        $$(".remove-item").forEach(btn => btn.addEventListener("click", e => {
+          const i = e.target.dataset.i;
+          cart.splice(i, 1);
+          saveCart();
+          updateCart();
+        }));
+      }
+
+      // ---------- RENDER PRODUCTS ----------
+      function renderProducts() {
+        productList.innerHTML = "";
+        products.forEach(p => {
+          const card = document.createElement("div");
+          card.className = "product-card";
+          card.innerHTML = `
+            <h3>${p.name}</h3>
+            <p>$${p.price.toFixed(2)}</p>
+            <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+          `;
+          productList.appendChild(card);
+        });
+        $$(".add-to-cart").forEach(btn =>
+          btn.addEventListener("click", e => {
+            const id = +e.target.dataset.id;
+            const p = products.find(x => x.id === id);
+            const existing = cart.find(x => x.id === id);
+            if (existing) existing.qty++;
+            else cart.push({ ...p, qty: 1 });
+            saveCart();
+            updateCart();
+            cartPopup.classList.add("show");
+          })
+        );
+      }
+
+      // ---------- BUTTONS ----------
+      cartBtn.addEventListener("click", () => {
+        cartPopup.classList.toggle("show");
+        updateCart();
+      });
+      keepShopping.addEventListener("click", () => cartPopup.classList.remove("show"));
+      clearCart.addEventListener("click", () => {
+        cart = [];
+        saveCart();
+        updateCart();
+      });
+
+      // ---------- AGE GATE ----------
+      yesBtn.addEventListener("click", () => {
+        localStorage.setItem("ageVerified", "true");
+        ageCheck.style.display = "none";
+      });
+      noBtn.addEventListener("click", () => {
+        alert("Sorry, you must be 21 or older to enter.");
+        window.location.href = "https://google.com";
+      });
+      if (localStorage.getItem("ageVerified") === "true") ageCheck.style.display = "none";
+
+      // ---------- SCANDIT & CHECKOUT ----------
+      const SCANDIT_KEY = "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=";
+      const SQUARE_LINK = "https://square.link/u/QjyYzLGK";
+
+      async function startScan() {
+        await ScanditSDK.configure(SCANDIT_KEY, { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/" });
+        const modal = document.createElement("div");
+        modal.style = "position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;";
+        modal.innerHTML = `<div id='scanner' style='width:90%;max-width:480px;height:60vh;'></div><button id='cancelScan'>Cancel</button>`;
+        document.body.appendChild(modal);
+        const picker = await ScanditSDK.BarcodePicker.create(document.getElementById("scanner"), { playSoundOnScan: true, vibrateOnScan: true });
+        const settings = new ScanditSDK.ScanSettings();
+        settings.setSymbologyEnabled(ScanditSDK.Barcode.Symbology.PDF417, true);
+        await picker.applyScanSettings(settings);
+        picker.on("scan", result => {
+          const raw = result.barcodes[0]?.data || "";
+          const dob = raw.match(/DBB(\d{8})/);
+          if (!dob) return alert("Could not read DOB, try again");
+          const d = dob[1];
+          const yyyy = +d.slice(4,8), mm = +d.slice(0,2)-1, dd = +d.slice(2,4);
+          const birth = new Date(yyyy,mm,dd);
+          const age21 = new Date(birth.getFullYear()+21,birth.getMonth(),birth.getDate());
+          if (new Date()<age21) return alert("You must be 21+ to checkout");
+          picker.pauseScanning(); modal.remove();
+          alert("✅ ID Verified! Redirecting to checkout...");
+          window.location.href = SQUARE_LINK;
+        });
+        $("#cancelScan").onclick = () => { picker.pauseScanning(); modal.remove(); };
+      }
+
+      checkoutBtn.addEventListener("click", () => {
+        if (cart.length === 0) return alert("Your cart is empty!");
+        startScan();
+      });
+
+      renderProducts();
+      updateCart();
+      console.log("✅ LBizzo ready!");
+    });
+  </script>
 
   <!-- ✅ PWA SERVICE WORKER -->
   <script>
