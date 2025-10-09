@@ -34,20 +34,28 @@
   <!-- 🧾 Product List -->
   <main id="product-list"></main>
 
-  <!-- 🛒 Cart Popup -->
-  <div id="cart-popup" class="hidden">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="cart-total">Total: $0</p>
-    <button id="checkoutBtn">Checkout</button>
-    <button id="closeCart">Close</button>
-  </div>
+  <header>
+  <h1>LBizzo Vape Shop</h1>
+  <button id="cartBtn">🛒 Cart</button>
+</header>
 
-  <!-- ✅ PWA: Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js');
-    }
-  </script>
+<main id="product-list"></main>
+
+<div id="cart-popup" class="hidden">
+  <h2>Your Cart</h2>
+  <ul id="cart-items"></ul>
+  <p id="cart-total">Total: $0</p>
+  <button id="checkoutBtn">Checkout</button>
+  <button id="closeCart">Close</button>
+</div>
+
+  <!-- Firebase and Scandit -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
+
+<!-- Your app scripts -->
+<script src="firebase.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
