@@ -5,57 +5,61 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- Styles & Manifest -->
+  <!-- ✅ Styles & PWA -->
   <link rel="stylesheet" href="style.css" />
   <link rel="manifest" href="manifest.json" />
-
-  <!-- ✅ Scandit Web SDK (for ID scanner at checkout) -->
-  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
-
-  <!-- ✅ Your app scripts -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
 </head>
 
 <body>
-  <!-- 🔞 Age Verification Overlay -->
-  <div id="age-check">
+  <!-- 🔞 AGE VERIFICATION OVERLAY -->
+  <div id="age-check" class="overlay">
     <h2>Are you 21 or older?</h2>
     <button id="yesBtn">Yes</button>
     <button id="noBtn">No</button>
   </div>
 
-  <!-- 🛍️ Header -->
+  <!-- 🛍️ HEADER -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cartBtn">🛒 Cart</button>
   </header>
 
-  <!-- 🧾 Product List -->
-  <main id="product-list"></main>
+  <!-- 🧾 PRODUCT GRID -->
+  <main id="product-list" class="product-grid"></main>
 
-  <header>
-  <h1>LBizzo Vape Shop</h1>
-  <button id="cartBtn">🛒 Cart</button>
-</header>
+  <!-- 🛒 CART POPUP -->
+  <div id="cart-popup" class="hidden">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <p id="cart-total">Total: $0</p>
 
-<main id="product-list"></main>
+    <!-- 👤 CUSTOMER INFO FORM -->
+    <div id="customer-info">
+      <h3>Customer Info</h3>
+      <input type="text" id="cust-name" placeholder="Full Name" />
+      <input type="text" id="cust-address" placeholder="Address" />
+      <input type="tel" id="cust-phone" placeholder="Phone Number" />
+    </div>
 
-<div id="cart-popup" class="hidden">
-  <h2>Your Cart</h2>
-  <ul id="cart-items"></ul>
-  <p id="cart-total">Total: $0</p>
-  <button id="checkoutBtn">Checkout</button>
-  <button id="closeCart">Close</button>
-</div>
+    <div class="cart-actions">
+      <button id="keepShopping">🛍️ Keep Shopping</button>
+      <button id="clearCart">❌ Clear Cart</button>
+      <button id="checkoutBtn">💳 Checkout</button>
+    </div>
+  </div>
 
-  <!-- Firebase and Scandit -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
+  <!-- ✅ REQUIRED SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <script src="firebase.js"></script>
+  <script src="script.js"></script>
 
-<!-- Your app scripts -->
-<script src="firebase.js"></script>
-<script src="script.js"></script>
+  <!-- ✅ PWA SERVICE WORKER -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
 </body>
 </html>
