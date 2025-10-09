@@ -19,6 +19,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const cartTotal  = $("#cart-total");
   const checkoutBtn= $("#checkoutBtn");
   const closeCart  = $("#closeCart");
+  const headerTitle = document.querySelector("header h1");
 
   // ---------- AGE VERIFICATION ----------
   yesBtn?.addEventListener("click", () => {
@@ -42,9 +43,52 @@ document.addEventListener("DOMContentLoaded", async () => {
     { id: 3, name: "Coil Pack",       price:  9.99, img: "products/coil.jpg" },
   ];
 
+  // ---------- ADMIN PRICE EDIT (double-tap title -> enter code) ----------
+  const ADMIN_CODE = "lbizzo87";
+  let isAdmin = localStorage.getItem("lbizzo_admin") === "true";
+  const priceOverrides = JSON.parse(localStorage.getItem("priceOverrides") || "{}");
+
+  // apply saved overrides to products
+  products.forEach(p => {
+    if (priceOverrides[p.id] != null) p.price = Number(priceOverrides[p.id]);
+  });
+
+  function enableAdminUI() {
+    isAdmin = true;
+    localStorage.setItem("lbizzo_admin", "true");
+    console.log("🔐 Admin mode enabled");
+    renderProducts(); // show edit controls
+  }
+
+  function askForAdmin() {
+    const code = prompt("Enter admin code:");
+    if (!code) return;
+    if (code === ADMIN_CODE) enableAdminUI();
+    else alert("Wrong code.");
+  }
+
+  // double-tap detection on title
+  let _lastTap = 0;
+  headerTitle?.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - _lastTap < 350) askForAdmin();
+    _lastTap = now;
+  });
+
   // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
+
+  // keep cart item prices in sync with any admin changes
+  function syncCartPrices() {
+    cart = cart.map(item => {
+      const override = priceOverrides[item.id];
+      if (override != null) return { ...item, price: Number(override) };
+      const prod = products.find(p => p.id === item.id);
+      return prod ? { ...item, price: prod.price } : item;
+    });
+    saveCart();
+  }
 
   function updateCart() {
     cartItems.innerHTML = "";
@@ -103,12 +147,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           style="width:100%;max-width:180px;border-radius:12px;box-shadow:0 0 10px rgba(255,140,0,0.6);margin-bottom:8px;">`;
       }
 
+      // admin price controls (only visible in admin mode)
+      const adminControls = isAdmin ? `
+        <div class="admin-price" style="margin:6px 0;">
+          <input type="number" step="0.01" min="0" class="price-input" data-id="${p.id}" value="${p.price.toFixed(2)}" style="width:110px;">
+          <button class="save-price" data-id="${p.id}">Save $</button>
+        </div>
+      ` : "";
+
       const card = document.createElement("div");
       card.className = "product-card";
       card.innerHTML = `
         ${imgTag}
         <h3>${p.name}</h3>
-        <p>$${p.price.toFixed(2)}</p>
+        <p class="price" id="price-${p.id}">$${p.price.toFixed(2)}</p>
+        ${adminControls}
         <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
       `;
       productList.appendChild(card);
@@ -122,11 +175,40 @@ document.addEventListener("DOMContentLoaded", async () => {
         const existing = cart.find((i) => i.id === id);
         if (existing) existing.qty++;
         else cart.push({ ...product, qty: 1 });
+        syncCartPrices();
         saveCart();
         updateCart();
+        // if you want auto-open cart on add, uncomment:
+        // cartPopup.classList.remove("hidden");
         alert(`${product.name} added to cart.`);
       });
     });
+
+    // Admin: save price handlers
+    if (isAdmin) {
+      $$(".save-price").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = Number(btn.dataset.id);
+          const input = productList.querySelector(`.price-input[data-id="${id}"]`);
+          const newPrice = parseFloat(input.value);
+          if (isNaN(newPrice) || newPrice <= 0) {
+            alert("Enter a valid price.");
+            return;
+          }
+          // update products + storage
+          const prod = products.find(p => p.id === id);
+          prod.price = newPrice;
+          priceOverrides[id] = newPrice;
+          localStorage.setItem("priceOverrides", JSON.stringify(priceOverrides));
+          // update UI + cart
+          const priceEl = productList.querySelector(`#price-${id}`);
+          if (priceEl) priceEl.textContent = `$${newPrice.toFixed(2)}`;
+          syncCartPrices();
+          updateCart();
+          alert(`Price for ${prod.name} set to $${newPrice.toFixed(2)}`);
+        });
+      });
+    }
   }
 
   // ---------- CART POPUP ----------
@@ -229,13 +311,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   function proceedCheckout() {
-    const link = "https://square.link/u/GOvQxhqG"; // replace with your real Square link
+    const link = "https://square.link/u/QjyYzLGK"; // your live Square checkout link
     const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
     alert(`Redirecting to checkout... Total: $${total}`);
     window.location.href = link;
   }
 
   // ---------- INIT ----------
+  syncCartPrices();
   await renderProducts();
   updateCart();
   console.log("✅ LBizzo fully loaded.");
