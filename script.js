@@ -195,3 +195,47 @@ document.addEventListener("DOMContentLoaded", () => {
   updateCart();
   console.log("✅ LBizzo ready.");
 });
+// --------------------------------------------------
+// 🔽 Add this at the very bottom of script.js
+// --------------------------------------------------
+document.addEventListener("DOMContentLoaded", async () => {
+  console.log("🧱 Adding 50 product placeholders...");
+
+  const productList = document.getElementById("product-list");
+  if (!productList) return;
+
+  try {
+    const snapshot = await db.collection("products").get();
+    const products = [];
+    snapshot.forEach(doc => products.push(doc.data()));
+
+    // Always show 50 cards total
+    for (let i = 0; i < 50; i++) {
+      const card = document.createElement("div");
+      card.className = "product-card";
+
+      if (products[i]) {
+        const p = products[i];
+        card.innerHTML = `
+          <img src="${p.image || 'https://via.placeholder.com/150'}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>$${p.price}</p>
+          <button class="add-to-cart" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
+        `;
+      } else {
+        card.innerHTML = `
+          <img src="https://via.placeholder.com/150?text=Coming+Soon" alt="Placeholder ${i+1}">
+          <h3>Coming Soon</h3>
+          <p>New item loading...</p>
+          <button disabled>Add to Cart</button>
+        `;
+      }
+
+      productList.appendChild(card);
+    }
+
+    console.log("✅ 50 placeholders added safely.");
+  } catch (err) {
+    console.error("❌ Error loading placeholders:", err);
+  }
+});
