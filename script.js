@@ -1,4 +1,4 @@
-// script.js
+// script.js alert("🔥 script.js loaded!");
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
