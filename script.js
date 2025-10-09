@@ -5,14 +5,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ LBizzo Vape Shop booting...");
 
   // ---------- HELPERS ----------
-  const $  = (sel, root = document) => root.querySelector(sel);
+  const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  // ---------- AGE VERIFICATION ----------
-  const ageCheck = $("#age-check");
-  const yesBtn   = $("#yesBtn");
-  const noBtn    = $("#noBtn");
+  // ---------- ELEMENT REFERENCES ----------
+  const ageCheck   = $("#age-check");
+  const yesBtn     = $("#yesBtn");
+  const noBtn      = $("#noBtn");
+  const productList= $("#product-list");
+  const cartBtn    = $("#cartBtn");
+  const cartPopup  = $("#cart-popup");
+  const cartItems  = $("#cart-items");
+  const cartTotal  = $("#cart-total");
+  const checkoutBtn= $("#checkoutBtn");
+  const closeCart  = $("#closeCart");
 
+  // ---------- AGE VERIFICATION ----------
   yesBtn?.addEventListener("click", () => {
     localStorage.setItem("ageVerified", "true");
     ageCheck.style.display = "none";
@@ -27,32 +35,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     ageCheck.style.display = "none";
   }
 
-  // ---------- PRODUCT DATA ----------
+  // ---------- PRODUCTS ----------
   const products = [
     { id: 1, name: "Disposable Vape", price: 19.99, img: "products/vape1.jpg" },
-    { id: 2, name: "Juice 60ml", price: 14.99, img: "products/juice1.jpg" },
-    { id: 3, name: "Coil Pack", price: 9.99, img: "products/coil.jpg" },
+    { id: 2, name: "Juice 60ml",      price: 14.99, img: "products/juice1.jpg" },
+    { id: 3, name: "Coil Pack",       price:  9.99, img: "products/coil.jpg" },
   ];
-
-  const productList  = $("#product-list");
-  const cartBtn      = $("#cartBtn");
-  const cartPopup    = $("#cart-popup");
-  const cartItemsEl  = $("#cart-items");
-  const cartTotalEl  = $("#cart-total");
-  const checkoutBtn  = $("#checkoutBtn");
-  const closeCart    = $("#closeCart");
 
   // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("cart")) || [];
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
   function updateCart() {
-    cartItemsEl.innerHTML = "";
+    cartItems.innerHTML = "";
     let total = 0;
 
     if (cart.length === 0) {
-      cartItemsEl.innerHTML = "<li>Your cart is empty.</li>";
-      cartTotalEl.textContent = "Total: $0";
+      cartItems.innerHTML = "<li>Your cart is empty.</li>";
+      cartTotal.textContent = "Total: $0";
       return;
     }
 
@@ -63,30 +63,30 @@ document.addEventListener("DOMContentLoaded", async () => {
         ${item.name} - $${item.price.toFixed(2)} × ${item.qty}
         <button class="remove-item" data-index="${index}">❌</button>
       `;
-      cartItemsEl.appendChild(li);
+      cartItems.appendChild(li);
     });
 
-    cartTotalEl.textContent = `Total: $${total.toFixed(2)}`;
+    cartTotal.textContent = `Total: $${total.toFixed(2)}`;
 
-    // Remove item event
+    // Remove item buttons
     $$(".remove-item").forEach((btn) => {
       btn.addEventListener("click", (e) => {
-        const i = Number(e.target.dataset.index);
-        cart.splice(i, 1);
+        const index = Number(e.target.dataset.index);
+        cart.splice(index, 1);
         saveCart();
         updateCart();
       });
     });
   }
 
-  // ---------- FIREBASE IMAGE LOADER ----------
+  // ---------- FIREBASE IMAGE SUPPORT ----------
   async function getFirebaseImage(path) {
     try {
       if (!window._storage) return null;
       const url = await window._storage.ref(path).getDownloadURL();
       return url;
-    } catch {
-      console.warn("⚠️ Image not found:", path);
+    } catch (err) {
+      console.warn("⚠️ Could not load image:", path);
       return null;
     }
   }
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       let imgTag = "";
       const url = window._storage ? await getFirebaseImage(p.img) : null;
       if (url) {
-        imgTag = `<img src="${url}" alt="${p.name}" class="product-img" 
+        imgTag = `<img src="${url}" alt="${p.name}" class="product-img"
           style="width:100%;max-width:180px;border-radius:12px;box-shadow:0 0 10px rgba(255,140,0,0.6);margin-bottom:8px;">`;
       }
 
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       productList.appendChild(card);
     }
 
-    // Add to cart button
+    // Add to cart buttons
     $$(".add-to-cart").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         const id = Number(e.target.dataset.id);
@@ -129,29 +129,36 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }
 
-  // ---------- CART TOGGLE ----------
-  cartBtn.addEventListener("click", () => {
-    cartPopup.classList.toggle("hidden");
-    updateCart();
-  });
+  // ---------- CART POPUP ----------
+  if (cartBtn) {
+    cartBtn.addEventListener("click", () => {
+      cartPopup.classList.toggle("hidden");
+      updateCart();
+      console.log("🛒 Cart toggled");
+    });
+  }
 
-  closeCart.addEventListener("click", () => {
-    cartPopup.classList.add("hidden");
-  });
+  if (closeCart) {
+    closeCart.addEventListener("click", () => {
+      cartPopup.classList.add("hidden");
+      console.log("🛒 Cart closed");
+    });
+  }
 
-  // ---------- SCANDIT CONFIG ----------
+  // ---------- SCANDIT ID SCAN ----------
   const SCANDIT_LICENSE_KEY = "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=";
   const SCANDIT_ENGINE = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/";
-  let pickerReady = false;
+  let scanditReady = false;
 
-  async function ensureScanditReady() {
-    if (pickerReady) return;
-    await ScanditSDK.configure(SCANDIT_LICENSE_KEY, { engineLocation: SCANDIT_ENGINE });
-    pickerReady = true;
+  async function ensureScandit() {
+    if (!scanditReady) {
+      await ScanditSDK.configure(SCANDIT_LICENSE_KEY, { engineLocation: SCANDIT_ENGINE });
+      scanditReady = true;
+    }
   }
 
   async function startScanner() {
-    await ensureScanditReady();
+    await ensureScandit();
     const modal = document.createElement("div");
     modal.id = "scanner-modal";
     modal.style = `
@@ -215,14 +222,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     const verified = localStorage.getItem("idVerified");
     if (!verified) {
       alert("Please scan your ID to verify you are 21+.");
-      try { await startScanner(); } catch { alert("Scanner failed to start. Check camera permissions."); }
+      try { await startScanner(); } catch { alert("Scanner failed to start."); }
       return;
     }
     proceedCheckout();
   });
 
   function proceedCheckout() {
-    const link = "https://square.link/u/GOvQxhqG";
+    const link = "https://square.link/u/GOvQxhqG"; // replace with your real Square link
     const total = cart.reduce((sum, i) => sum + i.price * i.qty, 0).toFixed(2);
     alert(`Redirecting to checkout... Total: $${total}`);
     window.location.href = link;
@@ -231,4 +238,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- INIT ----------
   await renderProducts();
   updateCart();
+  console.log("✅ LBizzo fully loaded.");
 });
