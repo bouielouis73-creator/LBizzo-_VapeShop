@@ -5,40 +5,139 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ Styles & PWA -->
-  <link rel="stylesheet" href="style.css" />
-  <link rel="manifest" href="manifest.json" />
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #000;
+      color: #fff;
+      text-align: center;
+    }
+    header {
+      background: rgba(255,140,0,0.2);
+      padding: 15px;
+      border-bottom: 2px solid #ff8c00;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    button {
+      background: #ff8c00;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.8; }
+
+    #age-check {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+
+    #product-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 20px;
+      gap: 15px;
+    }
+    .product-card {
+      background: #111;
+      border: 2px solid #ff8c00;
+      border-radius: 10px;
+      width: 180px;
+      padding: 10px;
+      box-shadow: 0 0 10px rgba(255,140,0,0.5);
+    }
+    .product-card h3 { margin: 8px 0 4px; }
+
+    #cart-popup {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.95);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 20px;
+      z-index: 9998;
+    }
+    #cart-popup.show { display: flex; }
+
+    #cart-items {
+      list-style: none;
+      padding: 0;
+      width: 90%;
+      max-width: 400px;
+      margin: 0 auto 15px;
+    }
+    #cart-items li {
+      background: #222;
+      padding: 10px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #customer-info {
+      margin-top: 10px;
+      width: 90%;
+      max-width: 400px;
+    }
+    #customer-info input {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      border: 1px solid #ff8c00;
+      border-radius: 6px;
+      background: #000;
+      color: #fff;
+    }
+    .cart-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 15px;
+    }
+  </style>
 </head>
 
 <body>
-  <!-- 🔞 AGE VERIFICATION OVERLAY -->
-  <div id="age-check" class="overlay">
+  <div id="age-check">
     <h2>Are you 21 or older?</h2>
     <button id="yesBtn">Yes</button>
     <button id="noBtn">No</button>
   </div>
 
-  <!-- 🛍️ HEADER -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cartBtn">🛒 Cart</button>
   </header>
 
-  <!-- 🧾 PRODUCT GRID -->
-  <main id="product-list" class="product-grid"></main>
+  <main id="product-list"></main>
 
-  <!-- 🛒 CART POPUP -->
-  <div id="cart-popup" class="hidden">
+  <div id="cart-popup">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <p id="cart-total">Total: $0</p>
 
-    <!-- 👤 CUSTOMER INFO FORM -->
     <div id="customer-info">
       <h3>Customer Info</h3>
-      <input type="text" id="cust-name" placeholder="Full Name" />
-      <input type="text" id="cust-address" placeholder="Address" />
-      <input type="tel" id="cust-phone" placeholder="Phone Number" />
+      <input id="cust-name" placeholder="Full Name" />
+      <input id="cust-address" placeholder="Address" />
+      <input id="cust-phone" placeholder="Phone Number" />
     </div>
 
     <div class="cart-actions">
@@ -48,29 +147,49 @@
     </div>
   </div>
 
-  <!-- ✅ REQUIRED SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/scandit-sdk.min.js"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      console.log("✅ LBizzo Vape Shop booting...");
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("✅ LBizzo loaded");
+
       const $ = s => document.querySelector(s);
       const $$ = s => document.querySelectorAll(s);
 
-      const ageCheck = $("#age-check"), yesBtn = $("#yesBtn"), noBtn = $("#noBtn");
-      const productList = $("#product-list"), cartPopup = $("#cart-popup");
-      const cartBtn = $("#cartBtn"), cartItems = $("#cart-items"), cartTotal = $("#cart-total");
-      const keepShopping = $("#keepShopping"), clearCart = $("#clearCart"), checkoutBtn = $("#checkoutBtn");
-
-      // ---------- PRODUCTS ----------
       const products = [
         { id: 1, name: "Disposable Vape", price: 19.99 },
         { id: 2, name: "Juice 60ml", price: 14.99 },
-        { id: 3, name: "Coil Pack", price: 9.99 }
+        { id: 3, name: "Coil Pack", price: 9.99 },
       ];
 
-      // ---------- CART ----------
-      let cart = JSON.parse(localStorage.getItem("cart")) || [];
-      function saveCart() { localStorage.setItem("cart", JSON.stringify(cart)); }
+      const productList = $("#product-list");
+      const cartPopup = $("#cart-popup");
+      const cartBtn = $("#cartBtn");
+      const cartItems = $("#cart-items");
+      const cartTotal = $("#cart-total");
+      const keepShopping = $("#keepShopping");
+      const clearCart = $("#clearCart");
+      const checkoutBtn = $("#checkoutBtn");
+      const ageCheck = $("#age-check");
+      const yesBtn = $("#yesBtn");
+      const noBtn = $("#noBtn");
+
+      let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+
+      // ✅ Render products
+      products.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "product-card";
+        div.innerHTML = `
+          <h3>${p.name}</h3>
+          <p>$${p.price.toFixed(2)}</p>
+          <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
+        `;
+        productList.appendChild(div);
+      });
+
+      function saveCart() {
+        localStorage.setItem("cart", JSON.stringify(cart));
+      }
 
       function updateCart() {
         cartItems.innerHTML = "";
@@ -83,110 +202,71 @@
         cart.forEach((item, i) => {
           total += item.price * item.qty;
           const li = document.createElement("li");
-          li.innerHTML = `${item.name} - $${item.price.toFixed(2)} × ${item.qty} <button data-i="${i}" class="remove-item">❌</button>`;
+          li.innerHTML = `${item.name} - $${item.price.toFixed(2)} × ${item.qty} 
+            <button data-i="${i}" class="remove-item">❌</button>`;
           cartItems.appendChild(li);
         });
         cartTotal.textContent = `Total: $${total.toFixed(2)}`;
-        $$(".remove-item").forEach(btn => btn.addEventListener("click", e => {
-          const i = e.target.dataset.i;
-          cart.splice(i, 1);
-          saveCart();
-          updateCart();
-        }));
-      }
-
-      // ---------- RENDER PRODUCTS ----------
-      function renderProducts() {
-        productList.innerHTML = "";
-        products.forEach(p => {
-          const card = document.createElement("div");
-          card.className = "product-card";
-          card.innerHTML = `
-            <h3>${p.name}</h3>
-            <p>$${p.price.toFixed(2)}</p>
-            <button class="add-to-cart" data-id="${p.id}">Add to Cart</button>
-          `;
-          productList.appendChild(card);
-        });
-        $$(".add-to-cart").forEach(btn =>
+        $$(".remove-item").forEach(btn =>
           btn.addEventListener("click", e => {
-            const id = +e.target.dataset.id;
-            const p = products.find(x => x.id === id);
-            const existing = cart.find(x => x.id === id);
-            if (existing) existing.qty++;
-            else cart.push({ ...p, qty: 1 });
+            const i = e.target.dataset.i;
+            cart.splice(i, 1);
             saveCart();
             updateCart();
-            cartPopup.classList.add("show");
           })
         );
       }
 
-      // ---------- BUTTONS ----------
+      // ✅ Button Events
+      $$(".add-to-cart").forEach(btn =>
+        btn.addEventListener("click", e => {
+          const id = +e.target.dataset.id;
+          const p = products.find(x => x.id === id);
+          const existing = cart.find(x => x.id === id);
+          if (existing) existing.qty++;
+          else cart.push({ ...p, qty: 1 });
+          saveCart();
+          updateCart();
+          cartPopup.classList.add("show");
+        })
+      );
+
       cartBtn.addEventListener("click", () => {
         cartPopup.classList.toggle("show");
         updateCart();
       });
-      keepShopping.addEventListener("click", () => cartPopup.classList.remove("show"));
+
+      keepShopping.addEventListener("click", () => {
+        cartPopup.classList.remove("show");
+      });
+
       clearCart.addEventListener("click", () => {
         cart = [];
         saveCart();
         updateCart();
       });
 
-      // ---------- AGE GATE ----------
       yesBtn.addEventListener("click", () => {
         localStorage.setItem("ageVerified", "true");
         ageCheck.style.display = "none";
       });
       noBtn.addEventListener("click", () => {
-        alert("Sorry, you must be 21 or older to enter.");
+        alert("Sorry, you must be 21+ to enter.");
         window.location.href = "https://google.com";
       });
       if (localStorage.getItem("ageVerified") === "true") ageCheck.style.display = "none";
 
-      // ---------- SCANDIT & CHECKOUT ----------
-      const SCANDIT_KEY = "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=";
-      const SQUARE_LINK = "https://square.link/u/QjyYzLGK";
-
-      async function startScan() {
-        await ScanditSDK.configure(SCANDIT_KEY, { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/" });
-        const modal = document.createElement("div");
-        modal.style = "position:fixed;inset:0;background:rgba(0,0,0,0.9);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;";
-        modal.innerHTML = `<div id='scanner' style='width:90%;max-width:480px;height:60vh;'></div><button id='cancelScan'>Cancel</button>`;
-        document.body.appendChild(modal);
-        const picker = await ScanditSDK.BarcodePicker.create(document.getElementById("scanner"), { playSoundOnScan: true, vibrateOnScan: true });
-        const settings = new ScanditSDK.ScanSettings();
-        settings.setSymbologyEnabled(ScanditSDK.Barcode.Symbology.PDF417, true);
-        await picker.applyScanSettings(settings);
-        picker.on("scan", result => {
-          const raw = result.barcodes[0]?.data || "";
-          const dob = raw.match(/DBB(\d{8})/);
-          if (!dob) return alert("Could not read DOB, try again");
-          const d = dob[1];
-          const yyyy = +d.slice(4,8), mm = +d.slice(0,2)-1, dd = +d.slice(2,4);
-          const birth = new Date(yyyy,mm,dd);
-          const age21 = new Date(birth.getFullYear()+21,birth.getMonth(),birth.getDate());
-          if (new Date()<age21) return alert("You must be 21+ to checkout");
-          picker.pauseScanning(); modal.remove();
-          alert("✅ ID Verified! Redirecting to checkout...");
-          window.location.href = SQUARE_LINK;
-        });
-        $("#cancelScan").onclick = () => { picker.pauseScanning(); modal.remove(); };
-      }
-
-      checkoutBtn.addEventListener("click", () => {
+      checkoutBtn.addEventListener("click", async () => {
         if (cart.length === 0) return alert("Your cart is empty!");
-        startScan();
+        alert("✅ Redirecting to checkout...");
+        window.location.href = "https://square.link/u/QjyYzLGK";
       });
 
-      renderProducts();
       updateCart();
-      console.log("✅ LBizzo ready!");
     });
   </script>
 
-  <!-- ✅ PWA SERVICE WORKER -->
+  <!-- ✅ SERVICE WORKER -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
