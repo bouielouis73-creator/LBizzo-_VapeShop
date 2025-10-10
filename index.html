@@ -4,69 +4,80 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
+  <link rel="stylesheet" href="style.css" />
 
-  <style>
-    body { margin:0; font-family: system-ui, sans-serif; background:#000; color:#fff; }
-    header { display:flex; justify-content:space-between; align-items:center; padding:14px; background:#111; border-bottom:2px solid #ff8c00; }
-    button { background:#ff8c00; color:#000; border:0; border-radius:6px; padding:10px 16px; font-weight:700; cursor:pointer; }
-    .product-grid { display:flex; flex-wrap:wrap; gap:16px; padding:16px; justify-content:center; }
-    .product-card { width:190px; background:#111; border:2px solid #ff8c00; border-radius:12px; padding:12px; box-shadow:0 0 10px rgba(255,140,0,.4); text-align:center; }
-    .product-card img { width:100%; border-radius:10px; }
-    .hidden { display:none !important; }
-    #cart-popup { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; padding:16px; background:rgba(0,0,0,.95); z-index:9999; overflow:auto; }
-    #cart-items { list-style:none; padding:0; margin:0; width:92%; max-width:420px; }
-    #cart-items li { display:flex; justify-content:space-between; align-items:center; background:#1a1a1a; padding:10px; border-radius:8px; margin-bottom:8px; }
-    #customer-info { width:92%; max-width:420px; background:#111; border:1px solid #333; border-radius:8px; padding:12px; margin-top:10px; }
-    #customer-info input { width:100%; padding:10px; margin:6px 0; border:1px solid #ff8c00; border-radius:6px; background:#000; color:#fff; }
-    .cart-actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin:12px 0 20px; }
-    #age-check { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; background:rgba(0,0,0,.95); z-index:10000; }
-  </style>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff8c00" />
+  <!-- (Optional) iOS install icon – add PNG when ready -->
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
 
-  <!-- Firebase SDK -->
-  <script>
-firebase.storage().ref().listAll().then(() => {
-  console.log("✅ Firebase Storage connected!");
-}).catch(err => {
-  console.error("❌ Firebase Storage error:", err);
-});
-</script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <!-- EmailJS SDK -->
+  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+  <!-- Firebase SDKs (compat for simplicity) -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
-
 <body>
-  <div id="age-check">
-    <h2>Are you 21 or older?</h2>
-    <button id="yesBtn">Yes</button>
-    <button id="noBtn">No</button>
+  <!-- 21+ Age Gate -->
+  <div id="age-check" class="overlay" aria-modal="true" role="dialog">
+    <div class="overlay-card">
+      <h2>Are you 21 or older?</h2>
+      <div class="btn-row">
+        <button id="yesBtn" class="btn primary">Yes</button>
+        <button id="noBtn" class="btn danger">No</button>
+      </div>
+      <p class="sub">You must be 21+ to enter.</p>
+    </div>
   </div>
 
-  <header>
+  <header class="topbar glass">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cartBtn">🛒 Cart</button>
+    <div class="right">
+      <button id="cart-btn" class="btn outline">🛒 Cart (<span id="cart-count">0</span>)</button>
+    </div>
   </header>
 
-  <main id="product-list" class="product-grid"></main>
+  <main>
+    <section class="controls">
+      <input id="search" type="search" placeholder="Search products…" autocomplete="off" />
+    </section>
 
-  <div id="cart-popup" class="hidden">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="cart-total">Total: $0</p>
+    <section id="product-list" class="product-grid" aria-live="polite"></section>
+  </main>
 
-    <div id="customer-info">
-      <input id="cust-name" placeholder="Full Name" />
-      <input id="cust-address" placeholder="Address" />
-      <input id="cust-phone" placeholder="Phone Number" />
+  <!-- Cart Drawer -->
+  <aside id="cart" class="cart-drawer" aria-hidden="true">
+    <div class="cart-head">
+      <h2>Your Cart</h2>
+      <button id="close-cart" class="btn icon" aria-label="Close cart">✕</button>
     </div>
+    <ul id="cart-items" class="cart-items"></ul>
 
-    <div class="cart-actions">
-      <button id="keepShopping">🛍️ Keep Shopping</button>
-      <button id="clearCart">❌ Clear Cart</button>
-      <button id="checkoutBtn">💳 Checkout</button>
-    </div>
-  </div>
+    <form id="checkout-form" class="checkout-form">
+      <h3>Customer Info</h3>
+      <label>Full Name<input id="cust_name" required /></label>
+      <label>Address<input id="cust_address" required /></label>
+      <label>Phone<input id="cust_phone" type="tel" required /></label>
+
+      <div class="totals">
+        <div><span>Subtotal</span><span id="subtotal">$0.00</span></div>
+        <div><span>Tax (6%)</span><span id="tax">$0.00</span></div>
+        <div class="strong"><span>Total</span><span id="order_total">$0.00</span></div>
+      </div>
+
+      <button type="submit" class="btn primary block" id="place-order">Place Order</button>
+      <p class="muted small">This emails your order to the shop via EmailJS. No payment taken here.</p>
+    </form>
+  </aside>
+
+  <footer class="glass footer">
+    <span>© <span id="year"></span> LBizzo Delivery</span>
+  </footer>
 </body>
 </html>
