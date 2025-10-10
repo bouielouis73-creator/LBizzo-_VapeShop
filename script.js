@@ -1,204 +1,207 @@
-// script.js
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("✅ LBizzo booting…");
-
-  // Helpers
-  const $ = (s, r=document) => r.querySelector(s);
+// LBizzo Vape Shop — EmailJS + Firebase (no Twilio) + PWA registration
+(() => {
+  if (window.__LBIZZO_BOOTED__) return; window.__LBIZZO_BOOTED__ = true;
+  const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  console.log("✅ LBizzo booting (EmailJS + PWA)…");
 
-  // Elements
-  const ageCheck = $("#age-check");
-  const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
-  const productList = $("#product-list");
-  const cartBtn = $("#cartBtn");
-  const cartPopup = $("#cart-popup");
-  const cartItems = $("#cart-items");
-  const cartTotal = $("#cart-total");
-  const keepShopping = $("#keepShopping");
-  const clearCart = $("#clearCart");
-  const checkoutBtn = $("#checkoutBtn");
-  const nameInput = $("#cust-name");
-  const addressInput = $("#cust-address");
-  const phoneInput = $("#cust-phone");
+  // ---- EmailJS ----
+  const EMAILJS_PUBLIC_KEY   = "f05G0OWo8vkel_HXz";
+  const EMAILJS_SERVICE_ID   = "Services_mos7x3m";
+  const EMAILJS_TEMPLATE_ID  = "Template_kw9vt5f";
+  const EMAIL_TO             = "lbizzocustomers@outlook.com"; // used as `to_email`
 
-  // Guard: ensure required nodes exist
-  const required = [ageCheck, yesBtn, noBtn, productList, cartBtn, cartPopup, cartItems, cartTotal, keepShopping, clearCart, checkoutBtn];
-  if (required.some(n => !n)) {
-    console.error("❌ Missing required DOM node. Check IDs in index.html.");
-    return;
-  }
-
-  // Age gate
-  yesBtn.addEventListener("click", () => {
-    localStorage.setItem("ageVerified", "true");
-    ageCheck.style.display = "none";
+  document.addEventListener("DOMContentLoaded", () => {
+    if (window.emailjs && EMAILJS_PUBLIC_KEY) {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+      console.log("📧 EmailJS ready");
+    } else {
+      console.warn("⚠️ EmailJS not initialized — check your public key");
+    }
   });
+
+  // ---- UI Elements ----
+  const ageGate      = $("#age-check");
+  const yesBtn       = $("#yesBtn");
+  const noBtn        = $("#noBtn");
+  const listEl       = $("#product-list");
+  const search       = $("#search");
+  const cartBtn      = $("#cart-btn");
+  const cartDrawer   = $("#cart");
+  const closeCartBtn = $("#close-cart");
+  const cartItemsEl  = $("#cart-items");
+  const cartCountEl  = $("#cart-count");
+
+  const subtotalEl   = $("#subtotal");
+  const taxEl        = $("#tax");
+  const totalEl      = $("#order_total");
+
+  const form         = $("#checkout-form");
+  const nameEl       = $("#cust_name");
+  const addrEl       = $("#cust_address");
+  const phoneEl      = $("#cust_phone");
+  $("#year").textContent = new Date().getFullYear();
+
+  // ---- Age Gate ----
+  yesBtn.addEventListener("click", () => ageGate.style.display = "none");
   noBtn.addEventListener("click", () => {
-    alert("Sorry, you must be 21 or older to enter.");
-    location.href = "https://google.com";
-  });
-  if (localStorage.getItem("ageVerified") === "true") ageCheck.style.display = "none";
-
-  // Cart
-  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
-  const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
-
-  // Update cart
-  function updateCart() {
-    cartItems.innerHTML = "";
-    if (cart.length === 0) {
-      cartTotal.textContent = "Total: $0";
-      cartItems.innerHTML = "<li>Your cart is empty.</li>";
-      return;
-    }
-    let total = 0;
-    cart.forEach((item, i) => {
-      total += item.price * item.qty;
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <span>${item.name} - $${item.price.toFixed(2)} × ${item.qty}</span>
-        <button class="remove-item" data-i="${i}">❌</button>
-      `;
-      cartItems.appendChild(li);
-    });
-    cartTotal.textContent = `Total: $${total.toFixed(2)}`;
-  }
-
-  // Remove via delegation
-  cartItems.addEventListener("click", e => {
-    const btn = e.target.closest(".remove-item");
-    if (!btn) return;
-    const i = +btn.dataset.i;
-    if (Number.isInteger(i) && i >= 0 && i < cart.length) {
-      cart.splice(i, 1);
-      saveCart();
-      updateCart();
-    }
+    alert("Sorry — you must be 21+ to enter.");
+    location.href = "https://www.responsibility.org/";
   });
 
-  // Cart toggle
-  cartBtn.addEventListener("click", () => {
-    cartPopup.classList.toggle("hidden");
-    updateCart();
-  });
-  keepShopping.addEventListener("click", () => cartPopup.classList.add("hidden"));
-  clearCart.addEventListener("click", () => { cart = []; saveCart(); updateCart(); });
+  // ---- Placeholder image (SVG data URI) ----
+  const PLACEHOLDER = "data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D'http%3A//www.w3.org/2000/svg'%20width%3D'400'%20height%3D'400'%3E%3Crect%20width%3D'100%25'%20height%3D'100%25'%20fill%3D'black'/%3E%3Crect%20x%3D'30'%20y%3D'30'%20width%3D'340'%20height%3D'340'%20rx%3D'18'%20fill%3D'%23111'%20stroke%3D'%23ff8c00'%20stroke-width%3D'6'/%3E%3Ctext%20x%3D'50%25'%20y%3D'52%25'%20dominant-baseline%3D'middle'%20text-anchor%3D'middle'%20font-family%3D'Arial'%20font-size%3D'28'%20fill%3D'%23ff8c00'%3ELBizzo%20Product%3C/text%3E%3C/svg%3E";
 
-  // Customer info save/restore
-  const savedCustomer = JSON.parse(localStorage.getItem("customerInfo") || "{}");
-  nameInput.value = savedCustomer.name || "";
-  addressInput.value = savedCustomer.address || "";
-  phoneInput.value = savedCustomer.phone || "";
-  [nameInput, addressInput, phoneInput].forEach(inp => {
-    inp.addEventListener("input", () => {
-      localStorage.setItem("customerInfo", JSON.stringify({
-        name: nameInput.value, address: addressInput.value, phone: phoneInput.value
-      }));
-    });
-  });
+  // ---- State ----
+  let products = [];
+  let cart = []; // { id, name, price, img, qty }
 
-  // Scandit scan → verify 21+ → checkout
-  const SCANDIT_LICENSE_KEY =
-    "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=";
-  const ENGINE = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.15.0/build/";
+  // ---- Firestore helpers ----
+  const col = () => db.collection(window.LBIZZO_COLLECTION || "products");
 
-  async function startScanner() {
-    await ScanditSDK.configure(SCANDIT_LICENSE_KEY, { engineLocation: ENGINE });
-
-    const modal = document.createElement("div");
-    modal.style = "position:fixed;inset:0;background:rgba(0,0,0,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:10001;";
-    modal.innerHTML = `
-      <div id="scanner-container" style="width:92%;max-width:480px;height:60vh;"></div>
-      <button id="cancelScan" style="margin-top:10px;">Cancel</button>`;
-    document.body.appendChild(modal);
-
-    const picker = await ScanditSDK.BarcodePicker.create($("#scanner-container"), { playSoundOnScan:true, vibrateOnScan:true });
-    const settings = new ScanditSDK.ScanSettings();
-    settings.setSymbologyEnabled(ScanditSDK.Barcode.Symbology.PDF417, true);
-    await picker.applyScanSettings(settings);
-
-    picker.on("scan", res => {
-      const raw = res?.barcodes?.[0]?.data || "";
-      const m = raw.match(/DBB(\d{8})/); // AAMVA: DBB = DOB
-      if (!m) return alert("Could not read DOB. Try again.");
-      const v = m[1]; // mmddyyyy or yyyymmdd variants exist; most AAMVA uses mmddyyyy
-      const month = +v.slice(0,2) - 1, day = +v.slice(2,4), year = +v.slice(4,8);
-      const dob = new Date(year, month, day);
-      const age21 = new Date(dob.getFullYear()+21, dob.getMonth(), dob.getDate());
-      if (new Date() < age21) { alert("You must be 21+ to checkout."); return; }
-
-      localStorage.setItem("idVerified", String(Date.now()));
-      picker.pauseScanning();
-      picker.destroy();
-      modal.remove();
-      proceedCheckout();
-    });
-
-    $("#cancelScan").onclick = () => { picker.pauseScanning(); picker.destroy(); modal.remove(); };
-  }
-
-  // Checkout
-  const SQUARE_LINK = "https://square.link/u/QjyYzLGK";
-  checkoutBtn.addEventListener("click", () => {
-    if (cart.length === 0) return alert("Your cart is empty!");
-    if (!localStorage.getItem("idVerified")) return startScanner();
-    proceedCheckout();
-  });
-
-  function proceedCheckout() {
-    const total = cart.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2);
-    alert(`Redirecting to checkout… Total: $${total}`);
-    location.href = SQUARE_LINK;
-  }
-
-  // 🔽 Load products from Firestore (keeps your buttons working)
-  async function renderProducts() {
-    productList.innerHTML = "";
-    try {
-      const snapshot = await db.collection("products").get();
-      if (snapshot.empty) {
-        productList.innerHTML = "<p>No products found. Add some in Firestore.</p>";
-        return;
-      }
-
-      snapshot.forEach(doc => {
-        const p = doc.data();
-        const card = document.createElement("div");
-        card.className = "product-card";
-        card.innerHTML = `
-          <img src="${p.image || 'https://via.placeholder.com/150?text=No+Image'}" alt="${p.name}" />
-          <h3>${p.name}</h3>
-          <p>$${p.price.toFixed(2)}</p>
-          <button class="add-to-cart" data-id="${doc.id}" data-name="${p.name}" data-price="${p.price}">
-            Add to Cart
-          </button>
-        `;
-        productList.appendChild(card);
-      });
-
-      // enable Add to Cart buttons
-      $$(".add-to-cart").forEach(btn => {
-        btn.addEventListener("click", e => {
-          const name = e.currentTarget.dataset.name;
-          const price = parseFloat(e.currentTarget.dataset.price);
-          const existing = cart.find(i => i.name === name);
-          if (existing) existing.qty++;
-          else cart.push({ name, price, qty: 1 });
-          saveCart();
-          updateCart();
-          cartPopup.classList.remove("hidden");
+  async function loadProducts() {
+    const snap = await col().get();
+    if (snap.empty) {
+      console.log("No products found — seeding 50 placeholders…");
+      const batch = db.batch();
+      for (let i=1; i<=50; i++) {
+        const ref = col().doc();
+        const price = (Math.random()*25 + 4).toFixed(2);
+        batch.set(ref, {
+          name: `Placeholder #${i}`,
+          description: "Add real products in Firestore → products",
+          price: Number(price),
+          img: PLACEHOLDER
         });
-      });
+      }
+      await batch.commit();
+      const seeded = await col().get();
+      products = seeded.docs.map(d => ({ id:d.id, ...d.data() }));
+    } else {
+      products = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    }
+    renderProducts(products);
+  }
 
-      console.log("✅ Products loaded from Firestore.");
-    } catch (err) {
-      console.error("❌ Error loading products:", err);
+  function renderProducts(list) {
+    listEl.innerHTML = "";
+    for (const p of list) {
+      const card = document.createElement("article"); card.className = "card";
+
+      const imgWrap = document.createElement("div"); imgWrap.className = "img";
+      const img = document.createElement("img"); img.alt = p.name || "Product image"; img.loading = "lazy"; img.src = p.img || PLACEHOLDER;
+      imgWrap.appendChild(img);
+
+      const meta = document.createElement("div"); meta.className = "meta";
+      const title = document.createElement("div"); title.className = "title"; title.textContent = p.name || "Unnamed Product";
+      const price = document.createElement("div"); price.className = "price"; price.textContent = "$" + Number(p.price||0).toFixed(2);
+
+      const actions = document.createElement("div"); actions.className = "actions";
+      const addBtn = document.createElement("button"); addBtn.className = "btn primary"; addBtn.textContent = "Add to Cart";
+      addBtn.addEventListener("click", () => addToCart(p));
+      actions.appendChild(addBtn);
+
+      meta.append(title, price, actions);
+      card.append(imgWrap, meta);
+      listEl.appendChild(card);
     }
   }
 
-  // Init
-  renderProducts();
-  updateCart();
-  console.log("✅ LBizzo ready.");
-});
+  // ---- Search ----
+  search.addEventListener("input", () => {
+    const q = search.value.trim().toLowerCase();
+    if (!q) return renderProducts(products);
+    const result = products.filter(p => (p.name||"").toLowerCase().includes(q));
+    renderProducts(result);
+  });
+
+  // ---- Cart logic ----
+  function addToCart(p) {
+    const found = cart.find(i => i.id === p.id);
+    if (found) found.qty += 1;
+    else cart.push({ id:p.id, name:p.name, price:Number(p.price||0), img:p.img||PLACEHOLDER, qty:1 });
+    drawCart(); openCart();
+  }
+
+  function changeQty(id, delta) {
+    const item = cart.find(i => i.id === id); if (!item) return;
+    item.qty += delta; if (item.qty <= 0) cart = cart.filter(i => i.id !== id);
+    drawCart();
+  }
+
+  function drawCart() {
+    cartItemsEl.innerHTML = "";
+    let subtotal = 0;
+
+    for (const i of cart) {
+      const li = document.createElement("li"); li.className = "cart-item";
+
+      const im = document.createElement("img"); im.src = i.img;
+
+      const info = document.createElement("div");
+      const name = document.createElement("div"); name.className = "name"; name.textContent = i.name;
+      const qty = document.createElement("div"); qty.className = "qty";
+      const minus = document.createElement("button"); minus.textContent = "−"; minus.addEventListener("click", () => changeQty(i.id, -1));
+      const q = document.createElement("span"); q.textContent = i.qty;
+      const plus = document.createElement("button"); plus.textContent = "+"; plus.addEventListener("click", () => changeQty(i.id, +1));
+      qty.append(minus, q, plus); info.append(name, qty);
+
+      const price = document.createElement("div"); price.textContent = "$" + (i.price * i.qty).toFixed(2);
+
+      li.append(im, info, price); cartItemsEl.appendChild(li);
+      subtotal += i.price * i.qty;
+    }
+
+    cartCountEl.textContent = cart.reduce((a,b)=>a+b.qty,0);
+    subtotalEl.textContent = "$" + subtotal.toFixed(2);
+    const tax = +(subtotal * 0.06).toFixed(2);
+    taxEl.textContent = "$" + tax.toFixed(2);
+    totalEl.textContent = "$" + (subtotal + tax).toFixed(2);
+  }
+
+  function openCart(){ cartDrawer.classList.add("open"); cartDrawer.setAttribute("aria-hidden","false"); }
+  function closeCart(){ cartDrawer.classList.remove("open"); cartDrawer.setAttribute("aria-hidden","true"); }
+  cartBtn.addEventListener("click", openCart);
+  closeCartBtn.addEventListener("click", closeCart);
+
+  // ---- Checkout (EmailJS) ----
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!window.emailjs) return alert("EmailJS not loaded");
+    if (!cart.length) return alert("Your cart is empty");
+
+    const order_items = cart.map(i => `${i.qty} x ${i.name} ($${i.price.toFixed(2)})`).join(", ");
+    const order_total = totalEl.textContent.replace("$","");
+
+    const params = {
+      to_email: EMAIL_TO,
+      cust_name: nameEl.value.trim(),
+      cust_address: addrEl.value.trim(),
+      cust_phone: phoneEl.value.trim(),
+      order_items,
+      order_total
+    };
+
+    try {
+      const res = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, params);
+      console.log("EmailJS sent:", res.status);
+      alert("✅ Order sent! We will contact you shortly.");
+      cart = []; drawCart(); form.reset(); closeCart();
+    } catch(err) {
+      console.error(err);
+      alert("❌ Failed to send order. Check EmailJS keys/service/template + template variables.");
+    }
+  });
+
+  // ---- Init ----
+  loadProducts().catch(err => console.error(err));
+
+  // ---- PWA: register service worker ----
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js")
+        .then(() => console.log("🧩 Service Worker registered"))
+        .catch(err => console.log("SW fail:", err));
+    });
+  }
+})();
