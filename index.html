@@ -70,7 +70,47 @@
         <div><span>Tax (6%)</span><span id="tax">$0.00</span></div>
         <div class="strong"><span>Total</span><span id="order_total">$0.00</span></div>
       </div>
+// ---------- LOYALTY STARS ----------
+const starContainer = document.getElementById("loyalty-stars");
+const loyaltyMsg = document.getElementById("loyalty-message");
 
+// Create 6 stars visually
+for (let i = 0; i < 6; i++) {
+  const star = document.createElement("span");
+  star.innerHTML = "⭐";
+  star.classList.add("star");
+  starContainer.appendChild(star);
+}
+
+// Load saved stars from localStorage
+let loyaltyPoints = parseInt(localStorage.getItem("loyaltyPoints")) || 0;
+updateStars();
+
+// Function to update star visuals
+function updateStars() {
+  const stars = document.querySelectorAll(".star");
+  stars.forEach((s, i) => {
+    if (i < loyaltyPoints) s.classList.add("active");
+    else s.classList.remove("active");
+  });
+
+  if (loyaltyPoints >= 6) {
+    loyaltyMsg.textContent = "🎉 You earned a FREE vape!";
+  } else {
+    loyaltyMsg.textContent = `Buy ${6 - loyaltyPoints} more to get a free vape!`;
+  }
+}
+
+// Call this when a customer checks out successfully
+function addLoyaltyPoint() {
+  loyaltyPoints++;
+  if (loyaltyPoints > 6) loyaltyPoints = 1; // Reset after free vape
+  localStorage.setItem("loyaltyPoints", loyaltyPoints);
+  updateStars();
+}
+
+// Example: Hook into your checkout success
+// addLoyaltyPoint(); // call this when order completes
       <button type="submit" class="btn primary block" id="place-order">Place Order</button>
       <p class="muted small">This emails your order to the shop via EmailJS. No payment taken here.</p>
     </form>
