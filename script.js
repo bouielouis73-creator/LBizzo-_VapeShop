@@ -1,7 +1,8 @@
-document.addEventListener("DOMContentLoaded", () => {
+// script.js
+document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ LBizzo booting…");
 
-  // ELEMENTS
+  // ---------- ELEMENTS ----------
   const ageCheck = document.getElementById("age-check");
   const yesBtn = document.getElementById("yesBtn");
   const noBtn = document.getElementById("noBtn");
@@ -14,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const clearCart = document.getElementById("clearCart");
   const checkoutBtn = document.getElementById("checkoutBtn");
 
-  // AGE CHECK
+  // ---------- AGE GATE ----------
   yesBtn.onclick = () => {
     localStorage.setItem("ageVerified", "true");
     ageCheck.style.display = "none";
@@ -25,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   if (localStorage.getItem("ageVerified") === "true") ageCheck.style.display = "none";
 
-  // CART
+  // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("cart") || "[]");
   const saveCart = () => localStorage.setItem("cart", JSON.stringify(cart));
 
@@ -49,19 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
     cartTotal.textContent = `Total: $${total.toFixed(2)}`;
   }
 
-  productList.addEventListener("click", e => {
-    if (e.target.classList.contains("add-to-cart")) {
-      const name = e.target.dataset.name;
-      const price = parseFloat(e.target.dataset.price);
-      const existing = cart.find(i => i.name === name);
-      if (existing) existing.qty++;
-      else cart.push({ name, price, qty: 1 });
-      saveCart();
-      updateCart();
-      cartPopup.classList.remove("hidden");
-    }
-  });
-
   cartItems.addEventListener("click", e => {
     if (e.target.classList.contains("remove-item")) {
       const i = e.target.dataset.i;
@@ -75,37 +63,36 @@ document.addEventListener("DOMContentLoaded", () => {
   keepShopping.onclick = () => cartPopup.classList.add("hidden");
   clearCart.onclick = () => { cart = []; saveCart(); updateCart(); };
   checkoutBtn.onclick = () => alert("Checkout coming soon!");
-
   updateCart();
-});
 
-// ✅ NEW FIREBASE PRODUCT LOADER (Up to 50 w/ your pictures)
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("🧱 Loading products from Firestore...");
-
-  const productList = document.getElementById("product-list");
-  if (!productList) return console.error("❌ No #product-list found");
-
+  // ---------- LOAD 30 PRODUCTS FROM FIREBASE STORAGE ----------
+  console.log("🧱 Loading products from Firebase Storage...");
   try {
-    const snapshot = await db.collection("products").get();
-    const products = [];
-    snapshot.forEach(doc => products.push(doc.data()));
+    const storageRef = _storage.ref("products"); // Folder: /products
+    const list = await storageRef.listAll();
+    const files = list.items.slice(0, 30); // Limit to 30 pictures max
 
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 30; i++) {
       const card = document.createElement("div");
       card.className = "product-card";
 
-      if (products[i]) {
-        const p = products[i];
+      if (files[i]) {
+        // ✅ Load each real image from Firebase Storage
+        const file = files[i];
+        const url = await file.getDownloadURL();
+        const name = file.name.replace(/\.[^/.]+$/, ""); // remove .jpg/.png
+        const price = (Math.random() * 20 + 10).toFixed(2); // temporary random price
+
         card.innerHTML = `
-          <img src="${p.image || 'https://via.placeholder.com/150'}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p>$${p.price}</p>
-          <button class="add-to-cart" data-name="${p.name}" data-price="${p.price}">Add to Cart</button>
+          <img src="${url}" alt="${name}">
+          <h3>${name}</h3>
+          <p>$${price}</p>
+          <button class="add-to-cart" data-name="${name}" data-price="${price}">Add to Cart</button>
         `;
       } else {
+        // 🔹 Show placeholder if fewer than 30
         card.innerHTML = `
-          <img src="https://via.placeholder.com/150?text=Coming+Soon" alt="Placeholder ${i+1}">
+          <img src="https://via.placeholder.com/150?text=Coming+Soon" alt="Placeholder ${i + 1}">
           <h3>Coming Soon</h3>
           <p>New item loading...</p>
           <button disabled>Add to Cart</button>
@@ -115,8 +102,22 @@ document.addEventListener("DOMContentLoaded", async () => {
       productList.appendChild(card);
     }
 
-    console.log("✅ 50 products loaded (real + placeholders).");
+    console.log(`✅ Displayed ${files.length} real images + ${30 - files.length} placeholders.`);
   } catch (err) {
-    console.error("❌ Error loading products:", err);
+    console.error("❌ Error loading from Firebase Storage:", err);
   }
+
+  // ---------- ADD TO CART ----------
+  productList.addEventListener("click", e => {
+    if (e.target.classList.contains("add-to-cart")) {
+      const name = e.target.dataset.name;
+      const price = parseFloat(e.target.dataset.price);
+      const existing = cart.find(i => i.name === name);
+      if (existing) existing.qty++;
+      else cart.push({ name, price, qty: 1 });
+      saveCart();
+      updateCart();
+      cartPopup.classList.remove("hidden");
+    }
+  });
 });
