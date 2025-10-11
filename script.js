@@ -1,41 +1,36 @@
 document.addEventListener("DOMContentLoaded", () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo JS booting...");
-    // TEST FIRESTORE CONNECTION
-  db.collection("products")
-    .get()
-    .then(snapshot => {
-      console.log("📦 Firestore connected! Found docs:", snapshot.size);
-      snapshot.forEach(doc => console.log("→", doc.id, doc.data()));
-    })
-    .catch(err => console.error("🔥 Firestore test error:", err));
-db.collection("products")
-  .get()
-  .then((snapshot) => {
-    console.log("📦 Found documents:", snapshot.size);
-    snapshot.forEach((doc) => console.log(doc.id, doc.data()));
-  })
-  .catch((err) => console.error("🔥 Firestore error:", err));
-  // Helpers
-  const $ = (sel, root = document) => root.querySelector(sel);
+  console.log("✅ LBizzo JS booting…");
 
-  // ---------- AGE CHECK ----------
+  // ---------- helpers ----------
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const debugBar = $("#debug");
+  const setDebug = (msg, ok = false) => {
+    if (!debugBar) return;
+    debugBar.textContent = msg;
+    debugBar.style.background = ok ? "#022" : "#220";
+    debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
+    debugBar.hidden = false;
+  };
+
+  // ---------- sanity checks ----------
+  if (!window.firebase) { setDebug("Firebase SDK missing."); return; }
+  if (!window.db) { setDebug("Firestore (db) not available. Check firebase.js order."); return; }
+
+  // ---------- age check ----------
   const ageCheck = $("#age-check");
-  $("#yesBtn").addEventListener("click", () => (ageCheck.style.display = "none"));
+  $("#yesBtn").addEventListener("click", () => ageCheck.style.display = "none");
   $("#noBtn").addEventListener("click", () => {
     alert("Sorry, you must be 21 or older to enter.");
     location.href = "https://google.com";
   });
 
-  // ---------- CART ----------
-  const cartBtn = $("#cart-btn");
-  const cartSection = $("#cart");
+  // ---------- cart ----------
   const cartItemsList = $("#cart-items");
   const cartCount = $("#cart-count");
-  const checkoutBtn = $("#checkout-btn");
   const totalDisplay = $("#cart-total");
-
+  const checkoutBtn = $("#checkout-btn");
   let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
   function updateCartUI() {
@@ -43,85 +38,89 @@ db.collection("products")
     let total = 0;
     cart.forEach((item, i) => {
       const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${item.price.toFixed(2)} 
-      <button class="remove-btn" data-index="${i}">❌</button>`;
+      total += Number(item.price) || 0;
+      li.innerHTML = `${item.name} - $${(Number(item.price)||0).toFixed(2)}
+        <button class="remove-btn" data-i="${i}">❌</button>`;
       cartItemsList.appendChild(li);
-      total += item.price;
     });
     totalDisplay.textContent = `Total: $${total.toFixed(2)}`;
     cartCount.textContent = cart.length;
     localStorage.setItem("cart", JSON.stringify(cart));
   }
-
   cartItemsList.addEventListener("click", (e) => {
     if (e.target.classList.contains("remove-btn")) {
-      const index = e.target.dataset.index;
-      cart.splice(index, 1);
+      cart.splice(Number(e.target.dataset.i), 1);
       updateCartUI();
     }
   });
-
   checkoutBtn.addEventListener("click", () => {
-    if (cart.length === 0) {
-      alert("Your cart is empty!");
-      return;
-    }
+    if (!cart.length) { alert("Your cart is empty!"); return; }
     alert("🛒 Checkout complete!");
-    addLoyaltyStar(); // ⭐ Add star on every purchase
+    addLoyaltyStar();            // ⭐ add a star on every purchase
     cart = [];
     updateCartUI();
   });
-
   updateCartUI();
 
-  // ---------- FIRESTORE PRODUCTS ----------
+  // ---------- loyalty stars ----------
+  const stars = document.querySelectorAll("#loyalty-stars .star");
+  let loyaltyCount = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
+  function renderStars() {
+    stars.forEach((s, i) => s.classList.toggle("active", i < loyaltyCount));
+  }
+  function addLoyaltyStar() {
+    loyaltyCount++;
+    if (loyaltyCount >= 6) {
+      alert("🎉 Congratulations! You earned a free vape!");
+      loyaltyCount = 0;
+    }
+    localStorage.setItem("loyaltyCount", String(loyaltyCount));
+    renderStars();
+  }
+  renderStars();
+
+  // ---------- load products from Firestore ("products" collection) ----------
   const productList = $("#product-list");
 
   db.collection("products")
     .get()
     .then((snapshot) => {
+      setDebug(`Connected to Firestore • ${snapshot.size} product(s)`, true);
+      if (snapshot.empty) {
+        productList.innerHTML =
+          "<p style='opacity:.8'>No products yet. Add docs in Firestore → products with fields: name (string), price (number), image (string URL).</p>";
+        return;
+      }
       productList.innerHTML = "";
       snapshot.forEach((doc) => {
         const p = doc.data();
-        const div = document.createElement("div");
-        div.className = "product";
-        div.innerHTML = `
-          <img src="${p.image}" alt="${p.name}">
-          <h3>${p.name}</h3>
-          <p>$${p.price.toFixed(2)}</p>
+        const priceNum = Number(p.price) || 0;
+        const card = document.createElement("div");
+        card.className = "product";
+        card.innerHTML = `
+          <img src="${p.image || ""}" alt="${p.name || "Product"}"
+               onerror="this.src=''; this.style.display='none';" />
+          <h3>${p.name || "Unnamed"}</h3>
+          <p>$${priceNum.toFixed(2)}</p>
           <button class="add-btn">Add to Cart</button>
         `;
-        div.querySelector(".add-btn").addEventListener("click", () => {
-          cart.push(p);
+        card.querySelector(".add-btn").addEventListener("click", () => {
+          cart.push({ name: p.name || "Item", price: priceNum, image: p.image || "" });
           updateCartUI();
         });
-        productList.appendChild(div);
+        productList.appendChild(card);
       });
     })
     .catch((err) => {
-      console.error("Error loading products:", err);
-      productList.innerHTML = "<p style='color:red;'>⚠️ Could not load products</p>";
+      console.error("🔥 Firestore load error:", err);
+      setDebug(`Firestore error: ${err.message}`);
+      productList.innerHTML = "<p style='color:#ff6666'>⚠️ Could not load products</p>";
+      // (Optional) fallback demo card so the UI still works
+      /* const demo = {name:"Demo Vape", price:12.99};
+      const card = document.createElement("div");
+      card.className="product";
+      card.innerHTML = `<h3>${demo.name}</h3><p>$${demo.price.toFixed(2)}</p><button class="add-btn">Add to Cart</button>`;
+      card.querySelector(".add-btn").addEventListener("click",()=>{cart.push(demo);updateCartUI();});
+      productList.appendChild(card); */
     });
-
-  // ---------- LOYALTY STARS ----------
-  const stars = document.querySelectorAll("#loyalty-stars .star");
-  let loyaltyCount = parseInt(localStorage.getItem("loyaltyCount") || "0");
-
-  function updateLoyaltyStars() {
-    stars.forEach((star, i) => {
-      star.classList.toggle("active", i < loyaltyCount);
-    });
-  }
-
-  function addLoyaltyStar() {
-    loyaltyCount++;
-    if (loyaltyCount >= 6) {
-      alert("🎉 Congratulations! You earned a free vape!");
-      loyaltyCount = 0; // Reset after 6th star
-    }
-    localStorage.setItem("loyaltyCount", loyaltyCount);
-    updateLoyaltyStars();
-  }
-
-  updateLoyaltyStars();
 });
