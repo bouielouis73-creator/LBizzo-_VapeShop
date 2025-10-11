@@ -1,26 +1,20 @@
 document.addEventListener("DOMContentLoaded", () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo JS booting…");
+  console.log("✅ LBizzo JS booting...");
 
-  // ---------- HELPERS ----------
+  // Helpers
   const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  // ---------- AGE VERIFICATION ----------
+  // ---------- AGE CHECK ----------
   const ageCheck = $("#age-check");
-  const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
-
-  yesBtn.addEventListener("click", () => {
-    ageCheck.style.display = "none";
-  });
-  noBtn.addEventListener("click", () => {
+  $("#yesBtn").addEventListener("click", () => (ageCheck.style.display = "none"));
+  $("#noBtn").addEventListener("click", () => {
     alert("Sorry, you must be 21 or older to enter.");
-    window.location.href = "https://google.com";
+    location.href = "https://google.com";
   });
 
-  // ---------- CART SYSTEM ----------
+  // ---------- CART ----------
   const cartBtn = $("#cart-btn");
   const cartSection = $("#cart");
   const cartItemsList = $("#cart-items");
@@ -59,59 +53,41 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     alert("🛒 Checkout complete!");
-    addLoyaltyStar(); // ⭐ Add a loyalty star after every checkout
+    addLoyaltyStar(); // ⭐ Add star on every purchase
     cart = [];
     updateCartUI();
   });
 
+  updateCartUI();
+
   // ---------- FIRESTORE PRODUCTS ----------
-const productList = $("#product-list");
-
-db.collection("products")
-  .get()
-  .then((snapshot) => {
-    productList.innerHTML = ""; // clear old placeholders
-    snapshot.forEach((doc) => {
-      const p = doc.data();
-
-      const div = document.createElement("div");
-      div.className = "product";
-      div.innerHTML = `
-        <img src="${p.image}" alt="${p.name}" style="width:100%;border-radius:10px;">
-        <h3>${p.name}</h3>
-        <p>$${p.price.toFixed(2)}</p>
-        <button class="add-btn">Add to Cart</button>
-      `;
-
-      div.querySelector(".add-btn").addEventListener("click", () => {
-        cart.push(p);
-        updateCartUI();
-      });
-
-      productList.appendChild(div);
-    });
-  })
-  .catch((err) => {
-    console.error("Error loading products:", err);
-    productList.innerHTML = "<p style='color:red;'>⚠️ Could not load products</p>";
-  });
-
   const productList = $("#product-list");
 
-  products.forEach((p) => {
-    const div = document.createElement("div");
-    div.className = "product";
-    div.innerHTML = `
-      <h3>${p.name}</h3>
-      <p>$${p.price.toFixed(2)}</p>
-      <button class="add-btn">Add to Cart</button>
-    `;
-    div.querySelector(".add-btn").addEventListener("click", () => {
-      cart.push(p);
-      updateCartUI();
+  db.collection("products")
+    .get()
+    .then((snapshot) => {
+      productList.innerHTML = "";
+      snapshot.forEach((doc) => {
+        const p = doc.data();
+        const div = document.createElement("div");
+        div.className = "product";
+        div.innerHTML = `
+          <img src="${p.image}" alt="${p.name}">
+          <h3>${p.name}</h3>
+          <p>$${p.price.toFixed(2)}</p>
+          <button class="add-btn">Add to Cart</button>
+        `;
+        div.querySelector(".add-btn").addEventListener("click", () => {
+          cart.push(p);
+          updateCartUI();
+        });
+        productList.appendChild(div);
+      });
+    })
+    .catch((err) => {
+      console.error("Error loading products:", err);
+      productList.innerHTML = "<p style='color:red;'>⚠️ Could not load products</p>";
     });
-    productList.appendChild(div);
-  });
 
   // ---------- LOYALTY STARS ----------
   const stars = document.querySelectorAll("#loyalty-stars .star");
@@ -126,8 +102,8 @@ db.collection("products")
   function addLoyaltyStar() {
     loyaltyCount++;
     if (loyaltyCount >= 6) {
-      alert("🎉 Congrats! You’ve earned a free vape!");
-      loyaltyCount = 0;
+      alert("🎉 Congratulations! You earned a free vape!");
+      loyaltyCount = 0; // Reset after 6th star
     }
     localStorage.setItem("loyaltyCount", loyaltyCount);
     updateLoyaltyStars();
