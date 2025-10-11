@@ -1,98 +1,22 @@
-:root {
-  --bg: #000;
-  --fg: #ff8c00;
-  --card: #111;
-  --muted: #1a1a1a;
-  color-scheme: dark;
-}
+// firebase.js
+(function () {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+    authDomain: "lbizzodelivery.firebaseapp.com",
+    projectId: "lbizzodelivery",
+    storageBucket: "lbizzodelivery.appspot.com",
+    messagingSenderId: "614540837455",
+    appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+  };
 
-html, body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-}
+  if (!window.firebase) {
+    console.error("Firebase SDK not loaded.");
+    return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 
-header {
-  background: var(--card);
-  border-bottom: 2px solid var(--fg);
-  text-align: center;
-  padding: 10px;
-}
-
-button {
-  background: var(--muted);
-  color: var(--fg);
-  border: 1px solid var(--fg);
-  border-radius: 10px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-button:hover {
-  background: var(--bg);
-  box-shadow: 0 0 10px var(--fg);
-}
-
-/* Product grid */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
-  padding: 16px;
-}
-.product {
-  background: var(--card);
-  border: 1px solid var(--fg);
-  border-radius: 12px;
-  padding: 10px;
-  text-align: center;
-}
-.product img {
-  width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--fg);
-}
-
-/* Cart */
-#cart {
-  background: var(--card);
-  border: 1px solid var(--fg);
-  border-radius: 10px;
-  margin: 12px;
-  padding: 12px;
-}
-#cart-total {
-  color: var(--fg);
-}
-
-/* Age check */
-#age-check {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 9999;
-}
-
-/* Loyalty Stars */
-#loyalty-stars {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 10px;
-}
-.star {
-  font-size: 26px;
-  color: #333;
-  text-shadow: 0 0 8px #000;
-  transition: 0.3s;
-}
-.star.active {
-  color: var(--fg);
-  text-shadow: 0 0 18px var(--fg), 0 0 28px var(--fg);
-  transform: scale(1.1);
-}
+  // Expose for your app & quick debugging
+  window.db = firebase.firestore();
+  window.storage = firebase.storage();
+  console.log("🔥 Firebase initialized:", firebase.app().name);
+})();
