@@ -2,7 +2,13 @@ document.addEventListener("DOMContentLoaded", () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
   console.log("✅ LBizzo JS booting...");
-
+db.collection("products")
+  .get()
+  .then((snapshot) => {
+    console.log("📦 Found documents:", snapshot.size);
+    snapshot.forEach((doc) => console.log(doc.id, doc.data()));
+  })
+  .catch((err) => console.error("🔥 Firestore error:", err));
   // Helpers
   const $ = (sel, root = document) => root.querySelector(sel);
 
