@@ -2,6 +2,14 @@ document.addEventListener("DOMContentLoaded", () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
   console.log("✅ LBizzo JS booting...");
+    // TEST FIRESTORE CONNECTION
+  db.collection("products")
+    .get()
+    .then(snapshot => {
+      console.log("📦 Firestore connected! Found docs:", snapshot.size);
+      snapshot.forEach(doc => console.log("→", doc.id, doc.data()));
+    })
+    .catch(err => console.error("🔥 Firestore test error:", err));
 db.collection("products")
   .get()
   .then((snapshot) => {
