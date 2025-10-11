@@ -64,14 +64,37 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCartUI();
   });
 
-  updateCartUI();
+  // ---------- FIRESTORE PRODUCTS ----------
+const productList = $("#product-list");
 
-  // ---------- PRODUCTS ----------
-  const products = [
-    { name: "Vape 1", price: 10.0 },
-    { name: "Vape 2", price: 15.0 },
-    { name: "Vape 3", price: 20.0 },
-  ];
+db.collection("products")
+  .get()
+  .then((snapshot) => {
+    productList.innerHTML = ""; // clear old placeholders
+    snapshot.forEach((doc) => {
+      const p = doc.data();
+
+      const div = document.createElement("div");
+      div.className = "product";
+      div.innerHTML = `
+        <img src="${p.image}" alt="${p.name}" style="width:100%;border-radius:10px;">
+        <h3>${p.name}</h3>
+        <p>$${p.price.toFixed(2)}</p>
+        <button class="add-btn">Add to Cart</button>
+      `;
+
+      div.querySelector(".add-btn").addEventListener("click", () => {
+        cart.push(p);
+        updateCartUI();
+      });
+
+      productList.appendChild(div);
+    });
+  })
+  .catch((err) => {
+    console.error("Error loading products:", err);
+    productList.innerHTML = "<p style='color:red;'>⚠️ Could not load products</p>";
+  });
 
   const productList = $("#product-list");
 
