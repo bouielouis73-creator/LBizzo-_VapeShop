@@ -2,122 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LBizzo Vape Shop</title>
   <link rel="stylesheet" href="style.css" />
-
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <!-- (Optional) iOS install icon – add PNG when ready -->
-  <link rel="apple-touch-icon" href="icons/icon-192.png" />
-
-  <!-- EmailJS SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-
-  <!-- Firebase SDKs (compat for simplicity) -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- 21+ Age Gate -->
-  <div id="age-check" class="overlay" aria-modal="true" role="dialog">
-    <div class="overlay-card">
-      <h2>Are you 21 or older?</h2>
-      <div class="btn-row">
-        <button id="yesBtn" class="btn primary">Yes</button>
-        <button id="noBtn" class="btn danger">No</button>
-      </div>
-      <p class="sub">You must be 21+ to enter.</p>
-    </div>
+  <!-- AGE CHECK -->
+  <div id="age-check">
+    <h2>Are you 21 or older?</h2>
+    <button id="yesBtn">Yes</button>
+    <button id="noBtn">No</button>
   </div>
 
-  <header class="topbar glass">
+  <!-- HEADER -->
+  <header>
     <h1>LBizzo Vape Shop</h1>
-    <div class="right">
-      <button id="cart-btn" class="btn outline">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+
+    <!-- Loyalty Stars -->
+    <div id="loyalty-stars">
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
+      <span class="star">⭐</span>
     </div>
   </header>
 
-  <main>
-    <section class="controls">
-      <input id="search" type="search" placeholder="Search products…" autocomplete="off" />
-    </section>
+  <!-- MAIN SHOP AREA -->
+  <main id="product-list" class="product-grid"></main>
 
-    <section id="product-list" class="product-grid" aria-live="polite"></section>
-  </main>
-
-  <!-- Cart Drawer -->
-  <aside id="cart" class="cart-drawer" aria-hidden="true">
-    <div class="cart-head">
-      <h2>Your Cart</h2>
-      <button id="close-cart" class="btn icon" aria-label="Close cart">✕</button>
-    </div>
-    <ul id="cart-items" class="cart-items"></ul>
-
-    <form id="checkout-form" class="checkout-form">
-      <h3>Customer Info</h3>
-      <label>Full Name<input id="cust_name" required /></label>
-      <label>Address<input id="cust_address" required /></label>
-      <label>Phone<input id="cust_phone" type="tel" required /></label>
-
-      <div class="totals">
-        <div><span>Subtotal</span><span id="subtotal">$0.00</span></div>
-        <div><span>Tax (6%)</span><span id="tax">$0.00</span></div>
-        <div class="strong"><span>Total</span><span id="order_total">$0.00</span></div>
-      </div>
-// ---------- LOYALTY STARS ----------
-const starContainer = document.getElementById("loyalty-stars");
-const loyaltyMsg = document.getElementById("loyalty-message");
-
-// Create 6 stars visually
-for (let i = 0; i < 6; i++) {
-  const star = document.createElement("span");
-  star.innerHTML = "⭐";
-  star.classList.add("star");
-  starContainer.appendChild(star);
-}
-
-// Load saved stars from localStorage
-let loyaltyPoints = parseInt(localStorage.getItem("loyaltyPoints")) || 0;
-updateStars();
-
-// Function to update star visuals
-function updateStars() {
-  const stars = document.querySelectorAll(".star");
-  stars.forEach((s, i) => {
-    if (i < loyaltyPoints) s.classList.add("active");
-    else s.classList.remove("active");
-  });
-
-  if (loyaltyPoints >= 6) {
-    loyaltyMsg.textContent = "🎉 You earned a FREE vape!";
-  } else {
-    loyaltyMsg.textContent = `Buy ${6 - loyaltyPoints} more to get a free vape!`;
-  }
-}
-
-// Call this when a customer checks out successfully
-function addLoyaltyPoint() {
-  loyaltyPoints++;
-  if (loyaltyPoints > 6) loyaltyPoints = 1; // Reset after free vape
-  localStorage.setItem("loyaltyPoints", loyaltyPoints);
-  updateStars();
-}
-
-// Example: Hook into your checkout success
-// addLoyaltyPoint(); // call this when order completes
-      <button type="submit" class="btn primary block" id="place-order">Place Order</button>
-      <p class="muted small">This emails your order to the shop via EmailJS. No payment taken here.</p>
-    </form>
-  </aside>
-
-  <footer class="glass footer">
-    <span>© <span id="year"></span> LBizzo Delivery</span>
-  </footer>
+  <!-- CART SECTION -->
+  <section id="cart" class="cart">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <p id="cart-total">Total: $0.00</p>
+    <button id="checkout-btn">Checkout</button>
+  </section>
 </body>
 </html>
