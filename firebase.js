@@ -10,7 +10,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
+storageBucket: "lbizzodelivery.appspot.com"
 
 // Firestore collection for products
 window.LBIZZO_COLLECTION = "products";
