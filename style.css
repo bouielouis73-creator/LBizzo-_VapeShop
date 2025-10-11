@@ -1,63 +1,20 @@
-body {
-  font-family: 'Poppins', sans-serif;
-  background: #000;
-  color: #fff;
-  margin: 0;
-  padding: 0;
-}
-
-header {
+/* Loyalty Stars Section */
+#loyalty-stars {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #111;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.star {
+  font-size: 26px;
+  color: #444;
+  text-shadow: 0 0 8px #000;
+  transition: color 0.3s, text-shadow 0.3s, transform 0.3s;
+}
+
+.star.active {
   color: #ff8c00;
-  padding: 1em;
-}
-
-button {
-  background: #ff8c00;
-  color: #000;
-  border: none;
-  padding: 0.5em 1em;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1em;
-  padding: 1em;
-}
-
-.product {
-  background: #1b1b1b;
-  padding: 1em;
-  border-radius: 10px;
-  text-align: center;
-}
-
-#cart-popup {
-  position: fixed;
-  bottom: -100%; /* Start hidden below the screen */
-  left: 0;
-  width: 100%;
-  background: #111;
-  border-top: 3px solid #ff8c00;
-  padding: 1em;
-  color: white;
-  z-index: 1000;
-  text-align: center;
-  transition: bottom 0.4s ease-in-out, opacity 0.3s ease-in-out; /* Smooth slide and fade */
-  opacity: 0;
-}
-
-#cart-popup.show {
-  bottom: 0; /* Slides up into view */
-  opacity: 1;
-}
-
-.hidden {
-  display: none;
+  text-shadow: 0 0 18px #ff8c00, 0 0 28px #ff8c00;
+  transform: scale(1.1);
 }
