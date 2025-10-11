@@ -2,40 +2,49 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
   <meta name="theme-color" content="#000000" />
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Firebase SDKs (compat so v8-style code works) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+  <!-- Your app scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
+  <!-- AGE GATE -->
   <div id="age-check">
     <h2>Are you 21 or older?</h2>
-    <button id="yesBtn">Yes</button>
-    <button id="noBtn">No</button>
+    <div class="age-buttons">
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
+    </div>
   </div>
 
+  <!-- HEADER -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
 
     <!-- Loyalty Stars -->
     <div id="loyalty-stars">
-      <span class="star">⭐</span>
-      <span class="star">⭐</span>
-      <span class="star">⭐</span>
-      <span class="star">⭐</span>
-      <span class="star">⭐</span>
-      <span class="star">⭐</span>
+      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
     </div>
   </header>
 
+  <!-- DEBUG (shows live status if something fails) -->
+  <div id="debug" hidden></div>
+
+  <!-- PRODUCTS -->
   <main id="product-list" class="product-grid"></main>
 
+  <!-- CART -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
