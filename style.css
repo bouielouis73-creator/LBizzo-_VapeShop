@@ -20,7 +20,6 @@ h1{margin:0;font-size:1.25rem}
 .product p{margin:.25rem 0 .5rem 0;color:#ddd}
 
 .cart{background:#000;border-top:1px solid #111;padding:16px}
-.cart h2{margin:.25rem 0 .5rem}
 #cart-items{list-style:none;margin:0;padding:0}
 #cart-items li{display:flex;justify-content:space-between;align-items:center;padding:.35rem 0;border-bottom:1px dashed #1d1d1d}
 #cart-items button{margin-left:.5rem}
@@ -30,7 +29,8 @@ h1{margin:0;font-size:1.25rem}
 #loyalty-stars .star.active{color:var(--orange);text-shadow:0 0 8px rgba(255,140,0,.45)}
 #loyalty-stars .progress-label{margin-left:.5rem;color:var(--muted);font-size:.85rem}
 
-.install-btn{position:fixed;right:12px;bottom:12px;border:1px solid #333;background:#111;border-radius:10px;padding:.6rem .8rem}
+.install-btn{position:fixed;right:12px;bottom:12px;border:1px solid #333;background:#111;border-radius:10px;padding:.6rem .8rem;color:#fff}
+.install-btn:hover{border-color:#444}
 
 .scanner{padding:16px}
 #scanVideo{width:100%;max-width:460px;border-radius:10px;border:1px solid #222;background:#000}
