@@ -2,7 +2,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
   console.log("✅ LBizzo JS booting...");
-
+// ---------- EMAILJS INIT ----------
+emailjs.init("f05GO0Wo8vkel_HXz");
+console.log("✅ EmailJS connected");
   // Helpers
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
