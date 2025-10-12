@@ -1,4 +1,4 @@
-// your actual config here (keep as you had it)
+// TODO: keep your real keys here (these are the ones you shared)
 const firebaseConfig = {
   apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
   authDomain: "lbizzodelivery.firebaseapp.com",
