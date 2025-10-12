@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const $ = (sel, root = document) => root.querySelector(sel);
   const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
   const debugBar = $("#debug");
-  const debug = (msg, ok=false) => {
+  const debug = (msg, ok = false) => {
     if (!debugBar) return;
     debugBar.textContent = msg;
     debugBar.style.background = ok ? "#022" : "#220";
@@ -17,10 +17,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ---------- age check ----------
   const ageCheck = $("#age-check");
-  on($("#yesBtn"), "click", () => ageCheck && (ageCheck.style.display = "none"));
-  on($("#noBtn"), "click", () => { 
-    alert("Sorry, you must be 21 or older to enter."); 
-    location.href = "https://google.com"; 
+  on($("#yesBtn"), "click", () => {
+    if (ageCheck) ageCheck.style.display = "none";
+  });
+  on($("#noBtn"), "click", () => {
+    alert("Sorry, you must be 21 or older to enter.");
+    location.href = "https://google.com";
   });
 
   // ---------- cart ----------
@@ -39,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cart.forEach((item, i) => {
       total += Number(item.price) || 0;
       const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${(Number(item.price)||0).toFixed(2)}
+      li.innerHTML = `${item.name} - $${(Number(item.price) || 0).toFixed(2)}
         <button class="remove" data-i="${i}">❌</button>`;
       cartList.appendChild(li);
     });
@@ -59,7 +61,10 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   on(checkoutBtn, "click", () => {
-    if (!cart.length) { alert("Your cart is empty!"); return; }
+    if (!cart.length) {
+      alert("Your cart is empty!");
+      return;
+    }
     alert("🛒 Checkout complete!");
     addLoyaltyStar();
     cart = [];
@@ -71,12 +76,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // ---------- loyalty stars ----------
   const stars = document.querySelectorAll("#loyalty-stars .star");
   let loyaltyCount = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
-  function renderStars(){ stars.forEach((s,i)=> s.classList.toggle("active", i < loyaltyCount)); }
-  function addLoyaltyStar(){
+  function renderStars() {
+    stars.forEach((s, i) => s.classList.toggle("active", i < loyaltyCount));
+  }
+  function addLoyaltyStar() {
     loyaltyCount++;
-    if (loyaltyCount >= 6) { 
-      alert("🎉 Congratulations! You earned a free vape!"); 
-      loyaltyCount = 0; 
+    if (loyaltyCount >= 6) {
+      alert("🎉 Congratulations! You earned a free vape!");
+      loyaltyCount = 0;
     }
     localStorage.setItem("loyaltyCount", String(loyaltyCount));
     renderStars();
@@ -93,7 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
-      <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name || 'Product'}"
+      <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name || "Product"}"
            onerror="this.src='${PLACEHOLDER_IMG}';" />
       <h3>${p.name || "Unnamed"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
@@ -110,39 +117,43 @@ document.addEventListener("DOMContentLoaded", () => {
     debug("Using demo products (Firestore not available or empty).");
     productList.innerHTML = "";
     [
-      { name:"LBizzo Mango Ice", price:12.99 },
-      { name:"LBizzo Blue Razz", price:13.49 },
-      { name:"LBizzo Strawberry", price:11.99 },
-      { name:"LBizzo Watermelon", price:14.25 },
-      { name:"LBizzo Grape Ice", price:12.49 },
-      { name:"LBizzo Peach", price:13.75 }
+      { name: "LBizzo Mango Ice", price: 12.99 },
+      { name: "LBizzo Blue Razz", price: 13.49 },
+      { name: "LBizzo Strawberry", price: 11.99 },
+      { name: "LBizzo Watermelon", price: 14.25 },
+      { name: "LBizzo Grape Ice", price: 12.49 },
+      { name: "LBizzo Peach", price: 13.75 }
     ].forEach(addCard);
   }
 
-  // Try Firestore first; fall back to demo
+  // ---------- Firestore products ----------
   (async () => {
     try {
-      if (!window.db || !firebase) { loadDemoProducts(); return; }
+      if (!window.db || !firebase) {
+        loadDemoProducts();
+        return;
+      }
       const snap = await db.collection("products").get();
-      if (!snap || snap.empty) { 
-        debug("Connected to Firestore • 0 product(s). Showing demo.", true); 
-        loadDemoProducts(); 
-        return; 
+      if (!snap || snap.empty) {
+        debug("Connected to Firestore • 0 product(s). Showing demo.", true);
+        loadDemoProducts();
+        return;
       }
       debug(`Connected to Firestore • ${snap.size} product(s)`, true);
       productList.innerHTML = "";
-      snap.forEach(doc => addCard(doc.data()));
+      snap.forEach((doc) => addCard(doc.data()));
     } catch (err) {
       console.error("🔥 Firestore load error:", err);
       debug(`Firestore error: ${err.message}`);
       loadDemoProducts();
     }
   })();
+}); // ✅ closes DOMContentLoaded correctly!
 
-  // ✅ Register Service Worker for PWA support
+// ✅ Register Service Worker for PWA support
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker
     .register("service-worker.js")
     .then(() => console.log("✅ Service Worker registered"))
-    .catch(err => console.error("❌ Service Worker failed:", err));
+    .catch((err) => console.error("❌ Service Worker failed:", err));
 }
