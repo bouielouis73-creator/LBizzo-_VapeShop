@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- PWA -->
+  <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ff8c00">
   <link rel="apple-touch-icon" href="icons/icon-512.png">
@@ -24,54 +24,65 @@
   <!-- EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- App scripts -->
+  <!-- App -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- Age gate -->
-  <div id="age-check">
-    <h2>Are you 21 or older?</h2>
-    <div class="age-buttons">
-      <button id="yesBtn">Yes</button>
-      <button id="noBtn">No</button>
+  <!-- AGE GATE (blocks page until Yes) -->
+  <div id="age-overlay" class="overlay">
+    <div class="overlay-card">
+      <h2>Are you 21 or older?</h2>
+      <div class="age-buttons">
+        <button id="yesBtn" class="btn yes">Yes</button>
+        <button id="noBtn" class="btn no">No</button>
+      </div>
+      <small>LBizzo Vape Shop</small>
     </div>
   </div>
 
-  <header>
+  <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
 
-    <!-- Loyalty -->
-    <div id="loyalty-stars">
-      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
-      <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
+    <!-- Loyalty Stars (dark until earned) -->
+    <div id="loyalty-stars" aria-label="Loyalty progress">
+      <span class="star" data-i="0">★</span>
+      <span class="star" data-i="1">★</span>
+      <span class="star" data-i="2">★</span>
+      <span class="star" data-i="3">★</span>
+      <span class="star" data-i="4">★</span>
+      <span class="star" data-i="5">★</span>
+      <span class="progress-label">Free vape at 6 ⭐</span>
     </div>
   </header>
 
+  <!-- Debug status (optional) -->
   <div id="debug" hidden></div>
 
+  <!-- Products -->
   <main id="product-list" class="product-grid"></main>
 
+  <!-- Cart -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <p id="cart-total">Total: $0.00</p>
-    <button id="checkout-btn">Checkout</button>
+    <button id="checkout-btn" class="btn primary">Checkout</button>
   </section>
 
-  <!-- Install App button (shown when available) -->
-  <button id="install-btn" hidden>📲 Install LBizzo App</button>
+  <!-- Install App button (shows when allowed) -->
+  <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
 
   <!-- ID Scanner -->
-  <section id="id-scan">
+  <section id="id-scan" class="scanner">
     <h2>Scan ID (PDF417/QR)</h2>
-    <video id="scanVideo" playsinline muted style="width:100%;max-width:480px;border:1px solid #444;border-radius:8px;"></video>
-    <div style="margin:.5rem 0;">
-      <button id="scanStart">Start Scanner</button>
-      <button id="scanStop">Stop Scanner</button>
+    <video id="scanVideo" playsinline muted></video>
+    <div class="scan-actions">
+      <button id="scanStart" class="btn">Start Scanner</button>
+      <button id="scanStop" class="btn">Stop Scanner</button>
     </div>
-    <pre id="scanOut" style="white-space:pre-wrap;background:#111;color:#9ef;padding:.5rem;border-radius:6px;"></pre>
+    <pre id="scanOut"></pre>
   </section>
 </body>
 </html>
