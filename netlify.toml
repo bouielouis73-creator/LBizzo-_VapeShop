@@ -2,7 +2,6 @@
   publish = "."
   functions = "netlify/functions"
 
-# ✅ Force public access for PWA files
 [[redirects]]
   from = "/manifest.json"
   to = "/manifest.json"
@@ -13,7 +12,6 @@
   to = "/service-worker.js"
   status = 200
 
-# ✅ Fallback rule for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
