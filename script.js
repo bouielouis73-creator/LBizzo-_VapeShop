@@ -2,9 +2,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
   console.log("✅ LBizzo JS booting...");
-// ---------- EMAILJS INIT ----------
-emailjs.init("f05GO0Wo8vkel_HXz");
-console.log("✅ EmailJS connected");
+
+  // ---------- EMAILJS INIT ----------
+  emailjs.init("f05GO0Wo8vkel_HXz");
+  console.log("✅ EmailJS connected");
+
+  // ---------- SQUARE LINK ----------
+  const SQUARE_LINK = "https://square.link/u/GOvQxhqG"; // your Square checkout link
+
   // Helpers
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -18,16 +23,13 @@ console.log("✅ EmailJS connected");
     debugBar.hidden = false;
   };
 
-  // EmailJS init
-  if (window.emailjs && !window.__EMAILJS_INIT__) {
-    window.__EMAILJS_INIT__ = true;
-    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // <-- replace with your EmailJS public key
-  }
-
   // Age gate
   const ageOverlay = $("#age-overlay");
   on($("#yesBtn"), "click", () => (ageOverlay.style.display = "none"));
-  on($("#noBtn"), "click", () => { alert("Sorry, you must be 21 or older to enter."); location.href="https://google.com"; });
+  on($("#noBtn"), "click", () => { 
+    alert("Sorry, you must be 21 or older to enter."); 
+    location.href="https://google.com"; 
+  });
 
   // Cart
   const cartList = $("#cart-items");
@@ -58,29 +60,57 @@ console.log("✅ EmailJS connected");
     if (!Number.isNaN(i)) { cart.splice(i, 1); updateCartUI(); }
   });
 
+  // ---------- EMAILJS SEND FUNCTION ----------
+  async function sendOrderEmail(orderData) {
+    try {
+      const response = await emailjs.send("service_mos7x3m", "template_kw9vt5f", orderData);
+      console.log("✅ Order email sent:", response.status);
+      alert("Order sent successfully! 📧");
+    } catch (err) {
+      console.error("❌ Failed to send email:", err);
+      alert("There was a problem sending the email.");
+    }
+  }
+
   // Loyalty stars
   const stars = $$("#loyalty-stars .star");
   let loyalty = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
   const renderStars = () => stars.forEach((s,i)=> s.classList.toggle("active", i < loyalty));
-  function addLoyaltyStar(){ loyalty++; if (loyalty >= 6){ alert("🎉 Free vape earned!"); loyalty = 0; } localStorage.setItem("loyaltyCount", String(loyalty)); renderStars(); }
+  function addLoyaltyStar(){ 
+    loyalty++; 
+    if (loyalty >= 6){ 
+      alert("🎉 Free vape earned!"); 
+      loyalty = 0; 
+    } 
+    localStorage.setItem("loyaltyCount", String(loyalty)); 
+    renderStars(); 
+  }
   renderStars();
 
-  // Checkout: EmailJS + Square
+  // ---------- CHECKOUT: EMAILJS + SQUARE ----------
   on(checkoutBtn, "click", async () => {
     if (!cart.length) return alert("Your cart is empty!");
     const total = cart.reduce((s, it) => s + (Number(it.price)||0), 0).toFixed(2);
+
+    const customerName = prompt("Enter your name:");
+    const customerPhone = prompt("Enter your phone number:");
+    const customerAddress = prompt("Enter your delivery address:");
+
+    const orderData = {
+      name: customerName || "Unknown",
+      phone: customerPhone || "N/A",
+      address: customerAddress || "N/A",
+      items: cart.map(i => `${i.name} ($${i.price})`).join(", "),
+      total: `$${total}`
+    };
+
     try {
-      if (window.emailjs) {
-        await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", { // <-- replace with your EmailJS IDs
-          order_items: cart.map(i => i.name).join(", "),
-          order_total: total
-        });
-      }
+      await sendOrderEmail(orderData); // send via EmailJS
       addLoyaltyStar();
       cart = [];
       updateCartUI();
       alert("🛒 Order sent! Proceeding to payment…");
-      window.open("https://square.link/u/GOvQxhqG?amount=" + total, "_blank"); // replace with your Square link if needed
+      window.open(`${SQUARE_LINK}?amount=${total}`, "_blank"); // go to Square
     } catch (e) {
       alert("⚠️ Could not send order: " + (e?.text || e));
     }
@@ -88,15 +118,16 @@ console.log("✅ EmailJS connected");
 
   updateCartUI();
 
-  // Products (Firestore + Storage images; fallback 50 placeholders)
+  // ---------- PRODUCTS (Firestore + Storage) ----------
   const productList = $("#product-list");
   const PLACEHOLDER_IMG =
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='360'><rect width='100%' height='100%' fill='%23111'/><rect x='12' y='12' width='456' height='336' rx='18' fill='black' stroke='%23ff8c00' stroke-width='6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='42' fill='%23ff8c00'>LBizzo</text></svg>";
 
   async function addCard(p) {
     const priceNum = Number(p.price) || 0;
-    // If p.image is a Storage path like "product-images/mango.png", resolve it
-    const imgURL = p.image && !/^https?:\/\//i.test(p.image) ? await getImageURL(p.image) : p.image;
+    const imgURL = p.image && !/^https?:\/\//i.test(p.image)
+      ? await getImageURL(p.image)
+      : p.image;
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
@@ -131,7 +162,7 @@ console.log("✅ EmailJS connected");
 
   await loadProducts();
 
-  // Scandit ID Scanner
+  // ---------- SCANDIT ID SCANNER ----------
   const scanStart = $("#scanStart");
   const scanStop  = $("#scanStop");
   const scanOut   = $("#scanOut");
@@ -168,14 +199,14 @@ console.log("✅ EmailJS connected");
   });
 }); // DOMContentLoaded
 
-// Service Worker (PWA)
+// ---------- SERVICE WORKER (PWA) ----------
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("service-worker.js")
     .then(() => console.log("✅ Service Worker registered"))
     .catch(err => console.error("❌ SW failed:", err));
 }
 
-// Web App Install button
+// ---------- WEB APP INSTALL BUTTON ----------
 let deferredPrompt;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
