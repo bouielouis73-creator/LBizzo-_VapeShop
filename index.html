@@ -1,23 +1,24 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- ✅ Add these PWA lines under <title> -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#000000">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
-  <meta name="theme-color" content="#000000" />
-  <link rel="stylesheet" href="style.css" />
+
+  <!-- ✅ PWA setup -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ff8c00">
-  <!-- Firebase SDKs (compat so v8-style code works) -->
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+
+  <!-- ✅ Styles -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- ✅ Firebase SDKs (compat) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- Your app scripts -->
+  <!-- ✅ App scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
