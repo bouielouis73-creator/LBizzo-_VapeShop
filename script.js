@@ -18,12 +18,12 @@ document.addEventListener("DOMContentLoaded", () => {
   // ===== EmailJS =====
   if (window.emailjs && !window.__EMAILJS_INIT__) {
     window.__EMAILJS_INIT__ = true;
-    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // <-- put your EmailJS public key
+    emailjs.init("YOUR_EMAILJS_PUBLIC_KEY"); // <- put your EmailJS public key
   }
 
-  // ===== Age Gate =====
-  const ageCheck = $("#age-check");
-  on($("#yesBtn"), "click", () => ageCheck && (ageCheck.style.display = "none"));
+  // ===== Age Gate (blocks everything behind it) =====
+  const overlay = $("#age-overlay");
+  on($("#yesBtn"), "click", () => overlay && (overlay.style.display = "none"));
   on($("#noBtn"), "click", () => {
     alert("Sorry, you must be 21 or older to enter.");
     location.href = "https://google.com";
@@ -39,11 +39,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateCartUI() {
     cartList.innerHTML = "";
     let total = 0;
-    cart.forEach((it, i) => {
-      const p = Number(it.price) || 0;
-      total += p;
+    cart.forEach((item, i) => {
+      total += Number(item.price) || 0;
       const li = document.createElement("li");
-      li.innerHTML = `${it.name} - $${p.toFixed(2)} <button class="remove" data-i="${i}">❌</button>`;
+      li.innerHTML = `${item.name} - $${(Number(item.price)||0).toFixed(2)} <button class="remove" data-i="${i}">❌</button>`;
       cartList.appendChild(li);
     });
     totalEl.textContent = `Total: $${total.toFixed(2)}`;
@@ -54,26 +53,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = e.target.closest(".remove");
     if (!btn) return;
     const idx = Number(btn.dataset.i);
-    if (!Number.isNaN(idx)) {
-      cart.splice(idx, 1);
-      updateCartUI();
-    }
+    if (!Number.isNaN(idx)) { cart.splice(idx, 1); updateCartUI(); }
   });
   updateCartUI();
 
-  // ===== Loyalty =====
+  // ===== Loyalty Stars (dark → light one per purchase, persisted) =====
   const stars = document.querySelectorAll("#loyalty-stars .star");
   let loyalty = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
-  const renderStars = () => stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
+  function renderStars(){ stars.forEach((s,i)=> s.classList.toggle("active", i < loyalty)); }
   function addLoyaltyStar() {
-    loyalty++;
-    if (loyalty >= 6) { alert("🎉 Free vape earned!"); loyalty = 0; }
+    // Add exactly one star per completed purchase
+    loyalty = (loyalty + 1);
+    if (loyalty >= 6) {
+      alert("🎉 You earned a FREE vape! Stars reset.");
+      loyalty = 0;
+    }
     localStorage.setItem("loyaltyCount", String(loyalty));
     renderStars();
   }
   renderStars();
 
-  // ===== Products (Firestore with demo fallback) =====
+  // ===== Products (Firestore with 50 placeholders fallback) =====
   const productList = $("#product-list");
   const PLACEHOLDER_IMG =
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='360'><rect width='100%' height='100%' fill='%23111'/><rect x='12' y='12' width='456' height='336' rx='18' fill='black' stroke='%23ff8c00' stroke-width='6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='42' fill='%23ff8c00'>LBizzo</text></svg>";
@@ -84,9 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
     card.className = "product";
     card.innerHTML = `
       <img src="${p.image || PLACEHOLDER_IMG}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
-      <h3>${p.name || "Unnamed"}</h3>
+      <h3>${p.name || "Unnamed Product"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
-      <button class="add-btn">Add to Cart</button>`;
+      <button class="add-btn btn">Add to Cart</button>
+    `;
     card.querySelector(".add-btn").addEventListener("click", () => {
       cart.push({ name: p.name || "Item", price: priceNum });
       updateCartUI();
@@ -94,33 +95,27 @@ document.addEventListener("DOMContentLoaded", () => {
     productList.appendChild(card);
   }
 
-  function demoProducts() {
-    productList.innerHTML = "";
-    [
-      { name: "LBizzo Mango Ice", price: 12.99 },
-      { name: "LBizzo Blue Razz", price: 13.49 },
-      { name: "LBizzo Strawberry", price: 11.99 }
-    ].forEach(addCard);
-  }
-
   (async () => {
     try {
-      if (!window.db || !firebase) throw new Error("Firestore not available");
+      // Expect Firestore docs with fields: name (string), price (number), image (URL from Storage)
       const snap = await db.collection("products").get();
-      if (!snap || snap.empty) throw new Error("No products");
+      if (!snap || snap.empty) throw new Error("No Firestore products found");
       debug(`Connected to Firestore • ${snap.size} product(s)`, true);
       productList.innerHTML = "";
-      snap.forEach((doc) => addCard(doc.data()));
+      snap.forEach(doc => addCard(doc.data()));
     } catch (err) {
-      debug(`Using demo products (${err.message})`);
-      demoProducts();
+      console.warn("Firestore error:", err);
+      debug("Showing 50 placeholders (no products yet).");
+      productList.innerHTML = "";
+      for (let i = 1; i <= 50; i++) addCard({ name:`LBizzo Placeholder #${i}`, price:0 });
     }
   })();
 
-  // ===== Checkout (EmailJS + Square link) =====
+  // ===== Checkout: EmailJS + Square =====
   on(checkoutBtn, "click", async () => {
     if (!cart.length) return alert("Your cart is empty!");
-    const total = cart.reduce((s, it) => s + (Number(it.price) || 0), 0).toFixed(2);
+    const total = cart.reduce((s, i) => s + (Number(i.price)||0), 0).toFixed(2);
+
     try {
       if (window.emailjs) {
         await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
@@ -128,16 +123,18 @@ document.addEventListener("DOMContentLoaded", () => {
           order_total: total
         });
       }
+      // Purchase successful → light one star
       addLoyaltyStar();
+      // clear cart
       cart = [];
       updateCartUI();
       alert("🛒 Order sent! Proceeding to payment…");
+      // Square checkout (update your link if needed)
       window.open("https://square.link/u/GOvQxhqG?amount=" + total, "_blank");
-    } catch (e) {
-      alert("⚠️ Could not send order: " + (e && e.text ? e.text : e));
+    } catch (err) {
+      alert("⚠️ Could not send order: " + (err && err.text ? err.text : err));
     }
   });
-
 }); // DOMContentLoaded
 
 // ===== Service Worker =====
@@ -147,7 +144,7 @@ if ("serviceWorker" in navigator) {
     .catch(err => console.error("❌ Service Worker failed:", err));
 }
 
-// ===== Install prompt button =====
+// ===== PWA Install Button =====
 let deferredPrompt;
 window.addEventListener("beforeinstallprompt", (e) => {
   e.preventDefault();
@@ -163,7 +160,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
   };
 });
 
-// ===== ID Scanner (BarcodeDetector PDF417/QR with fallback) =====
+// ===== ID Scanner (PDF417/QR) with graceful fallback =====
 (() => {
   const video = document.getElementById("scanVideo");
   const out = document.getElementById("scanOut");
@@ -175,9 +172,8 @@ window.addEventListener("beforeinstallprompt", (e) => {
 
   async function initDetector() {
     if ("BarcodeDetector" in window) {
-      try {
-        detector = new BarcodeDetector({ formats: ["pdf417", "qr_code"] });
-      } catch { detector = null; }
+      try { detector = new BarcodeDetector({ formats: ["pdf417", "qr_code"] }); }
+      catch { detector = null; }
     }
   }
 
@@ -187,11 +183,9 @@ window.addEventListener("beforeinstallprompt", (e) => {
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       video.srcObject = stream;
       await video.play();
-      out.textContent = "Scanning… (point camera at back of ID or QR)";
+      out.textContent = "Scanning… point camera at ID barcode (PDF417) or QR.";
       tick();
-    } catch (e) {
-      out.textContent = "Camera error: " + e.message;
-    }
+    } catch (e) { out.textContent = "Camera error: " + e.message; }
   }
 
   function stopScan() {
@@ -205,13 +199,8 @@ window.addEventListener("beforeinstallprompt", (e) => {
     if (!detector) { out.textContent = "Scanner not supported on this device."; return; }
     try {
       const codes = await detector.detect(video);
-      if (codes && codes.length) {
-        out.textContent = "Detected:\n" + codes.map(c => c.rawValue).join("\n\n");
-        // You can parse PDF417 payload here if you want DOB/Name, etc.
-      }
-    } catch (e) {
-      // ignore frame errors
-    }
+      if (codes && codes.length) out.textContent = "Detected:\n" + codes.map(c => c.rawValue).join("\n\n");
+    } catch {}
     raf = requestAnimationFrame(tick);
   }
 
