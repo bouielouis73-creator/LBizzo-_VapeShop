@@ -5,31 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA setup -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ff8c00">
   <link rel="apple-touch-icon" href="icons/icon-512.png">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-
-  <!-- ✅ Add this line for all devices -->
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 
-  <!-- ✅ Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs (compat) -->
+  <!-- Firebase (compat) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ App scripts -->
+  <!-- EmailJS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+  <!-- App scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
-
 <body>
-  <!-- AGE GATE -->
+  <!-- Age gate -->
   <div id="age-check">
     <h2>Are you 21 or older?</h2>
     <div class="age-buttons">
@@ -42,14 +42,13 @@
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
 
-    <!-- Loyalty Stars -->
+    <!-- Loyalty -->
     <div id="loyalty-stars">
       <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
       <span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span>
     </div>
   </header>
 
-  <!-- Debug status bar (shows connection or errors) -->
   <div id="debug" hidden></div>
 
   <main id="product-list" class="product-grid"></main>
@@ -61,27 +60,18 @@
     <button id="checkout-btn">Checkout</button>
   </section>
 
-  <!-- ✅ Debug JS check to ensure buttons work -->
-  <script>
-    console.log("✅ LBizzo HTML loaded and scripts attached.");
+  <!-- Install App button (shown when available) -->
+  <button id="install-btn" hidden>📲 Install LBizzo App</button>
 
-    window.addEventListener("error", e => {
-      alert("⚠️ JavaScript error: " + e.message);
-    });
-
-    window.addEventListener("DOMContentLoaded", () => {
-      console.log("✅ DOM fully loaded, checking buttons...");
-      const yesBtn = document.getElementById("yesBtn");
-      const noBtn = document.getElementById("noBtn");
-      const cartBtn = document.getElementById("cart-btn");
-      const checkoutBtn = document.getElementById("checkout-btn");
-
-      if (yesBtn && noBtn && cartBtn && checkoutBtn) {
-        console.log("✅ All main buttons found!");
-      } else {
-        alert("⚠️ One or more buttons missing — check IDs in HTML.");
-      }
-    });
-  </script>
+  <!-- ID Scanner -->
+  <section id="id-scan">
+    <h2>Scan ID (PDF417/QR)</h2>
+    <video id="scanVideo" playsinline muted style="width:100%;max-width:480px;border:1px solid #444;border-radius:8px;"></video>
+    <div style="margin:.5rem 0;">
+      <button id="scanStart">Start Scanner</button>
+      <button id="scanStop">Stop Scanner</button>
+    </div>
+    <pre id="scanOut" style="white-space:pre-wrap;background:#111;color:#9ef;padding:.5rem;border-radius:6px;"></pre>
+  </section>
 </body>
 </html>
