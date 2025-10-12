@@ -13,25 +13,38 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
 
-  <!-- Styles -->
+  <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
-<!-- ✅ Scandit SDK -->
-<script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
-<script>
-  ScanditSDK.configure(
-    "SCANDIT AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cg
-  <!-- Firebase (compat) -->
+
+  <!-- ✅ Firebase SDKs (load BEFORE script.js so Firestore + Storage work) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- EmailJS -->
+  <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- App -->
+  <!-- ✅ Firebase Config & App Logic -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
+
+  <!-- ✅ Scandit SDK (loaded last in head for barcode scanning) -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
+  <script>
+    // Initialize Scandit SDK safely
+    document.addEventListener("DOMContentLoaded", async () => {
+      try {
+        await ScanditSDK.configure(
+          "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI="
+        );
+        console.log("✅ Scandit SDK configured");
+      } catch (err) {
+        console.error("❌ Scandit failed:", err);
+      }
+    });
+  </script>
 </head>
+
 <body>
   <!-- AGE GATE (blocks page until Yes) -->
   <div id="age-overlay" class="overlay">
@@ -88,14 +101,15 @@
     </div>
     <pre id="scanOut"></pre>
   </section>
-    <!-- ✅ Web App Install Script -->
+
+  <!-- ✅ Web App Install Script -->
   <script>
     let deferredPrompt;
     window.addEventListener("beforeinstallprompt", (e) => {
       e.preventDefault();
       deferredPrompt = e;
       const btn = document.getElementById("install-btn");
-      btn.hidden = false; // show the button
+      btn.hidden = false;
       btn.addEventListener("click", async () => {
         btn.hidden = true;
         deferredPrompt.prompt();
