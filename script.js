@@ -15,10 +15,13 @@ document.addEventListener("DOMContentLoaded", () => {
     debugBar.hidden = false;
   };
 
-  // ---------- age check (robust: won't crash if elements missing) ----------
+  // ---------- age check ----------
   const ageCheck = $("#age-check");
   on($("#yesBtn"), "click", () => ageCheck && (ageCheck.style.display = "none"));
-  on($("#noBtn"),  "click", () => { alert("Sorry, you must be 21 or older to enter."); location.href="https://google.com"; });
+  on($("#noBtn"), "click", () => { 
+    alert("Sorry, you must be 21 or older to enter."); 
+    location.href = "https://google.com"; 
+  });
 
   // ---------- cart ----------
   const cartBtn = $("#cart-btn");
@@ -71,7 +74,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderStars(){ stars.forEach((s,i)=> s.classList.toggle("active", i < loyaltyCount)); }
   function addLoyaltyStar(){
     loyaltyCount++;
-    if (loyaltyCount >= 6) { alert("🎉 Congratulations! You earned a free vape!"); loyaltyCount = 0; }
+    if (loyaltyCount >= 6) { 
+      alert("🎉 Congratulations! You earned a free vape!"); 
+      loyaltyCount = 0; 
+    }
     localStorage.setItem("loyaltyCount", String(loyaltyCount));
     renderStars();
   }
@@ -118,7 +124,11 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!window.db || !firebase) { loadDemoProducts(); return; }
       const snap = await db.collection("products").get();
-      if (!snap || snap.empty) { debug("Connected to Firestore • 0 product(s). Showing demo.", true); loadDemoProducts(); return; }
+      if (!snap || snap.empty) { 
+        debug("Connected to Firestore • 0 product(s). Showing demo.", true); 
+        loadDemoProducts(); 
+        return; 
+      }
       debug(`Connected to Firestore • ${snap.size} product(s)`, true);
       productList.innerHTML = "";
       snap.forEach(doc => addCard(doc.data()));
@@ -128,10 +138,11 @@ document.addEventListener("DOMContentLoaded", () => {
       loadDemoProducts();
     }
   })();
+
+  // ✅ Register Service Worker for PWA support
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("service-worker.js")
+      .then(() => console.log("✅ Service Worker registered"))
+      .catch(err => console.error("❌ Service Worker failed:", err));
+  }
 });
-// ✅ Register Service Worker for PWA support
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("service-worker.js")
-    .then(() => console.log("✅ Service Worker registered"))
-    .catch(err => console.error("❌ Service Worker failed:", err));
-}
