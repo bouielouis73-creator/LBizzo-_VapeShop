@@ -6,11 +6,11 @@
   <title>LBizzo Vape Shop</title>
 
   <!-- ✅ PWA setup -->
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#ff8c00">
-<link rel="apple-touch-icon" href="icons/icon-512.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff8c00">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
 
   <!-- ✅ Add this line for all devices -->
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
@@ -27,6 +27,7 @@
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
+
 <body>
   <!-- AGE GATE -->
   <div id="age-check">
@@ -59,5 +60,28 @@
     <p id="cart-total">Total: $0.00</p>
     <button id="checkout-btn">Checkout</button>
   </section>
+
+  <!-- ✅ Debug JS check to ensure buttons work -->
+  <script>
+    console.log("✅ LBizzo HTML loaded and scripts attached.");
+
+    window.addEventListener("error", e => {
+      alert("⚠️ JavaScript error: " + e.message);
+    });
+
+    window.addEventListener("DOMContentLoaded", () => {
+      console.log("✅ DOM fully loaded, checking buttons...");
+      const yesBtn = document.getElementById("yesBtn");
+      const noBtn = document.getElementById("noBtn");
+      const cartBtn = document.getElementById("cart-btn");
+      const checkoutBtn = document.getElementById("checkout-btn");
+
+      if (yesBtn && noBtn && cartBtn && checkoutBtn) {
+        console.log("✅ All main buttons found!");
+      } else {
+        alert("⚠️ One or more buttons missing — check IDs in HTML.");
+      }
+    });
+  </script>
 </body>
 </html>
