@@ -88,5 +88,25 @@
     </div>
     <pre id="scanOut"></pre>
   </section>
+    <!-- ✅ Web App Install Script -->
+  <script>
+    let deferredPrompt;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById("install-btn");
+      btn.hidden = false; // show the button
+      btn.addEventListener("click", async () => {
+        btn.hidden = true;
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      });
+    });
+
+    window.addEventListener("appinstalled", () => {
+      alert("✅ LBizzo Vape Shop installed successfully!");
+    });
+  </script>
 </body>
 </html>
