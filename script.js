@@ -33,17 +33,26 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
-  function updateCartUI() {
-    if (!cartList) return;
-    cartList.innerHTML = "";
-    let total = 0;
-    cart.forEach((item, i) => {
-      total += Number(item.price) || 0;
-      const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${item.price.toFixed(2)} 
-        <button class="remove" data-i="${i}">❌</button>`;
-      cartList.appendChild(li);
-    });
+  async function addCard(p) {
+  const priceNum = Number(p.price) || 0;
+  let imgURL = p.image ? await getImageURL(p.image) : null;
+
+  const card = document.createElement("div");
+  card.className = "product";
+  card.innerHTML = `
+    <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+    <h3>${p.name}</h3>
+    <p>$${priceNum.toFixed(2)}</p>
+    <button class="add-btn">Add to Cart</button>
+  `;
+
+  card.querySelector(".add-btn").addEventListener("click", () => {
+    cart.push({ name: p.name, price: priceNum });
+    updateCartUI();
+  });
+
+  productList.appendChild(card);
+}
     totalEl.textContent = `Total: $${total.toFixed(2)}`;
     cartCount.textContent = cart.length;
     localStorage.setItem("cart", JSON.stringify(cart));
