@@ -1,24 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LBizzo Admin</title>
-  <link rel="stylesheet" href="style.css" />
-  <script defer src="firebase.js"></script>
-  <script defer src="admin.js"></script>
-</head>
-<body>
-  <h1>Admin Dashboard</h1>
+[build]
+  publish = "."
+  functions = "netlify/functions"
 
-  <form id="addProductForm">
-    <input type="text" id="name" placeholder="Product Name" required />
-    <input type="number" id="price" placeholder="Price" required />
-    <input type="file" id="image" accept="image/*" required />
-    <button type="submit">Add Product</button>
-  </form>
+# ✅ Make sure PWA files are publicly served
+[[redirects]]
+  from = "/manifest.json"
+  to = "/manifest.json"
+  status = 200
 
-  <h2>Current Products</h2>
-  <div id="product-list" class="product-grid"></div>
-</body>
-</html>
+[[redirects]]
+  from = "/service-worker.js"
+  to = "/service-worker.js"
+  status = 200
+
+# ✅ Send everything else to index.html
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
