@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/eocaKRoJ"; // fixed: remove ?amount=
+  const SQUARE_LINK = "https://square.link/u/eocaKRoJ"; // fixed: clean link
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     debugBar.textContent = msg;
     debugBar.style.background = ok ? "#022" : "#220";
     debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
-    debugBar.hidden = true;
+    debugBar.hidden = false;
   };
 
   // ---------- AGE GATE ----------
@@ -45,7 +45,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       const p = Number(item.price) || 0;
       total += p;
       const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${p.toFixed(2)} <button class="remove" data-i="${i}">❌</button>`;
+      li.innerHTML = `${item.name} - $${p.toFixed(
+        2
+      )} <button class="remove" data-i="${i}">❌</button>`;
       cartList.appendChild(li);
     });
     totalEl.textContent = `Total: $${total.toFixed(2)}`;
@@ -66,7 +68,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
-      const response = await emailjs.send("service_mos7x3m", "template_kw9vt5f", orderData);
+      const response = await emailjs.send(
+        "service_mos7x3m",
+        "template_kw9vt5f",
+        orderData
+      );
       console.log("✅ Order email sent:", response.status);
       alert("📧 Order sent successfully!");
     } catch (err) {
@@ -79,7 +85,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- LOYALTY STARS ----------
   const stars = $$("#loyalty-stars .star");
   let loyalty = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
-  const renderStars = () => stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
+  const renderStars = () =>
+    stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
   function addLoyaltyStar() {
     loyalty++;
     if (loyalty >= 6) {
@@ -100,7 +107,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!ID_VERIFIED && !window.ID_VERIFIED)
       return alert("⚠️ Please verify your ID before checkout.");
 
-    const total = cart.reduce((s, it) => s + (Number(it.price) || 0), 0).toFixed(2);
+    const total = cart
+      .reduce((s, it) => s + (Number(it.price) || 0), 0)
+      .toFixed(2);
     const name = prompt("Enter your name:") || "Unknown";
     const phone = prompt("Enter your phone number:") || "N/A";
     const address = prompt("Enter your delivery address:") || "N/A";
@@ -118,8 +127,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       addLoyaltyStar();
       cart = [];
       updateCartUI();
-      alert("🛒 Order sent! Proceeding to secure Square checkout…");
-      window.open(SQUARE_LINK, "_blank"); // fixed here
+      alert("🛒 Order sent successfully! Proceeding to Square checkout…");
+      window.open(SQUARE_LINK, "_blank");
     } catch (e) {
       console.error(e);
       alert("⚠️ Could not complete checkout: " + (e?.text || e));
@@ -144,11 +153,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function addCard(p) {
     const priceNum = Number(p.price) || 0;
     const imgURL =
-      p.image && !/^https?:\/\//i.test(p.image) ? await getImageURL(p.image) : p.image;
+      p.image && !/^https?:\/\//i.test(p.image)
+        ? await getImageURL(p.image)
+        : p.image;
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
-      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${
+      p.name || "Product"
+    }" onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed Product"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
       <button class="add-btn btn">Add to Cart</button>
@@ -165,6 +178,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const snap = await db.collection("products").get();
       if (!snap || snap.empty) throw new Error("No Firestore products");
       debug(`Connected to Firestore • ${snap.size} product(s)`, true);
+      setTimeout(() => (debugBar.hidden = true), 4000); // hides message after 4s
       productList.innerHTML = "";
       for (const doc of snap.docs) await addCard(doc.data());
     } catch (err) {
@@ -212,7 +226,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         alert("✅ ID verified successfully! You may now checkout.");
       });
 
-      scanOut.textContent = "📸 Scanner started. Point camera at the back barcode of your ID.";
+      scanOut.textContent =
+        "📸 Scanner started. Point camera at the back barcode of your ID.";
     } catch (err) {
       scanOut.textContent = "❌ Scanner error: " + err.message;
       console.error(err);
