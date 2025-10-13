@@ -103,6 +103,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- ID VERIFICATION FLAG ----------
   let ID_VERIFIED = false;
+  window.ID_VERIFIED = false; // reset on reload
 
   // ---------- CHECKOUT ----------
   on(checkoutBtn, "click", async () => {
@@ -221,34 +222,40 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       scanner.applyScanSettings(settings);
 
+      // ✅ IMPROVED SCAN LOGIC
       scanner.on("scan", (res) => {
         const codeText = res.barcodes.map((b) => b.data).join("\n");
-        console.log("✅ ID scanned:", codeText);
-        scanOut.textContent = "✅ ID Scanned:\n" + codeText;
+        console.log("🔍 Scanned data:", codeText);
 
-        // 🔹 NEW: try to extract birth date (AAMVA DBBYYYYMMDD)
+        // Require a DOB (DBBYYYYMMDD) pattern to count as a real ID
         const match = codeText.match(/DBB(\d{8})/);
-        if (match) {
-          const dob = match[1];
-          const year = +dob.slice(0, 4);
-          const month = +dob.slice(4, 6) - 1;
-          const day = +dob.slice(6, 8);
-          const birth = new Date(year, month, day);
-          const today = new Date();
-          let age = today.getFullYear() - birth.getFullYear();
-          const m = today.getMonth() - birth.getMonth();
-          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-          if (age >= 21) {
-            alert("✅ Verified: customer is 21 or older.");
-            ID_VERIFIED = true;
-            window.ID_VERIFIED = true;
-          } else {
-            alert("🚫 Customer is under 21 — cannot continue.");
-            ID_VERIFIED = false;
-            window.ID_VERIFIED = false;
-          }
+        if (!match) {
+          scanOut.textContent = "⚠️ Not a valid driver’s license barcode. Try again.";
+          ID_VERIFIED = false;
+          window.ID_VERIFIED = false;
+          return;
+        }
+
+        const dob = match[1];
+        const year = +dob.slice(0, 4);
+        const month = +dob.slice(4, 6) - 1;
+        const day = +dob.slice(6, 8);
+        const birth = new Date(year, month, day);
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+
+        scanOut.textContent = `📅 DOB: ${year}-${month + 1}-${day} | Age: ${age}`;
+
+        if (age >= 21) {
+          alert("✅ Verified: customer is 21 or older.");
+          ID_VERIFIED = true;
+          window.ID_VERIFIED = true;
         } else {
-          alert("⚠️ Could not read DOB from barcode. Try again.");
+          alert("🚫 Customer is under 21 — checkout disabled.");
+          ID_VERIFIED = false;
+          window.ID_VERIFIED = false;
         }
       });
 
