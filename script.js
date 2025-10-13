@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/eocaKRoJ";
+  const SQUARE_LINK = "https://square.link/u/GTYqlIK"; // ✅ your new Square link
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -72,7 +72,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
-      // ✅ Updated with your new Outlook service + template
+      // ✅ Your new Outlook EmailJS setup
       const response = await emailjs.send(
         "service_bk310ht",
         "template_sb8tg8bk",
@@ -133,7 +133,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       cart = [];
       updateCartUI();
       alert("🛒 Order sent successfully! Proceeding to Square checkout…");
-      window.open(SQUARE_LINK, "_blank");
+
+      // ✅ dynamically include total in Square link
+      const checkoutLink = `${SQUARE_LINK}?amount=${total}`;
+      window.open(checkoutLink, "_blank");
     } catch (e) {
       console.error(e);
       alert("⚠️ Could not complete checkout: " + (e?.text || e));
