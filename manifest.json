@@ -1,8 +1,8 @@
 {
   "name": "LBizzo Vape Shop",
   "short_name": "LBizzo",
-  "start_url": "./index.html",
-  "scope": ".",
+  "start_url": "/index.html",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff8c00",
