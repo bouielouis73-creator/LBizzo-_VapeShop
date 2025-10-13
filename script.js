@@ -1,3 +1,20 @@
+// ---------- SCANDIT SDK INITIALIZATION ----------
+(async () => {
+  try {
+    console.log("⏳ Loading Scandit SDK...");
+    await ScanditSDK.configure(
+      "AjeGjTUcEtL1CJWakqGDsHUqNSa2FUaEfgpehFQktDUvftJypGR1uUk4YOe9U57HnWknn6FAegM/Wa/Oul2VLYxdP6h8QNRpqnO6VYQmJrB/Fz8zCSq5ZxMO4g1dbz/yk0KhxtRmyOJUQZ3lPHPLmXRItF4heDTY2040ZyZ7hODuQ7g+6kYMgmRVn8G+Fv5waQ/MN/Rf7YmZYFPd7GGlg5Ry5dTxavIgUWA4H6dGZVnSUvih0lpLVZJ++O79R7YSL2CNET10lSNXXNySjEJ7o31fUt9aeyI1YmqYgLdMSQsDVEBqp3K+OEdPPAg1Qwrrb3S+c7ti7TGoQDhPAExRC61b3frNUhmU80Csg/Rr9GecBDyIbmFEGz52LPQ1a0vT2RpSouZ9gfC0YbTZpEwDNXha9vBcckqEUUeggFAakLpyVRj8231A8bd3emXvehAJRHGhqZNQEJWVeFq31B7mofwKdElOXyEFCSmAgGlY/hq9VPmkt3F4w9UNbPT8YGE5JW4v5JNu6TofHrsdVyEqKQIJNCUKDuNNKQrzA0ESIq/x/gNdCr/PbIjzx7i0L8yeYXuolP1vzJdIvhJvvt8vifaFwtftAmWCUj4GlFBq0e22RwYI7to1tt1IJ3llMZeAP6s6RreABtf8ZpeMyJd9Cw2VF2+7ZWrTNS0j2GqUH78Bt3CYOjli8Bg4YBrlKHjKFYo7jL49/b+4tN3BvSXJbn/7CK+AZ6PjYBKBmuQqQUUwotp7Gvd/0sjt3H7OWrAQb3n8mYK8u6WmJjuLIKQKSt6YoqfPviaj8N7ThlEter9fCXdlhqWDIIiBU0AXbn/jlCEVmhtvSUcXEh2QhNPaig8sLBrjtXnZQh/JNz2x9Xn49PMKUP0C/qia+HS09dfmKgNUDU0ikax1oVu7GlZPrIWhF5R41jZI60TqRMgx5Z4Q4k8oaEw0GLenxOJDxs9ehoPEY634tjJ+NV+8eU9VtOYtiQ5+5WJkf1yMZGtrdpo15xjZZHOjJwusEnEdzoXW1woDQDMrsQn1OnAG6VlALE73S15l9kPSZ1NDknDDitiRlxe1XIn3P7wFwG80QMQY58vTJ1rCdUF2mzg11LbTy/1YZyyn65CjsSGqWQLQrW9z3GoRR7+h35tBltE49sR7+JNR4U+e7qwb52bAQoWa0DLxsiswAAUjZcGevTCpWQvvxwhOqjCNcD/7Fxkpfc5NVvM=",
+      { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/" }
+    );
+    await ScanditSDK.ready();
+    console.log("✅ Scandit SDK ready");
+  } catch (e) {
+    console.error("❌ Scandit SDK failed to initialize:", e);
+  }
+})();
+
+
+// ---------- MAIN APP ----------
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
@@ -112,7 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let ID_VERIFIED = false;
   window.ID_VERIFIED = false;
 
-  // 🔒 lock checkout until verified (mirrors the HTML lock script)
+  // 🔒 lock checkout until verified
   (function lockCheckout() {
     if (!checkoutBtn) return;
     checkoutBtn.disabled = true;
@@ -154,11 +171,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateCartUI();
       alert("🛒 Order sent successfully! Redirecting to checkout...");
 
-      // ✅ AUTO AMOUNT IN SQUARE LINK
       const totalCents = Math.round(parseFloat(total) * 100);
       const checkoutURL = `${SQUARE_BASE}?amount=${totalCents}`;
       window.open(checkoutURL, "_blank");
-
     } catch (e) {
       console.error(e);
       alert("⚠️ Could not complete checkout. Please try again.");
@@ -241,7 +256,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       const settings = new ScanditSDK.ScanSettings({
-        enabledSymbologies: ["pdf417"], // stricter: driver's license only
+        enabledSymbologies: ["pdf417"],
         codeDuplicateFilter: 1000,
       });
       scanner.applyScanSettings(settings);
@@ -250,7 +265,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         const codeText = res.barcodes.map((b) => b.data).join("\n");
         console.log("🔍 Scanned data:", codeText);
 
-        // Strong validation: header + DOB + DL/name field
         const hasHeader = /^@?ANSI ?\d{6} ?\d{2}/.test(codeText) || /AAMVA/i.test(codeText);
         const matchDOB  = codeText.match(/DBB(\d{8})/);
         const hasCore   = /(DAQ|DCS|DAA)/i.test(codeText);
@@ -306,6 +320,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 }); // DOMContentLoaded
+
 
 // ---------- SERVICE WORKER ----------
 if ("serviceWorker" in navigator) {
