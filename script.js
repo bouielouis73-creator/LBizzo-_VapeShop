@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/GOvQxhqG";
+  const SQUARE_LINK = "https://square.link/u/eocaKRoJ";
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
