@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/eocaKRoJ";
+  const SQUARE_LINK = "https://square.link/u/eocaKRoJ"; // fixed: remove ?amount=
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -68,10 +68,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const response = await emailjs.send("service_mos7x3m", "template_kw9vt5f", orderData);
       console.log("✅ Order email sent:", response.status);
-      alert("Order sent successfully! 📧");
+      alert("📧 Order sent successfully!");
     } catch (err) {
       console.error("❌ Failed to send email:", err);
-      alert("There was a problem sending the email.");
+      alert("⚠️ There was a problem sending the email. Please try again.");
+      throw err;
     }
   }
 
@@ -117,10 +118,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       addLoyaltyStar();
       cart = [];
       updateCartUI();
-      alert("🛒 Order sent! Proceeding to payment…");
-      window.open(`${SQUARE_LINK}?amount=${total}`, "_blank");
+      alert("🛒 Order sent! Proceeding to secure Square checkout…");
+      window.open(SQUARE_LINK, "_blank"); // fixed here
     } catch (e) {
-      alert("⚠️ Could not send order: " + (e?.text || e));
+      console.error(e);
+      alert("⚠️ Could not complete checkout: " + (e?.text || e));
     }
   });
 
