@@ -72,9 +72,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
+      // ✅ Updated with your new Outlook service + template
       const response = await emailjs.send(
-        "service_mos7x3m",
-        "template_kw9vt5f",
+        "service_bk310ht",
+        "template_sb8tg8bk",
         orderData
       );
       console.log("✅ Order email sent:", response.status);
