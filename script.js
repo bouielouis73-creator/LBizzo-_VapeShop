@@ -20,7 +20,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     debugBar.textContent = msg;
     debugBar.style.background = ok ? "#022" : "#220";
     debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
-    debugBar.hidden = false;
+    debugBar.hidden = true;
   };
 
   // ---------- AGE GATE ----------
