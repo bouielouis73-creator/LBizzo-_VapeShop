@@ -132,7 +132,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateCartUI();
       alert("🛒 Order sent successfully! Proceeding to Square checkout…");
 
-      // ✅ open static Square link (no ?amount)
       window.open(SQUARE_LINK, "_blank");
     } catch (e) {
       console.error(e);
@@ -223,12 +222,34 @@ document.addEventListener("DOMContentLoaded", async () => {
       scanner.applyScanSettings(settings);
 
       scanner.on("scan", (res) => {
-        const codes = res.barcodes.map((b) => b.data).join("\n");
-        console.log("✅ ID scanned:", codes);
-        scanOut.textContent = "✅ ID Scanned:\n" + codes;
-        ID_VERIFIED = true;
-        window.ID_VERIFIED = true;
-        alert("✅ ID verified successfully! You may now checkout.");
+        const codeText = res.barcodes.map((b) => b.data).join("\n");
+        console.log("✅ ID scanned:", codeText);
+        scanOut.textContent = "✅ ID Scanned:\n" + codeText;
+
+        // 🔹 NEW: try to extract birth date (AAMVA DBBYYYYMMDD)
+        const match = codeText.match(/DBB(\d{8})/);
+        if (match) {
+          const dob = match[1];
+          const year = +dob.slice(0, 4);
+          const month = +dob.slice(4, 6) - 1;
+          const day = +dob.slice(6, 8);
+          const birth = new Date(year, month, day);
+          const today = new Date();
+          let age = today.getFullYear() - birth.getFullYear();
+          const m = today.getMonth() - birth.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+          if (age >= 21) {
+            alert("✅ Verified: customer is 21 or older.");
+            ID_VERIFIED = true;
+            window.ID_VERIFIED = true;
+          } else {
+            alert("🚫 Customer is under 21 — cannot continue.");
+            ID_VERIFIED = false;
+            window.ID_VERIFIED = false;
+          }
+        } else {
+          alert("⚠️ Could not read DOB from barcode. Try again.");
+        }
       });
 
       scanOut.textContent =
