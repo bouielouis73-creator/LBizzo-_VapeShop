@@ -170,12 +170,20 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   on(scanStart, "click", async () => {
     try {
-      if (!window.ScanditSDK || !ScanditSDK.BarcodePicker) {
-        scanOut.textContent = "❌ Scanner not supported on this device.";
+      // ✅ Added detection & friendly message
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        scanOut.textContent = "❌ Camera access not supported or blocked. Try normal Safari (not Private Mode) or Chrome.";
         return;
       }
+      if (!window.ScanditSDK || !ScanditSDK.BarcodePicker) {
+        scanOut.textContent = "❌ Scanner not supported on this browser/device.";
+        return;
+      }
+
       scanner = await ScanditSDK.BarcodePicker.create($("#scanVideo"), {
-        playSoundOnScan: true, vibrateOnScan: true, accessCamera: true
+        playSoundOnScan: true,
+        vibrateOnScan: true,
+        accessCamera: true
       });
       const settings = new ScanditSDK.ScanSettings({
         enabledSymbologies: ["pdf417", "qr", "code128"],
@@ -186,9 +194,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         const codes = res.barcodes.map(b => b.data).join("\n");
         scanOut.textContent = "✅ Scanned:\n" + codes;
       });
-      scanOut.textContent = "Scanner started. Point camera at barcode.";
+      scanOut.textContent = "📸 Scanner started. Point camera at barcode.";
     } catch (err) {
-      scanOut.textContent = "❌ Scanner error: " + err.message;
+      scanOut.textContent = "❌ Scanner error: " + err.message + "\nTry opening in regular Safari or Chrome.";
       console.error(err);
     }
   });
