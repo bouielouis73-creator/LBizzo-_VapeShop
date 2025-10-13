@@ -8,12 +8,15 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/eocaKRoJ"; // fixed: clean link
+  const SQUARE_LINK = "https://square.link/u/eocaKRoJ";
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
-  const on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+  const on = (sel, ev, fn) => {
+    const el = typeof sel === "string" ? $(sel) : sel;
+    if (el) el.addEventListener(ev, fn);
+  };
   const debugBar = $("#debug");
   const debug = (msg, ok = false) => {
     if (!debugBar) return;
@@ -25,8 +28,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- AGE GATE ----------
   const ageOverlay = $("#age-overlay");
-  on($("#yesBtn"), "click", () => (ageOverlay.style.display = "none"));
-  on($("#noBtn"), "click", () => {
+  on("#yesBtn", "click", () => ageOverlay && (ageOverlay.style.display = "none"));
+  on("#noBtn", "click", () => {
     alert("Sorry, you must be 21 or older to enter.");
     location.href = "https://google.com";
   });
@@ -39,6 +42,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   let cart = JSON.parse(localStorage.getItem("cart") || "[]");
 
   function updateCartUI() {
+    if (!cartList || !cartCount || !totalEl) return;
     cartList.innerHTML = "";
     let total = 0;
     cart.forEach((item, i) => {
@@ -166,7 +170,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       <p>$${priceNum.toFixed(2)}</p>
       <button class="add-btn btn">Add to Cart</button>
     `;
-    card.querySelector(".add-btn").addEventListener("click", () => {
+    on(card.querySelector(".add-btn"), "click", () => {
       cart.push({ name: p.name || "Item", price: priceNum });
       updateCartUI();
     });
