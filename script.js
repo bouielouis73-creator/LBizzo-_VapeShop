@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ LBizzo JS booting...");
 
   // ---------- EMAILJS INIT ----------
-  if (window.emailjs) emailjs.init("f05GO0Wo8vkel_HXz");
+  if (window.emailjs) emailjs.init("jUx6gEqKI1tvL7yLs");
   console.log("✅ EmailJS connected");
 
   // ---------- SQUARE LINK ----------
