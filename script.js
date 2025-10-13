@@ -112,6 +112,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   let ID_VERIFIED = false;
   window.ID_VERIFIED = false;
 
+  // 🔒 lock checkout until verified (mirrors the HTML lock script)
+  (function lockCheckout() {
+    if (!checkoutBtn) return;
+    checkoutBtn.disabled = true;
+    document.addEventListener("id-verified", () => { checkoutBtn.disabled = false; });
+    document.addEventListener("id-reset",    () => { checkoutBtn.disabled = true;  });
+    checkoutBtn.addEventListener("click", (e) => {
+      if (!window.ID_VERIFIED) {
+        e.preventDefault();
+        alert("⚠️ Please scan a valid driver’s license first.");
+      }
+    });
+  })();
+
   // ---------- CHECKOUT ----------
   on(checkoutBtn, "click", async () => {
     if (!cart.length) return alert("Your cart is empty!");
@@ -209,8 +223,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- SCANDIT SCANNER ----------
   const scanStart = $("#scanStart");
-  const scanStop = $("#scanStop");
-  const scanOut = $("#scanOut");
+  const scanStop  = $("#scanStop");
+  const scanOut   = $("#scanOut");
   let scanner = null;
 
   on(scanStart, "click", async () => {
@@ -227,7 +241,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
 
       const settings = new ScanditSDK.ScanSettings({
-        enabledSymbologies: ["pdf417", "qr", "code128"],
+        enabledSymbologies: ["pdf417"], // stricter: driver's license only
         codeDuplicateFilter: 1000,
       });
       scanner.applyScanSettings(settings);
@@ -236,18 +250,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         const codeText = res.barcodes.map((b) => b.data).join("\n");
         console.log("🔍 Scanned data:", codeText);
 
-        const match = codeText.match(/DBB(\d{8})/);
-        const validAAMVA = /DL|ID|AAMVA/i.test(codeText);
+        // Strong validation: header + DOB + DL/name field
+        const hasHeader = /^@?ANSI ?\d{6} ?\d{2}/.test(codeText) || /AAMVA/i.test(codeText);
+        const matchDOB  = codeText.match(/DBB(\d{8})/);
+        const hasCore   = /(DAQ|DCS|DAA)/i.test(codeText);
 
-        if (!match || !validAAMVA) {
-          scanOut.textContent =
-            "⚠️ Not a valid driver’s-license barcode. Try again.";
+        if (!hasHeader || !matchDOB || !hasCore) {
+          scanOut.textContent = "⚠️ Not a valid driver’s-license barcode. Try again.";
           ID_VERIFIED = false;
           window.ID_VERIFIED = false;
+          document.dispatchEvent(new Event("id-reset"));
           return;
         }
 
-        const dob = match[1];
+        const dob = matchDOB[1];
         const year = +dob.slice(0, 4);
         const month = +dob.slice(4, 6) - 1;
         const day = +dob.slice(6, 8);
@@ -263,18 +279,21 @@ document.addEventListener("DOMContentLoaded", async () => {
           alert("✅ Verified: customer is 21 or older.");
           ID_VERIFIED = true;
           window.ID_VERIFIED = true;
+          document.dispatchEvent(new Event("id-verified"));
         } else {
           alert("🚫 Customer is under 21 — checkout disabled.");
           ID_VERIFIED = false;
           window.ID_VERIFIED = false;
+          document.dispatchEvent(new Event("id-reset"));
         }
       });
 
       scanOut.textContent =
-        "📸 Scanner started. Point camera at the back barcode of your ID.";
+        "📸 Scanner started. Point camera at the BACK barcode of your ID.";
     } catch (err) {
       scanOut.textContent = "❌ Scanner error: " + err.message;
       console.error(err);
+      document.dispatchEvent(new Event("id-reset"));
     }
   });
 
@@ -283,6 +302,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       scanner.destroy();
       scanner = null;
       scanOut.textContent = "Scanner stopped.";
+      document.dispatchEvent(new Event("id-reset"));
     }
   });
 }); // DOMContentLoaded
