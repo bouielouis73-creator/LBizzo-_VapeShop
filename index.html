@@ -24,36 +24,15 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK -->
+  <!-- ✅ Scandit SDK (base) -->
   <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
 
-  <!-- ✅ Styling for Arrow -->
+  <!-- ✅ Small inline style just for the animated arrow -->
   <style>
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-    #scanArrow {
-      text-align: center;
-      font-size: 1.2rem;
-      color: #ff8c00;
-      animation: bounce 1.2s infinite;
-      display: none;
-      margin-top: 8px;
-      opacity: 1;
-      transition: opacity 2s ease;
-    }
-    #idPhotoInput {
-      margin-top: 10px;
-      border: 2px solid #ff8c00;
-      background: #111;
-      color: #fff;
-      padding: 8px;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 260px;
-      text-align: center;
-    }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    #scanArrow{ text-align:center; font-size:1.2rem; color:#ff8c00; animation:bounce 1.2s infinite;
+      display:none; margin-top:8px; opacity:1; transition:opacity 2s ease; }
+    #scandit-status{ text-align:center; color:#ff8c00; margin:8px 0; }
   </style>
 </head>
 
@@ -85,6 +64,8 @@
     </div>
   </header>
 
+  <div id="debug" hidden></div>
+
   <!-- ✅ PRODUCTS -->
   <main id="product-list" class="product-grid"></main>
 
@@ -94,63 +75,33 @@
     <ul id="cart-items"></ul>
     <p id="cart-total">Total: $0.00</p>
     <button id="checkout-btn" class="btn primary">Checkout</button>
-    <div id="checkout-hint" style="margin-top:6px;font-size:.9rem;color:#888;">🔒 Scan or upload ID to enable checkout</div>
+    <div id="checkout-hint" style="margin-top:6px;font-size:.9rem;color:#888;">🔒 Scan ID to enable checkout</div>
   </section>
 
-  <!-- ✅ ID SCANNER & PHOTO UPLOAD -->
+  <!-- ✅ ID SCANNER -->
   <section id="id-scan" class="scanner">
-    <h2>Scan or Upload Your ID</h2>
-
-    <!-- Live Scanner -->
+    <h2>Scan or Upload ID (PDF417/QR)</h2>
+    <p id="scandit-status">⏳ Loading Scandit SDK…</p>
     <video id="scanVideo" playsinline muted></video>
     <div class="scan-actions">
       <button id="scanStart" class="btn">Start Scanner</button>
       <button id="scanStop" class="btn">Stop Scanner</button>
     </div>
     <pre id="scanOut"></pre>
-    <div id="scanArrow">⬇️ Point camera at the BACK barcode of your ID</div>
+    <div id="scanArrow">⬇️ Point camera at BACK of your ID</div>
 
-    <!-- Photo Upload -->
-    <div id="photo-verify">
-      <h3>📸 Or Take / Upload ID Photo</h3>
-      <input type="file" id="idPhotoInput" accept="image/*" capture="environment" />
-      <p id="idUploadStatus" style="color:#ff8c00;margin-top:8px;">Scandit will analyze your ID photo for verification.</p>
+    <div class="id-upload">
+      <h3>Or Take a Photo of Your ID</h3>
+      <input type="file" id="idPhotoInput" accept="image/*" capture="environment" class="btn" />
+      <p id="idUploadStatus" style="color:#ff8c00;margin-top:8px;"></p>
     </div>
   </section>
 
   <!-- ✅ INSTALL BUTTON -->
   <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
 
-  <!-- ✅ SCRIPTS -->
+  <!-- ✅ APP LOGIC -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
-
-  <!-- ✅ SAFETY CHECK -->
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      const scanOut = document.getElementById("scanOut");
-      const scanArrow = document.getElementById("scanArrow");
-
-      if (!window.ScanditSDK) {
-        const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js";
-        script.onload = () => console.log("✅ Scandit SDK script loaded");
-        script.onerror = () => {
-          console.error("❌ Scandit SDK failed to load.");
-          scanOut.textContent = "❌ Scandit SDK not loaded. Please refresh.";
-        };
-        document.head.appendChild(script);
-      }
-
-      // Small UI feedback
-      scanOut.textContent = "⏳ Initializing Scandit…";
-      scanOut.style.color = "#ff8c00";
-      setTimeout(() => {
-        scanOut.textContent = "📸 Ready to scan or upload your ID.";
-        scanArrow.style.display = "block";
-        setTimeout(() => (scanArrow.style.opacity = 0), 4000);
-      }, 2500);
-    });
-  </script>
 </body>
 </html>
