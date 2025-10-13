@@ -129,5 +129,61 @@
       });
     });
   </script>
+
+  <!-- ✅ NEW SAFE LOADER + RETRY SYSTEM (ADDED BELOW EXISTING CODE) -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const scanOut = document.getElementById("scanOut");
+
+      function showRetry() {
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "🔄 Retry Scanner";
+        retryBtn.className = "btn";
+        retryBtn.style.display = "block";
+        retryBtn.style.margin = "10px auto";
+        retryBtn.onclick = initScandit;
+        scanOut.insertAdjacentElement("afterend", retryBtn);
+      }
+
+      async function initScandit() {
+        if (!window.ScanditSDK) {
+          if (scanOut) {
+            scanOut.textContent = "⚠️ Scandit SDK script not loaded. Retrying...";
+            scanOut.style.color = "#ff8c00";
+          }
+          setTimeout(initScandit, 1500);
+          return;
+        }
+
+        try {
+          await ScanditSDK.ready();
+          console.log("✅ Scandit SDK loaded successfully");
+          if (scanOut) {
+            scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
+            scanOut.style.color = "#00ff88";
+          }
+          const retry = document.querySelector(".btn.retry");
+          if (retry) retry.remove();
+        } catch (err) {
+          console.error("❌ Scandit SDK load error:", err);
+          if (scanOut) {
+            scanOut.textContent = "❌ Scandit SDK failed to load. Tap Retry below.";
+            scanOut.style.color = "#ff4444";
+          }
+          showRetry();
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {
+          if (scanOut) {
+            scanOut.textContent =
+              "⚠️ Enable camera access in Safari → Settings → Privacy → Camera.";
+            scanOut.style.color = "#ff8c00";
+          }
+        });
+      }
+
+      setTimeout(initScandit, 2000);
+    });
+  </script>
 </body>
 </html>
