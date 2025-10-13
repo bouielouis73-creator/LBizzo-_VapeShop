@@ -1,138 +1,167 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LBizzo Vape Shop</title>
+document.addEventListener("DOMContentLoaded", () => {
+  if (window.__LBIZZO_BOOTED__) return;
+  window.__LBIZZO_BOOTED__ = true;
+  console.log("✅ LBizzo Vape Shop script loaded");
 
-  <!-- ✅ PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <link rel="apple-touch-icon" href="icons/icon-512.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+  // ---------- Firebase ----------
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+    authDomain: "lbizzodelivery.firebaseapp.com",
+    projectId: "lbizzodelivery",
+    storageBucket: "lbizzodelivery.firebasestorage.app",
+    messagingSenderId: "614540837455",
+    appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+  };
 
-  <!-- ✅ Styles -->
-  <link rel="stylesheet" href="style.css" />
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
 
-  <!-- ✅ Firebase (compat) -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  <!-- ✅ EmailJS SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  const productList = $("#product-list");
+  const cartItems = $("#cart-items");
+  const cartCount = $("#cart-count");
+  const cartTotal = $("#cart-total");
 
-  <!-- ✅ Scandit SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
-</head>
+  let cart = [];
 
-<body>
-  <!-- ✅ AGE GATE -->
-  <div id="age-overlay" class="overlay">
-    <div class="overlay-card">
-      <h2>Are you 21 or older?</h2>
-      <div class="age-buttons">
-        <button id="yesBtn" class="btn yes">Yes</button>
-        <button id="noBtn" class="btn no">No</button>
-      </div>
-      <small>LBizzo Vape Shop</small>
-    </div>
-  </div>
+  // ---------- AGE VERIFICATION ----------
+  const ageOverlay = $("#age-overlay");
+  $("#yesBtn")?.addEventListener("click", () => {
+    ageOverlay.style.display = "none";
+    localStorage.setItem("ageVerified", "true");
+  });
+  $("#noBtn")?.addEventListener("click", () => {
+    alert("Sorry, you must be 21+ to enter.");
+    window.location.href = "https://google.com";
+  });
+  if (localStorage.getItem("ageVerified") === "true") {
+    ageOverlay.style.display = "none";
+  }
 
-  <!-- ✅ HEADER -->
-  <header class="topbar">
-    <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
-    <div id="loyalty-stars" aria-label="Loyalty progress">
-      <span class="star" data-i="0">★</span>
-      <span class="star" data-i="1">★</span>
-      <span class="star" data-i="2">★</span>
-      <span class="star" data-i="3">★</span>
-      <span class="star" data-i="4">★</span>
-      <span class="star" data-i="5">★</span>
-      <span class="progress-label">Free vape at 6 ⭐</span>
-    </div>
-  </header>
-
-  <div id="debug" hidden></div>
-
-  <!-- ✅ PRODUCTS -->
-  <main id="product-list" class="product-grid"></main>
-
-  <!-- ✅ CART -->
-  <section id="cart" class="cart">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="cart-total">Total: $0.00</p>
-    <button id="checkout-btn" class="btn primary">Checkout</button>
-  </section>
-
-  <!-- ✅ INSTALL BUTTON -->
-  <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
-
-  <!-- ✅ ID SCANNER -->
-  <section id="id-scan" class="scanner">
-    <h2>Scan or Upload ID (PDF417/QR)</h2>
-    <video id="scanVideo" playsinline muted></video>
-    <div class="scan-actions">
-      <button id="scanStart" class="btn">Start Scanner</button>
-      <button id="scanStop" class="btn">Stop Scanner</button>
-    </div>
-    <pre id="scanOut"></pre>
-
-    <!-- ✅ ID PHOTO UPLOAD OPTION -->
-    <div class="id-upload">
-      <h3>Or Take a Photo of Your ID</h3>
-      <input type="file" id="idPhotoInput" accept="image/*" capture="environment" class="btn" />
-      <p id="idUploadStatus" style="color:#ff8c00;margin-top:8px;"></p>
-    </div>
-  </section>
-
-  <!-- ✅ APP SCRIPTS -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
-
-  <!-- ✅ SCANDIT LICENSE CONFIG -->
-  <script>
-    document.addEventListener("DOMContentLoaded", async () => {
-      try {
-        await ScanditSDK.configure(
-          "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=",
-          { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/" }
-        );
-        console.log("✅ Scandit ready");
-      } catch (e) { console.error("❌ Scandit config failed:", e); }
-    });
-  </script>
-
-  <!-- ✅ ID PHOTO UPLOAD LOGIC -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const fileInput = document.getElementById("idPhotoInput");
-      const statusEl = document.getElementById("idUploadStatus");
-
-      if (!window.firebase || !firebase.storage) return;
-
-      fileInput.addEventListener("change", async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        try {
-          const storageRef = firebase.storage().ref("id-verifications/" + Date.now() + "_" + file.name);
-          const snap = await storageRef.put(file);
-          const url = await snap.ref.getDownloadURL();
-          window.ID_VERIFIED = true;
-          statusEl.textContent = "✅ ID uploaded successfully.";
-          console.log("✅ ID uploaded:", url);
-          alert("✅ ID verified successfully!");
-        } catch (err) {
-          console.error("❌ ID upload failed:", err);
-          statusEl.textContent = "❌ Upload failed. Try again.";
-          alert("⚠️ Could not upload ID. Please try again.");
-        }
+  // ---------- LOAD PRODUCTS ----------
+  async function loadProducts() {
+    try {
+      const snap = await db.collection("products").get();
+      if (snap.empty) {
+        productList.innerHTML = "<p>No products found.</p>";
+        return;
+      }
+      productList.innerHTML = "";
+      snap.forEach(async (doc) => {
+        const p = doc.data();
+        const card = document.createElement("div");
+        card.className = "product";
+        const imgURL = p.image || "https://via.placeholder.com/150?text=No+Image";
+        card.innerHTML = `
+          <img src="${imgURL}" alt="${p.name}" />
+          <h3>${p.name}</h3>
+          <p>$${p.price}</p>
+          <button class="add-btn">Add to Cart</button>
+        `;
+        const btn = card.querySelector(".add-btn");
+        btn.addEventListener("click", () => addToCart(p));
+        productList.appendChild(card);
       });
+    } catch (err) {
+      console.error("❌ Error loading products:", err);
+    }
+  }
+
+  loadProducts();
+
+  // ---------- CART ----------
+  function addToCart(product) {
+    const existing = cart.find((p) => p.name === product.name);
+    if (existing) existing.qty++;
+    else cart.push({ ...product, qty: 1 });
+    updateCart();
+  }
+
+  function removeFromCart(name) {
+    cart = cart.filter((p) => p.name !== name);
+    updateCart();
+  }
+
+  function updateCart() {
+    cartItems.innerHTML = "";
+    let total = 0;
+    cart.forEach((p) => {
+      const li = document.createElement("li");
+      const sub = (p.price * p.qty);
+      total += sub;
+      li.innerHTML = `
+        ${p.name} x${p.qty} - $${sub.toFixed(2)}
+        <button class="remove-btn">❌</button>
+      `;
+      li.querySelector(".remove-btn").addEventListener("click", () => removeFromCart(p.name));
+      cartItems.appendChild(li);
     });
-  </script>
-</body>
-</html>
+    cartCount.textContent = cart.length;
+    cartTotal.textContent = `Total: $${total.toFixed(2)}`;
+  }
+
+  // ---------- LOYALTY STARS ----------
+  function updateLoyaltyStars(count) {
+    const stars = $$("#loyalty-stars .star");
+    stars.forEach((s, i) => {
+      s.style.color = i < count ? "#ff8c00" : "#555";
+    });
+    if (count >= 6) {
+      alert("🎉 Congratulations! You earned a free vape!");
+    }
+  }
+
+  // ---------- EMAILJS SETUP ----------
+  (function() {
+    emailjs.init("jUx6gEqKI1tvL7yLs"); // ✅ your real Public Key
+  })();
+
+  async function sendOrderEmail(orderData) {
+    const params = {
+      name: orderData.name,
+      phone: orderData.phone,
+      address: orderData.address,
+      items: orderData.items,
+      total: orderData.total
+    };
+
+    try {
+      await emailjs.send("service_bk310ht", "template_sbbt8blk", params); // ✅ your real Service & Template IDs
+      alert("✅ Order sent to LBizzo — please proceed to checkout!");
+      window.location.href = "https://square.link/u/YOUR_SQUARE_LINK"; // 🔧 replace with your real Square link
+    } catch (error) {
+      console.error("❌ EmailJS error:", error);
+      alert("⚠️ Could not send order. Check your EmailJS keys or internet connection.");
+    }
+  }
+
+  // ---------- CHECKOUT ----------
+  $("#checkout-btn").addEventListener("click", () => {
+    if (cart.length === 0) {
+      alert("🛒 Your cart is empty!");
+      return;
+    }
+
+    const total = cart.reduce((sum, p) => sum + p.price * p.qty, 0);
+    const itemsList = cart.map(p => `${p.name} x${p.qty}`).join(", ");
+
+    const orderData = {
+      name: prompt("Enter your name:"),
+      phone: prompt("Enter your phone number:"),
+      address: prompt("Enter your address:"),
+      items: itemsList,
+      total: total.toFixed(2)
+    };
+
+    if (!orderData.name || !orderData.phone || !orderData.address) {
+      alert("Please fill all fields before placing order.");
+      return;
+    }
+
+    sendOrderEmail(orderData);
+    updateLoyaltyStars(cart.length);
+  });
+});
