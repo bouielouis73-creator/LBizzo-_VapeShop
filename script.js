@@ -72,7 +72,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
-      // ✅ Your new Outlook EmailJS setup
       const response = await emailjs.send(
         "service_bk310ht",
         "template_sb8tg8bk",
@@ -82,8 +81,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("📧 Order sent successfully!");
     } catch (err) {
       console.error("❌ Failed to send email:", err);
-      alert("⚠️ There was a problem sending the email. Please try again.");
-      throw err;
+      alert("⚠️ There was a problem sending the email. Please try again later.");
     }
   }
 
@@ -134,12 +132,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       updateCartUI();
       alert("🛒 Order sent successfully! Proceeding to Square checkout…");
 
-      // ✅ dynamically include total in Square link
-      const checkoutLink = `${SQUARE_LINK}?amount=${total}`;
-      window.open(checkoutLink, "_blank");
+      // ✅ open static Square link (no ?amount)
+      window.open(SQUARE_LINK, "_blank");
     } catch (e) {
       console.error(e);
-      alert("⚠️ Could not complete checkout: " + (e?.text || e));
+      alert("⚠️ Could not complete checkout. Please try again.");
     }
   });
 
@@ -186,7 +183,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const snap = await db.collection("products").get();
       if (!snap || snap.empty) throw new Error("No Firestore products");
       debug(`Connected to Firestore • ${snap.size} product(s)`, true);
-      setTimeout(() => (debugBar.hidden = true), 4000); // hides message after 4s
+      setTimeout(() => (debugBar.hidden = true), 4000);
       productList.innerHTML = "";
       for (const doc of snap.docs) await addCard(doc.data());
     } catch (err) {
