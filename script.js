@@ -4,11 +4,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ LBizzo JS booting...");
 
   // ---------- EMAILJS INIT ----------
-  if (window.emailjs) emailjs.init("jUx6gEqKI1tvL7yLs");
-  console.log("✅ EmailJS connected");
+  try {
+    if (window.emailjs) {
+      emailjs.init("jUx6gEqKI1tvL7yLs"); // ✅ your public key
+      console.log("✅ EmailJS initialized");
+    }
+  } catch (err) {
+    console.error("❌ EmailJS init error:", err);
+  }
 
   // ---------- SQUARE LINK ----------
-  const SQUARE_LINK = "https://square.link/u/n0DB9QR7Q";
+  const SQUARE_BASE = "https://square.link/u/GOvQxhqG"; // ✅ your real Square base link
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -72,16 +78,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
+      console.log("📧 Sending order via EmailJS...", orderData);
       const response = await emailjs.send(
         "service_bk310ht",
         "template_sb8tg8bk",
         orderData
       );
-      console.log("✅ Order email sent:", response.status);
-      alert("📧 Order sent successfully!");
+      console.log("✅ EmailJS response:", response.status);
+      alert("📧 Order sent successfully to LBizzo!");
     } catch (err) {
-      console.error("❌ Failed to send email:", err);
-      alert("⚠️ There was a problem sending the email. Please try again later.");
+      console.error("❌ EmailJS error:", err);
+      alert("⚠️ There was a problem sending your order. Please try again.");
     }
   }
 
@@ -103,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- ID VERIFICATION FLAG ----------
   let ID_VERIFIED = false;
-  window.ID_VERIFIED = false; // reset on reload
+  window.ID_VERIFIED = false;
 
   // ---------- CHECKOUT ----------
   on(checkoutBtn, "click", async () => {
@@ -131,9 +138,13 @@ document.addEventListener("DOMContentLoaded", async () => {
       addLoyaltyStar();
       cart = [];
       updateCartUI();
-      alert("🛒 Order sent successfully! Proceeding to Square checkout…");
+      alert("🛒 Order sent successfully! Redirecting to checkout...");
 
-      window.open(SQUARE_LINK, "_blank");
+      // ✅ AUTO AMOUNT IN SQUARE LINK
+      const totalCents = Math.round(parseFloat(total) * 100);
+      const checkoutURL = `${SQUARE_BASE}?amount=${totalCents}`;
+      window.open(checkoutURL, "_blank");
+
     } catch (e) {
       console.error(e);
       alert("⚠️ Could not complete checkout. Please try again.");
@@ -164,9 +175,8 @@ document.addEventListener("DOMContentLoaded", async () => {
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
-      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${
-      p.name || "Product"
-    }" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}"
+        onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed Product"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
       <button class="add-btn btn">Add to Cart</button>
@@ -222,15 +232,16 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       scanner.applyScanSettings(settings);
 
-      // ✅ IMPROVED SCAN LOGIC
       scanner.on("scan", (res) => {
         const codeText = res.barcodes.map((b) => b.data).join("\n");
         console.log("🔍 Scanned data:", codeText);
 
-        // Require a DOB (DBBYYYYMMDD) pattern to count as a real ID
         const match = codeText.match(/DBB(\d{8})/);
-        if (!match) {
-          scanOut.textContent = "⚠️ Not a valid driver’s license barcode. Try again.";
+        const validAAMVA = /DL|ID|AAMVA/i.test(codeText);
+
+        if (!match || !validAAMVA) {
+          scanOut.textContent =
+            "⚠️ Not a valid driver’s-license barcode. Try again.";
           ID_VERIFIED = false;
           window.ID_VERIFIED = false;
           return;
