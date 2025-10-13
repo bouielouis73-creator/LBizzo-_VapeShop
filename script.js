@@ -1,4 +1,4 @@
-// ---------- SCANDIT SDK INITIALIZATION ----------
+// ---------- SCANDIT SDK INITIALIZATION + IMAGE VERIFY ----------
 (async () => {
   try {
     console.log("⏳ Loading Scandit SDK...");
@@ -13,6 +13,75 @@
   }
 })();
 
+// ---------- PHOTO ID VERIFICATION (NEW FEATURE) ----------
+async function verifyIDPhoto(file) {
+  try {
+    if (!window.ScanditSDK || !ScanditSDK.BarcodeScanner) {
+      alert("⚠️ Scandit not ready yet, please wait a few seconds.");
+      return false;
+    }
+
+    const imageBuffer = await file.arrayBuffer();
+    const imageData = new Uint8Array(imageBuffer);
+    const result = await ScanditSDK.BarcodeScanner.scanImage(imageData, {
+      enabledSymbologies: ["pdf417"],
+    });
+
+    if (!result.barcodes.length) {
+      alert("❌ No barcode detected. Please retake the photo.");
+      document.dispatchEvent(new Event("id-reset"));
+      return false;
+    }
+
+    const codeText = result.barcodes[0].data;
+    console.log("📸 Scanned from photo:", codeText);
+
+    const dobMatch = codeText.match(/DBB(\d{8})/);
+    const hasHeader = /^@?ANSI ?\d{6} ?\d{2}/.test(codeText) || /AAMVA/i.test(codeText);
+    if (!hasHeader || !dobMatch) {
+      alert("⚠️ Not a valid driver’s license image. Please try again.");
+      document.dispatchEvent(new Event("id-reset"));
+      return false;
+    }
+
+    const dob = dobMatch[1];
+    const year = +dob.slice(0, 4);
+    const month = +dob.slice(4, 6) - 1;
+    const day = +dob.slice(6, 8);
+    const birth = new Date(year, month, day);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+
+    if (age >= 21) {
+      alert(`✅ ID verified. Age: ${age}`);
+      window.ID_VERIFIED = true;
+      document.dispatchEvent(new Event("id-verified"));
+      return true;
+    } else {
+      alert(`🚫 Under 21 (Age: ${age})`);
+      window.ID_VERIFIED = false;
+      document.dispatchEvent(new Event("id-reset"));
+      return false;
+    }
+  } catch (err) {
+    console.error("❌ Image verification failed:", err);
+    alert("⚠️ Could not verify ID. Try again.");
+    document.dispatchEvent(new Event("id-reset"));
+    return false;
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  const input = document.getElementById("idPhotoInput");
+  if (input) {
+    input.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (file) await verifyIDPhoto(file);
+    });
+  }
+});
 
 // ---------- MAIN APP ----------
 document.addEventListener("DOMContentLoaded", async () => {
@@ -23,33 +92,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- EMAILJS INIT ----------
   try {
     if (window.emailjs) {
-      emailjs.init("jUx6gEqKI1tvL7yLs"); // ✅ your public key
+      emailjs.init("jUx6gEqKI1tvL7yLs");
       console.log("✅ EmailJS initialized");
     }
   } catch (err) {
     console.error("❌ EmailJS init error:", err);
   }
 
-  // ---------- SQUARE LINK ----------
-  const SQUARE_BASE = "https://square.link/u/GOvQxhqG"; // ✅ your real Square base link
-
-  // ---------- HELPERS ----------
+  const SQUARE_BASE = "https://square.link/u/GOvQxhqG";
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const on = (sel, ev, fn) => {
     const el = typeof sel === "string" ? $(sel) : sel;
     if (el) el.addEventListener(ev, fn);
   };
-  const debugBar = $("#debug");
-  const debug = (msg, ok = false) => {
-    if (!debugBar) return;
-    debugBar.textContent = msg;
-    debugBar.style.background = ok ? "#022" : "#220";
-    debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
-    debugBar.hidden = false;
-  };
 
-  // ---------- AGE GATE ----------
   const ageOverlay = $("#age-overlay");
   on("#yesBtn", "click", () => ageOverlay && (ageOverlay.style.display = "none"));
   on("#noBtn", "click", () => {
@@ -72,9 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       const p = Number(item.price) || 0;
       total += p;
       const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${p.toFixed(
-        2
-      )} <button class="remove" data-i="${i}">❌</button>`;
+      li.innerHTML = `${item.name} - $${p.toFixed(2)} <button class="remove" data-i="${i}">❌</button>`;
       cartList.appendChild(li);
     });
     totalEl.textContent = `Total: $${total.toFixed(2)}`;
@@ -92,28 +147,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // ---------- EMAILJS SEND FUNCTION ----------
   async function sendOrderEmail(orderData) {
     try {
-      console.log("📧 Sending order via EmailJS...", orderData);
-      const response = await emailjs.send(
-        "service_bk310ht",
-        "template_sb8tg8bk",
-        orderData
-      );
-      console.log("✅ EmailJS response:", response.status);
+      const response = await emailjs.send("service_bk310ht", "template_sb8tg8bk", orderData);
       alert("📧 Order sent successfully to LBizzo!");
     } catch (err) {
-      console.error("❌ EmailJS error:", err);
-      alert("⚠️ There was a problem sending your order. Please try again.");
+      alert("⚠️ There was a problem sending your order.");
     }
   }
 
-  // ---------- LOYALTY STARS ----------
   const stars = $$("#loyalty-stars .star");
   let loyalty = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
-  const renderStars = () =>
-    stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
+  const renderStars = () => stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
   function addLoyaltyStar() {
     loyalty++;
     if (loyalty >= 6) {
@@ -125,33 +170,21 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   renderStars();
 
-  // ---------- ID VERIFICATION FLAG ----------
   let ID_VERIFIED = false;
   window.ID_VERIFIED = false;
 
-  // 🔒 lock checkout until verified
   (function lockCheckout() {
     if (!checkoutBtn) return;
     checkoutBtn.disabled = true;
     document.addEventListener("id-verified", () => { checkoutBtn.disabled = false; });
-    document.addEventListener("id-reset",    () => { checkoutBtn.disabled = true;  });
-    checkoutBtn.addEventListener("click", (e) => {
-      if (!window.ID_VERIFIED) {
-        e.preventDefault();
-        alert("⚠️ Please scan a valid driver’s license first.");
-      }
-    });
+    document.addEventListener("id-reset", () => { checkoutBtn.disabled = true; });
   })();
 
-  // ---------- CHECKOUT ----------
   on(checkoutBtn, "click", async () => {
     if (!cart.length) return alert("Your cart is empty!");
-    if (!ID_VERIFIED && !window.ID_VERIFIED)
-      return alert("⚠️ Please verify your ID before checkout.");
+    if (!window.ID_VERIFIED) return alert("⚠️ Please verify your ID first.");
 
-    const total = cart
-      .reduce((s, it) => s + (Number(it.price) || 0), 0)
-      .toFixed(2);
+    const total = cart.reduce((s, it) => s + (Number(it.price) || 0), 0).toFixed(2);
     const name = prompt("Enter your name:") || "Unknown";
     const phone = prompt("Enter your phone number:") || "N/A";
     const address = prompt("Enter your delivery address:") || "N/A";
@@ -164,25 +197,18 @@ document.addEventListener("DOMContentLoaded", async () => {
       total: `$${total}`,
     };
 
-    try {
-      await sendOrderEmail(orderData);
-      addLoyaltyStar();
-      cart = [];
-      updateCartUI();
-      alert("🛒 Order sent successfully! Redirecting to checkout...");
+    await sendOrderEmail(orderData);
+    addLoyaltyStar();
+    cart = [];
+    updateCartUI();
 
-      const totalCents = Math.round(parseFloat(total) * 100);
-      const checkoutURL = `${SQUARE_BASE}?amount=${totalCents}`;
-      window.open(checkoutURL, "_blank");
-    } catch (e) {
-      console.error(e);
-      alert("⚠️ Could not complete checkout. Please try again.");
-    }
+    const totalCents = Math.round(parseFloat(total) * 100);
+    const checkoutURL = `${SQUARE_BASE}?amount=${totalCents}`;
+    window.open(checkoutURL, "_blank");
   });
 
   updateCartUI();
 
-  // ---------- FIRESTORE PRODUCTS ----------
   const productList = $("#product-list");
   const PLACEHOLDER_IMG =
     "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='360'><rect width='100%' height='100%' fill='%23111'/><rect x='12' y='12' width='456' height='336' rx='18' fill='black' stroke='%23ff8c00' stroke-width='6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='42' fill='%23ff8c00'>LBizzo</text></svg>";
@@ -197,15 +223,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function addCard(p) {
     const priceNum = Number(p.price) || 0;
-    const imgURL =
-      p.image && !/^https?:\/\//i.test(p.image)
-        ? await getImageURL(p.image)
-        : p.image;
+    const imgURL = p.image && !/^https?:\/\//i.test(p.image)
+      ? await getImageURL(p.image)
+      : p.image;
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
       <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}"
-        onerror="this.src='${PLACEHOLDER_IMG}'" />
+      onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed Product"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
       <button class="add-btn btn">Add to Cart</button>
@@ -220,15 +245,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadProducts() {
     try {
       const snap = await db.collection("products").get();
-      if (!snap || snap.empty) throw new Error("No Firestore products");
-      debug(`Connected to Firestore • ${snap.size} product(s)`, true);
-      setTimeout(() => (debugBar.hidden = true), 4000);
       productList.innerHTML = "";
       for (const doc of snap.docs) await addCard(doc.data());
-    } catch (err) {
-      console.warn("Firestore error:", err.message);
-      debug("Showing 50 placeholders (no products yet).");
-      productList.innerHTML = "";
+    } catch {
       for (let i = 1; i <= 50; i++)
         await addCard({ name: `LBizzo Placeholder #${i}`, price: 0 });
     }
@@ -236,19 +255,14 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   await loadProducts();
 
-  // ---------- SCANDIT SCANNER ----------
+  // ---------- LIVE SCANDIT SCANNER ----------
   const scanStart = $("#scanStart");
-  const scanStop  = $("#scanStop");
-  const scanOut   = $("#scanOut");
+  const scanStop = $("#scanStop");
+  const scanOut = $("#scanOut");
   let scanner = null;
 
   on(scanStart, "click", async () => {
     try {
-      if (!window.ScanditSDK || !ScanditSDK.BarcodePicker) {
-        scanOut.textContent = "❌ Scandit SDK not loaded properly.";
-        return;
-      }
-
       scanner = await ScanditSDK.BarcodePicker.create($("#scanVideo"), {
         playSoundOnScan: true,
         vibrateOnScan: true,
@@ -263,16 +277,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       scanner.on("scan", (res) => {
         const codeText = res.barcodes.map((b) => b.data).join("\n");
-        console.log("🔍 Scanned data:", codeText);
-
-        const hasHeader = /^@?ANSI ?\d{6} ?\d{2}/.test(codeText) || /AAMVA/i.test(codeText);
-        const matchDOB  = codeText.match(/DBB(\d{8})/);
-        const hasCore   = /(DAQ|DCS|DAA)/i.test(codeText);
-
-        if (!hasHeader || !matchDOB || !hasCore) {
-          scanOut.textContent = "⚠️ Not a valid driver’s-license barcode. Try again.";
-          ID_VERIFIED = false;
-          window.ID_VERIFIED = false;
+        const matchDOB = codeText.match(/DBB(\d{8})/);
+        if (!matchDOB) {
+          scanOut.textContent = "⚠️ Invalid ID barcode.";
           document.dispatchEvent(new Event("id-reset"));
           return;
         }
@@ -284,29 +291,24 @@ document.addEventListener("DOMContentLoaded", async () => {
         const birth = new Date(year, month, day);
         const today = new Date();
         let age = today.getFullYear() - birth.getFullYear();
-        const m = today.getMonth() - birth.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-
-        scanOut.textContent = `📅 DOB: ${year}-${month + 1}-${day} | Age: ${age}`;
+        if (
+          today.getMonth() < birth.getMonth() ||
+          (today.getMonth() === birth.getMonth() && today.getDate() < birth.getDate())
+        )
+          age--;
 
         if (age >= 21) {
-          alert("✅ Verified: customer is 21 or older.");
-          ID_VERIFIED = true;
+          scanOut.textContent = `✅ Verified (Age ${age})`;
           window.ID_VERIFIED = true;
           document.dispatchEvent(new Event("id-verified"));
         } else {
-          alert("🚫 Customer is under 21 — checkout disabled.");
-          ID_VERIFIED = false;
+          scanOut.textContent = `🚫 Under 21 (Age ${age})`;
           window.ID_VERIFIED = false;
           document.dispatchEvent(new Event("id-reset"));
         }
       });
-
-      scanOut.textContent =
-        "📸 Scanner started. Point camera at the BACK barcode of your ID.";
     } catch (err) {
       scanOut.textContent = "❌ Scanner error: " + err.message;
-      console.error(err);
       document.dispatchEvent(new Event("id-reset"));
     }
   });
@@ -319,15 +321,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       document.dispatchEvent(new Event("id-reset"));
     }
   });
-}); // DOMContentLoaded
-
+});
 
 // ---------- SERVICE WORKER ----------
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker
-    .register("service-worker.js")
-    .then(() => console.log("✅ Service Worker registered"))
-    .catch((err) => console.error("❌ SW failed:", err));
+  navigator.serviceWorker.register("service-worker.js");
 }
 
 // ---------- WEB APP INSTALL ----------
@@ -345,6 +343,4 @@ window.addEventListener("beforeinstallprompt", (e) => {
     deferredPrompt = null;
   };
 });
-window.addEventListener("appinstalled", () =>
-  alert("✅ LBizzo Vape Shop installed successfully!")
-);
+window.addEventListener("appinstalled", () => alert("✅ LBizzo Vape Shop installed!"));
