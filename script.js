@@ -170,7 +170,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   on(scanStart, "click", async () => {
     try {
-      // ✅ Added detection & friendly message
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         scanOut.textContent = "❌ Camera access not supported or blocked. Try normal Safari (not Private Mode) or Chrome.";
         return;
@@ -205,6 +204,57 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (scanner) { scanner.destroy(); scanner = null; }
     scanOut.textContent = "Scanner stopped.";
   });
+
+  // ---------- FALLBACK CAMERA SCANNER (for iPhone/Safari) ----------
+  async function startFallbackScanner() {
+    const video = document.getElementById("scanVideo");
+    const scanOut = document.getElementById("scanOut");
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      video.srcObject = stream;
+      video.setAttribute("playsinline", true);
+      await video.play();
+      scanOut.textContent = "📸 Camera started (fallback mode). Move ID barcode into view...";
+
+      const barcodeDetector = ("BarcodeDetector" in window)
+        ? new BarcodeDetector({ formats: ["pdf417", "qr_code", "code_128"] })
+        : null;
+
+      if (!barcodeDetector) {
+        scanOut.textContent = "⚠️ BarcodeDetector not supported. You can still view camera, but scanning may be manual.";
+        return;
+      }
+
+      const detectLoop = async () => {
+        try {
+          const barcodes = await barcodeDetector.detect(video);
+          if (barcodes.length > 0) {
+            scanOut.textContent = "✅ Scanned:\n" + barcodes.map(b => b.rawValue).join("\n");
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+        } catch (e) {
+          console.warn("Detection error:", e);
+        }
+        requestAnimationFrame(detectLoop);
+      };
+      detectLoop();
+    } catch (err) {
+      console.error("Fallback scanner error:", err);
+      scanOut.textContent = "❌ Cannot access camera: " + err.message;
+    }
+  }
+
+  // Auto-enable fallback if Scandit unsupported
+  if (!window.ScanditSDK || !ScanditSDK.BarcodePicker) {
+    console.warn("Scandit not supported, enabling fallback scanner...");
+    const fallbackBtn = document.getElementById("scanStart");
+    if (fallbackBtn) {
+      fallbackBtn.addEventListener("click", startFallbackScanner);
+    }
+  }
+
 }); // DOMContentLoaded
 
 // ---------- SERVICE WORKER (PWA) ----------
