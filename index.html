@@ -1,167 +1,77 @@
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.__LBIZZO_BOOTED__) return;
-  window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo Vape Shop script loaded");
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LBizzo Vape Shop</title>
 
-  // ---------- Firebase ----------
-  const firebaseConfig = {
-    apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
-    authDomain: "lbizzodelivery.firebaseapp.com",
-    projectId: "lbizzodelivery",
-    storageBucket: "lbizzodelivery.firebasestorage.app",
-    messagingSenderId: "614540837455",
-    appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
-  };
+  <!-- ✅ PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff8c00" />
+  <link rel="apple-touch-icon" href="icons/icon-512.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
-  const storage = firebase.storage();
+  <!-- ✅ Styles -->
+  <link rel="stylesheet" href="style.css" />
 
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  <!-- ✅ Firebase -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  const productList = $("#product-list");
-  const cartItems = $("#cart-items");
-  const cartCount = $("#cart-count");
-  const cartTotal = $("#cart-total");
+  <!-- ✅ EmailJS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  let cart = [];
+  <!-- ✅ Scandit -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
+</head>
 
-  // ---------- AGE VERIFICATION ----------
-  const ageOverlay = $("#age-overlay");
-  $("#yesBtn")?.addEventListener("click", () => {
-    ageOverlay.style.display = "none";
-    localStorage.setItem("ageVerified", "true");
-  });
-  $("#noBtn")?.addEventListener("click", () => {
-    alert("Sorry, you must be 21+ to enter.");
-    window.location.href = "https://google.com";
-  });
-  if (localStorage.getItem("ageVerified") === "true") {
-    ageOverlay.style.display = "none";
-  }
+<body>
+  <!-- ✅ AGE CHECK -->
+  <div id="age-overlay" class="overlay">
+    <div class="overlay-card">
+      <h2>Are you 21 or older?</h2>
+      <div class="age-buttons">
+        <button id="yesBtn" class="btn yes">Yes</button>
+        <button id="noBtn" class="btn no">No</button>
+      </div>
+      <small>LBizzo Vape Shop</small>
+    </div>
+  </div>
 
-  // ---------- LOAD PRODUCTS ----------
-  async function loadProducts() {
-    try {
-      const snap = await db.collection("products").get();
-      if (snap.empty) {
-        productList.innerHTML = "<p>No products found.</p>";
-        return;
-      }
-      productList.innerHTML = "";
-      snap.forEach(async (doc) => {
-        const p = doc.data();
-        const card = document.createElement("div");
-        card.className = "product";
-        const imgURL = p.image || "https://via.placeholder.com/150?text=No+Image";
-        card.innerHTML = `
-          <img src="${imgURL}" alt="${p.name}" />
-          <h3>${p.name}</h3>
-          <p>$${p.price}</p>
-          <button class="add-btn">Add to Cart</button>
-        `;
-        const btn = card.querySelector(".add-btn");
-        btn.addEventListener("click", () => addToCart(p));
-        productList.appendChild(card);
-      });
-    } catch (err) {
-      console.error("❌ Error loading products:", err);
-    }
-  }
+  <!-- ✅ HEADER -->
+  <header class="topbar">
+    <h1>LBizzo Vape Shop</h1>
+    <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <div id="loyalty-stars">
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="progress-label">Free vape at 6 ⭐</span>
+    </div>
+  </header>
 
-  loadProducts();
+  <!-- ✅ PRODUCTS -->
+  <main id="product-list" class="product-grid"></main>
 
-  // ---------- CART ----------
-  function addToCart(product) {
-    const existing = cart.find((p) => p.name === product.name);
-    if (existing) existing.qty++;
-    else cart.push({ ...product, qty: 1 });
-    updateCart();
-  }
+  <!-- ✅ CART -->
+  <section id="cart" class="cart">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <p id="cart-total">Total: $0.00</p>
+    <button id="checkout-btn" class="btn primary">Checkout</button>
+  </section>
 
-  function removeFromCart(name) {
-    cart = cart.filter((p) => p.name !== name);
-    updateCart();
-  }
+  <!-- ✅ INSTALL BUTTON -->
+  <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
 
-  function updateCart() {
-    cartItems.innerHTML = "";
-    let total = 0;
-    cart.forEach((p) => {
-      const li = document.createElement("li");
-      const sub = (p.price * p.qty);
-      total += sub;
-      li.innerHTML = `
-        ${p.name} x${p.qty} - $${sub.toFixed(2)}
-        <button class="remove-btn">❌</button>
-      `;
-      li.querySelector(".remove-btn").addEventListener("click", () => removeFromCart(p.name));
-      cartItems.appendChild(li);
-    });
-    cartCount.textContent = cart.length;
-    cartTotal.textContent = `Total: $${total.toFixed(2)}`;
-  }
-
-  // ---------- LOYALTY STARS ----------
-  function updateLoyaltyStars(count) {
-    const stars = $$("#loyalty-stars .star");
-    stars.forEach((s, i) => {
-      s.style.color = i < count ? "#ff8c00" : "#555";
-    });
-    if (count >= 6) {
-      alert("🎉 Congratulations! You earned a free vape!");
-    }
-  }
-
-  // ---------- EMAILJS SETUP ----------
-  (function() {
-    emailjs.init("jUx6gEqKI1tvL7yLs"); // ✅ your real Public Key
-  })();
-
-  async function sendOrderEmail(orderData) {
-    const params = {
-      name: orderData.name,
-      phone: orderData.phone,
-      address: orderData.address,
-      items: orderData.items,
-      total: orderData.total
-    };
-
-    try {
-      await emailjs.send("service_bk310ht", "template_sbbt8blk", params); // ✅ your real Service & Template IDs
-      alert("✅ Order sent to LBizzo — please proceed to checkout!");
-      window.location.href = "https://square.link/u/YOUR_SQUARE_LINK"; // 🔧 replace with your real Square link
-    } catch (error) {
-      console.error("❌ EmailJS error:", error);
-      alert("⚠️ Could not send order. Check your EmailJS keys or internet connection.");
-    }
-  }
-
-  // ---------- CHECKOUT ----------
-  $("#checkout-btn").addEventListener("click", () => {
-    if (cart.length === 0) {
-      alert("🛒 Your cart is empty!");
-      return;
-    }
-
-    const total = cart.reduce((sum, p) => sum + p.price * p.qty, 0);
-    const itemsList = cart.map(p => `${p.name} x${p.qty}`).join(", ");
-
-    const orderData = {
-      name: prompt("Enter your name:"),
-      phone: prompt("Enter your phone number:"),
-      address: prompt("Enter your address:"),
-      items: itemsList,
-      total: total.toFixed(2)
-    };
-
-    if (!orderData.name || !orderData.phone || !orderData.address) {
-      alert("Please fill all fields before placing order.");
-      return;
-    }
-
-    sendOrderEmail(orderData);
-    updateLoyaltyStars(cart.length);
-  });
-});
+  <!-- ✅ APP SCRIPTS -->
+  <script defer src="firebase.js"></script>
+  <script defer src="script.js"></script>
+</body>
+</html>
