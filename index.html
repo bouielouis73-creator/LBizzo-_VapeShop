@@ -90,12 +90,23 @@
     </div>
     <pre id="scanOut"></pre>
 
+    <div id="scanArrow" style="display:none;text-align:center;font-size:1.3rem;color:#ff8c00;animation:bounce 1.2s infinite;">
+      ⬇️ Point camera at BACK of ID
+    </div>
+
     <div class="id-upload">
       <h3>Or Take a Photo of Your ID</h3>
       <input type="file" id="idPhotoInput" accept="image/*" capture="environment" class="btn" />
       <p id="idUploadStatus" style="color:#ff8c00;margin-top:8px;"></p>
     </div>
   </section>
+
+  <style>
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+  </style>
 
   <!-- ✅ APP LOGIC -->
   <script defer src="firebase.js"></script>
@@ -130,10 +141,11 @@
     });
   </script>
 
-  <!-- ✅ NEW SAFE LOADER + RETRY SYSTEM (ADDED BELOW EXISTING CODE) -->
+  <!-- ✅ NEW SAFE LOADER + RETRY SYSTEM WITH ARROW MESSAGE -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const scanOut = document.getElementById("scanOut");
+      const scanArrow = document.getElementById("scanArrow");
 
       function showRetry() {
         const retryBtn = document.createElement("button");
@@ -162,6 +174,12 @@
             scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
             scanOut.style.color = "#00ff88";
           }
+
+          // 🔽 Show visual arrow and guide
+          if (scanArrow) {
+            scanArrow.style.display = "block";
+          }
+
           const retry = document.querySelector(".btn.retry");
           if (retry) retry.remove();
         } catch (err) {
