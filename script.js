@@ -87,9 +87,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   renderStars();
 
+  // 🔒 ID VERIFICATION FLAG
+  let ID_VERIFIED = false;
+
   // ---------- CHECKOUT: EMAILJS + SQUARE ----------
   on(checkoutBtn, "click", async () => {
     if (!cart.length) return alert("Your cart is empty!");
+
+    // 🔒 Require ID scan before allowing checkout
+    if (!ID_VERIFIED) {
+      alert("⚠️ Please scan your ID before placing your order.");
+      return;
+    }
+
     const total = cart.reduce((s, it) => s + (Number(it.price)||0), 0).toFixed(2);
 
     const customerName = prompt("Enter your name:");
@@ -192,6 +202,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       scanner.on("scan", (res) => {
         const codes = res.barcodes.map(b => b.data).join("\n");
         scanOut.textContent = "✅ Scanned:\n" + codes;
+        ID_VERIFIED = true; // 🔒 ID verified
+        alert("✅ ID verified successfully!");
       });
       scanOut.textContent = "📸 Scanner started. Point camera at barcode.";
     } catch (err) {
@@ -231,6 +243,8 @@ document.addEventListener("DOMContentLoaded", async () => {
           const barcodes = await barcodeDetector.detect(video);
           if (barcodes.length > 0) {
             scanOut.textContent = "✅ Scanned:\n" + barcodes.map(b => b.rawValue).join("\n");
+            ID_VERIFIED = true; // 🔒 ID verified
+            alert("✅ ID verified successfully!");
             stream.getTracks().forEach(t => t.stop());
             return;
           }
