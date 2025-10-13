@@ -24,15 +24,23 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
-  <script>
-    // Configure Scandit with your license key
-    ScanditSDK.configure(
-      "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=",
-      { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/" }
-    );
-  </script>
+  <!-- ✅ Styling for Arrow -->
+  <style>
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    #scanArrow {
+      text-align:center;
+      font-size:1.2rem;
+      color:#ff8c00;
+      animation:bounce 1.2s infinite;
+      display:none;
+      margin-top:8px;
+      opacity:1;
+      transition:opacity 2s ease;
+    }
+  </style>
 </head>
 
 <body>
@@ -63,8 +71,6 @@
     </div>
   </header>
 
-  <div id="debug" hidden></div>
-
   <!-- ✅ PRODUCTS -->
   <main id="product-list" class="product-grid"></main>
 
@@ -77,9 +83,6 @@
     <div id="checkout-hint" style="margin-top:6px;font-size:.9rem;color:#888;">🔒 Scan ID to enable checkout</div>
   </section>
 
-  <!-- ✅ INSTALL BUTTON -->
-  <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
-
   <!-- ✅ ID SCANNER -->
   <section id="id-scan" class="scanner">
     <h2>Scan or Upload ID (PDF417/QR)</h2>
@@ -89,10 +92,7 @@
       <button id="scanStop" class="btn">Stop Scanner</button>
     </div>
     <pre id="scanOut"></pre>
-
-    <div id="scanArrow" style="display:none;text-align:center;font-size:1.3rem;color:#ff8c00;animation:bounce 1.2s infinite;">
-      ⬇️ Point camera at BACK of ID
-    </div>
+    <div id="scanArrow">⬇️ Point camera at BACK of your ID</div>
 
     <div class="id-upload">
       <h3>Or Take a Photo of Your ID</h3>
@@ -101,106 +101,66 @@
     </div>
   </section>
 
-  <style>
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
-    }
-  </style>
-
   <!-- ✅ APP LOGIC -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 
-  <!-- ✅ FINAL FIX: ENSURE SCANDIT IS READY -->
+  <!-- ✅ GUARANTEED SCANDIT LOADER -->
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const scanOut = document.getElementById("scanOut");
-      try {
-        await ScanditSDK.ready();
-        console.log("✅ Scandit SDK loaded successfully");
-        if (scanOut) {
-          scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
-          scanOut.style.color = "#00ff88";
-        }
-      } catch (err) {
-        console.error("❌ Scandit SDK not loaded:", err);
-        if (scanOut) {
-          scanOut.textContent = "❌ Scandit SDK not loaded properly. Please refresh or allow camera.";
-          scanOut.style.color = "#ff4444";
-        }
-        alert("⚠️ Scandit SDK failed to load. Please refresh and allow camera access.");
-      }
-
-      navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {
-        if (scanOut) {
-          scanOut.textContent = "⚠️ Enable camera access in browser settings to scan your ID.";
-          scanOut.style.color = "#ff8c00";
-        }
-      });
-    });
-  </script>
-
-  <!-- ✅ NEW SAFE LOADER + RETRY SYSTEM WITH ARROW MESSAGE -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const scanOut = document.getElementById("scanOut");
       const scanArrow = document.getElementById("scanArrow");
 
-      function showRetry() {
-        const retryBtn = document.createElement("button");
-        retryBtn.textContent = "🔄 Retry Scanner";
-        retryBtn.className = "btn";
-        retryBtn.style.display = "block";
-        retryBtn.style.margin = "10px auto";
-        retryBtn.onclick = initScandit;
-        scanOut.insertAdjacentElement("afterend", retryBtn);
-      }
-
-      async function initScandit() {
-        if (!window.ScanditSDK) {
-          if (scanOut) {
-            scanOut.textContent = "⚠️ Scandit SDK script not loaded. Retrying...";
-            scanOut.style.color = "#ff8c00";
-          }
-          setTimeout(initScandit, 1500);
-          return;
-        }
-
-        try {
-          await ScanditSDK.ready();
-          console.log("✅ Scandit SDK loaded successfully");
-          if (scanOut) {
-            scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
-            scanOut.style.color = "#00ff88";
-          }
-
-          // 🔽 Show visual arrow and guide
-          if (scanArrow) {
-            scanArrow.style.display = "block";
-          }
-
-          const retry = document.querySelector(".btn.retry");
-          if (retry) retry.remove();
-        } catch (err) {
-          console.error("❌ Scandit SDK load error:", err);
-          if (scanOut) {
-            scanOut.textContent = "❌ Scandit SDK failed to load. Tap Retry below.";
-            scanOut.style.color = "#ff4444";
-          }
-          showRetry();
-        }
-
-        navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {
-          if (scanOut) {
-            scanOut.textContent =
-              "⚠️ Enable camera access in Safari → Settings → Privacy → Camera.";
-            scanOut.style.color = "#ff8c00";
-          }
+      // 1️⃣ Load Scandit SDK manually if missing
+      async function loadScandit() {
+        if (window.ScanditSDK) return true;
+        return new Promise((resolve, reject) => {
+          const script = document.createElement("script");
+          script.src = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js";
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
         });
       }
 
-      setTimeout(initScandit, 2000);
+      // 2️⃣ Initialize SDK safely
+      async function initScandit() {
+        if (scanOut) {
+          scanOut.textContent = "⏳ Loading Scandit SDK...";
+          scanOut.style.color = "#ff8c00";
+        }
+
+        try {
+          await loadScandit();
+          await ScanditSDK.configure(
+            "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=",
+            { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/" }
+          );
+
+          await ScanditSDK.ready();
+          console.log("✅ Scandit SDK ready!");
+          scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
+          scanOut.style.color = "#00ff88";
+
+          // Show arrow guide
+          scanArrow.style.display = "block";
+          setTimeout(() => (scanArrow.style.opacity = 0), 5000);
+
+          // Ask for camera access
+          navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {
+            scanOut.textContent = "⚠️ Please allow camera access in Safari → Settings → Privacy → Camera.";
+            scanOut.style.color = "#ff8c00";
+          });
+        } catch (e) {
+          console.error("❌ Scandit load failed:", e);
+          scanOut.textContent = "❌ Scandit failed. Retrying...";
+          scanOut.style.color = "#ff4444";
+          setTimeout(initScandit, 2500);
+        }
+      }
+
+      // Run loader
+      initScandit();
     });
   </script>
 </body>
