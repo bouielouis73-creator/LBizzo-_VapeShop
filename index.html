@@ -90,7 +90,6 @@
     </div>
     <pre id="scanOut"></pre>
 
-    <!-- ✅ ID PHOTO UPLOAD OPTION -->
     <div class="id-upload">
       <h3>Or Take a Photo of Your ID</h3>
       <input type="file" id="idPhotoInput" accept="image/*" capture="environment" class="btn" />
@@ -98,190 +97,35 @@
     </div>
   </section>
 
-  <!-- ✅ APP LOGIC FILES -->
+  <!-- ✅ APP LOGIC -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 
-  <!-- ✅ LOCK CHECKOUT UNTIL VERIFIED -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const checkoutBtn = document.getElementById("checkout-btn");
-      const hint = document.getElementById("checkout-hint");
-      checkoutBtn.disabled = true;
-
-      document.addEventListener("id-verified", () => {
-        checkoutBtn.disabled = false;
-        if (hint) hint.textContent = "✅ ID verified — you can checkout";
-        if (hint) hint.style.color = "#00a86b";
-      });
-      document.addEventListener("id-reset", () => {
-        checkoutBtn.disabled = true;
-        if (hint) hint.textContent = "🔒 Scan ID to enable checkout";
-        if (hint) hint.style.color = "#888";
-      });
-
-      checkoutBtn.addEventListener("click", (e) => {
-        if (!window.ID_VERIFIED) {
-          e.preventDefault();
-          alert("⚠️ Please scan a valid driver’s license first.");
-        }
-      });
-    });
-  </script>
-
-  <!-- ✅ STRICT SCANNER + AGE VERIFICATION (hard lock) -->
+  <!-- ✅ FINAL FIX: ENSURE SCANDIT IS READY -->
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      const startBtn = document.getElementById("scanStart");
-      const stopBtn  = document.getElementById("scanStop");
-      const video    = document.getElementById("scanVideo");
-      const output   = document.getElementById("scanOut");
-      const status   = document.createElement("div");
-      status.id = "idStatus";
-      status.style.textAlign = "center";
-      status.style.fontWeight = "bold";
-      status.style.color = "#ff4444";
-      status.textContent = "❌ ID NOT VERIFIED";
-      output.parentNode.appendChild(status);
-
-      let scanner = null;
-      window.ID_VERIFIED = false;
-
-      function setVerified(ok, msg) {
-        window.ID_VERIFIED = !!ok;
-        status.textContent = ok ? ("✅ " + msg) : ("❌ " + (msg || "ID NOT VERIFIED"));
-        status.style.color = ok ? "#00ff88" : "#ff4444";
-        document.dispatchEvent(new Event(ok ? "id-verified" : "id-reset"));
+      const scanOut = document.getElementById("scanOut");
+      try {
+        await ScanditSDK.ready();
+        console.log("✅ Scandit SDK loaded successfully");
+        if (scanOut) {
+          scanOut.textContent = "📸 Scanner ready — tap Start Scanner to begin";
+          scanOut.style.color = "#00ff88";
+        }
+      } catch (err) {
+        console.error("❌ Scandit SDK not loaded:", err);
+        if (scanOut) {
+          scanOut.textContent = "❌ Scandit SDK not loaded properly. Please refresh or allow camera.";
+          scanOut.style.color = "#ff4444";
+        }
+        alert("⚠️ Scandit SDK failed to load. Please refresh and allow camera access.");
       }
 
-      async function startScanner() {
-        try {
-          scanner = await ScanditSDK.BarcodePicker.create(video, {
-            playSoundOnScan: true,
-            vibrateOnScan: true,
-          });
-
-          const settings = new ScanditSDK.ScanSettings({
-            enabledSymbologies: ["pdf417"], // only driver's license format
-            codeDuplicateFilter: 1500,
-          });
-          scanner.applyScanSettings(settings);
-
-          scanner.on("scan", (result) => {
-            const txts = result.barcodes.map(b => b.data || "").join("\n");
-            console.log("🔍 Scanned:", txts);
-            output.textContent = txts;
-
-            // Strong AAMVA checks
-            const hasHeader = /^@?ANSI ?\d{6} ?\d{2}/.test(txts) || /AAMVA/i.test(txts);
-            const hasDOB    = /DBB(\d{8})/.test(txts);
-            const hasDLCore = /(DAQ|DCS|DAA)/i.test(txts); // license # or name fields
-
-            if (!hasHeader || !hasDOB || !hasDLCore) {
-              setVerified(false, "INVALID ID • Scan the BACK barcode (PDF417).");
-              alert("⚠️ Invalid ID scan. Please scan the BACK PDF417 barcode on your license.");
-              return;
-            }
-
-            const dob = txts.match(/DBB(\d{8})/)[1];
-            const y = +dob.slice(0,4), m = +dob.slice(4,6)-1, d = +dob.slice(6,8);
-            const birth = new Date(y, m, d);
-            const now   = new Date();
-            let age = now.getFullYear() - birth.getFullYear();
-            const mo = now.getMonth() - birth.getMonth();
-            if (mo < 0 || (mo === 0 && now.getDate() < birth.getDate())) age--;
-
-            output.textContent = `📅 DOB: ${y}-${m+1}-${d} | Age: ${age}`;
-
-            if (age >= 21) {
-              setVerified(true, "ID VERIFIED — AGE 21+");
-            } else {
-              setVerified(false, "UNDER 21 — BLOCKED");
-              alert("🚫 Under 21 — checkout locked.");
-            }
-          });
-
-          setVerified(false, "ID NOT VERIFIED");
-          output.textContent = "📸 Scanner ready. Point camera at the BACK PDF417 barcode.";
-        } catch (err) {
-          console.error("❌ Scanner start failed:", err);
-          alert("Camera error — check permissions.");
-          setVerified(false, "SCANNER ERROR");
+      navigator.mediaDevices.getUserMedia({ video: true }).catch(() => {
+        if (scanOut) {
+          scanOut.textContent = "⚠️ Enable camera access in browser settings to scan your ID.";
+          scanOut.style.color = "#ff8c00";
         }
-      }
-
-      function stopScanner() {
-        if (scanner) {
-          scanner.destroy();
-          scanner = null;
-          output.textContent = "Scanner stopped.";
-          setVerified(false, "ID NOT VERIFIED");
-        }
-      }
-
-      startBtn.addEventListener("click", startScanner);
-      stopBtn .addEventListener("click", stopScanner);
-    });
-  </script>
-
-  <!-- ✅ FIXED ID PHOTO UPLOAD (no auto-verify) -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const fileInput = document.getElementById("idPhotoInput");
-      const statusEl  = document.getElementById("idUploadStatus");
-
-      fileInput.addEventListener("change", async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        statusEl.textContent = "🔍 Checking ID photo…";
-        window.ID_VERIFIED = false;
-        document.dispatchEvent(new Event("id-reset"));
-
-        const okType = ["image/jpeg","image/png","image/jpg"].includes(file.type);
-        if (!okType) {
-          statusEl.textContent = "❌ Invalid file type. Upload a clear photo of your ID.";
-          alert("❌ Invalid file type. Please upload a photo of your ID.");
-          return;
-        }
-
-        // quick visual complexity check (rejects plain floor/foot pics)
-        const img = new Image();
-        img.onload = async () => {
-          try {
-            const canvas = document.createElement("canvas");
-            canvas.width = img.width; canvas.height = img.height;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            const data = ctx.getImageData(0, 0, img.width, img.height).data;
-
-            let diffs = 0;
-            for (let i=0; i < data.length - 160; i += 80*4) {
-              if (data[i] !== data[i+160]) diffs++;
-            }
-            if (diffs < 100) {
-              statusEl.textContent = "🚫 This doesn’t look like an ID (too uniform). Try again.";
-              alert("🚫 This doesn’t look like an ID. Please take a clear photo of your license.");
-              return;
-            }
-
-            // Upload for staff review ONLY (no auto-verification)
-            if (window.firebase && firebase.storage) {
-              const ref  = firebase.storage().ref("id-verifications/" + Date.now() + "_" + file.name);
-              const snap = await ref.put(file);
-              const url  = await snap.ref.getDownloadURL();
-              console.log("✅ ID photo uploaded:", url);
-            }
-            statusEl.textContent = "🕐 ID photo uploaded. Verification pending (no auto-approval).";
-            alert("🕐 ID photo uploaded for review. Please scan the barcode to auto-verify.");
-
-          } catch (err) {
-            console.error("❌ Upload failed:", err);
-            statusEl.textContent = "❌ Upload failed. Try again.";
-            alert("⚠️ Could not upload ID. Please try again.");
-          }
-        };
-        img.src = URL.createObjectURL(file);
       });
     });
   </script>
