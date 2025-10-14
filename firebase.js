@@ -1,14 +1,15 @@
-// Firebase config
+// ---------- Firebase Config ----------
 const firebaseConfig = {
   apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
   authDomain: "lbizzodelivery.firebaseapp.com",
   projectId: "lbizzodelivery",
   storageBucket: "lbizzodelivery.firebasestorage.app",
   messagingSenderId: "614540837455",
-  appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+  appId: "1:614540837455:web:42709d7b585bbdc2b8203a",
+  databaseURL: "https://lbizzodelivery-default-rtdb.firebaseio.com"
 };
 
-// Initialize Firebase
+// ---------- Initialize Firebase ----------
 firebase.initializeApp(firebaseConfig);
-window.db = firebase.firestore();
-window.storage = firebase.storage();
+const db = firebase.firestore();
+const storage = firebase.storage();
