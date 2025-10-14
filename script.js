@@ -1,5 +1,3 @@
-// script.js (module)
-
 import {
   DataCaptureContext, Camera, configure, DataCaptureView, loadingStatus
 } from "@scandit/web-datacapture-core";
@@ -7,10 +5,7 @@ import {
   IdCapture, IdCaptureOverlay, IdDocumentType, IdCaptureSettings, idCaptureLoader
 } from "@scandit/web-datacapture-id";
 
-// ---------- GLOBALS ----------
 const PLACEHOLDER_IMG = "https://via.placeholder.com/300x200?text=LBizzo";
-
-// Expects window.db and window.storage from firebase.js (compat SDK)
 const db = window.db;
 const storage = window.storage;
 
@@ -21,198 +16,139 @@ document.addEventListener("DOMContentLoaded", () => {
   const no  = document.getElementById("noBtn");
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
-    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href="https://google.com"; };
+    const allow = e => { e.preventDefault(); overlay.style.display = "none"; };
+    const deny  = e => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
     ["click","touchstart"].forEach(evt=>{
       yes.addEventListener(evt, allow, {passive:false});
-      no .addEventListener(evt, deny,  {passive:false});
+      no.addEventListener(evt, deny, {passive:false});
     });
   }
 });
 
-// ---------- HELPERS ----------
-const $ = (sel, root=document) => root.querySelector(sel);
-const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
 
-async function getImageURL(pathOrUrl) {
-  if (!pathOrUrl) return PLACEHOLDER_IMG;
-  // If looks like http(s), return as-is
-  if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
-  // Otherwise treat as Storage path under /products/...
+async function getImageURL(path) {
+  if (!path) return PLACEHOLDER_IMG;
+  if (/^https?:/i.test(path)) return path;
   try {
-    const ref = storage.ref(pathOrUrl.startsWith("products/") ? pathOrUrl : `products/${pathOrUrl}`);
+    const ref = storage.ref(path.startsWith("products/") ? path : `products/${path}`);
     return await ref.getDownloadURL();
   } catch (e) {
-    console.warn("Image load failed for", pathOrUrl, e);
+    console.warn("Image load failed", e);
     return PLACEHOLDER_IMG;
   }
 }
 
-// ---------- PRODUCTS LIST ----------
 const productList = $("#product-list");
 const cartItemsEl = $("#cart-items");
 const cartCountEl = $("#cart-count");
 const checkoutBtn = $("#checkout-btn");
 const scanIdBtn   = $("#scan-id-btn");
-
 let CART = [];
 let ID_VERIFIED = false;
 
 function renderCart() {
   cartItemsEl.innerHTML = "";
-  CART.forEach((item, idx) => {
+  CART.forEach((item, i) => {
     const li = document.createElement("li");
-    li.style.display = "flex";
-    li.style.justifyContent = "space-between";
-    li.style.alignItems = "center";
-    li.style.gap = "8px";
-    li.innerHTML = `
-      <span>${item.name} — $${Number(item.price||0).toFixed(2)}</span>
-      <div>
-        <button class="btn rm" data-i="${idx}" style="background:#333;color:#fff">Remove</button>
-      </div>
-    `;
-    cartItemsEl.appendChild(li);
+    li.innerHTML = `${item.name} - $${item.price.toFixed(2)} <button data-i="${i}" class="btn" style="background:#333;color:#fff">Remove</button>`;
+    li.querySelector("button").onclick = e => { CART.splice(i,1); cartCountEl.textContent=CART.length; renderCart(); };
+    cartItemsEl.append(li);
   });
-  cartItemsEl.querySelectorAll(".rm").forEach(btn=>{
-    btn.addEventListener("click", (e)=>{
-      const i = Number(e.currentTarget.dataset.i);
-      CART.splice(i,1);
-      cartCountEl.textContent = String(CART.length);
-      renderCart();
-    });
-  });
-  updateCheckoutState();
-}
-
-function updateCheckoutState() {
-  // Checkout unlocked only if cart has items and ID verified
   checkoutBtn.disabled = !(CART.length && ID_VERIFIED);
-  scanIdBtn.textContent = ID_VERIFIED ? "✅ ID Verified" : "🔓 Scan ID to Unlock Checkout";
 }
 
 async function addCard(p) {
   const priceNum = Number(p.price) || 0;
   const imgURL = await getImageURL(p.image);
-  const card = document.createElement("div");
-  card.className = "product";
-  card.innerHTML = `
-    <img src="${imgURL}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+  const div = document.createElement("div");
+  div.className = "product";
+  div.innerHTML = `
+    <img src="${imgURL}" alt="${p.name}" />
     <h3>${p.name}</h3>
     <p>$${priceNum.toFixed(2)}</p>
-    <button class="btn add-btn">Add to Cart</button>
+    <button class="btn">Add to Cart</button>
   `;
-  card.querySelector(".add-btn").addEventListener("click", ()=>{
-    CART.push({ id:p.id, name:p.name, price:priceNum });
-    cartCountEl.textContent = String(CART.length);
+  div.querySelector("button").onclick = () => {
+    CART.push({name:p.name, price:priceNum});
+    cartCountEl.textContent = CART.length;
     renderCart();
-  });
-  productList.appendChild(card);
+  };
+  productList.append(div);
 }
 
 async function loadProducts() {
-  productList.innerHTML = "";
-  const snap = await db.collection("products").orderBy("name").get();
+  const snap = await db.collection("products").get();
   if (snap.empty) {
-    // fallback: show placeholders if no docs
-    for (let i=1;i<=12;i++){
-      await addCard({ id:`ph-${i}`, name:`Product ${i}`, price:9.99, image:null });
-    }
+    for (let i=1;i<=10;i++) await addCard({name:`Product ${i}`, price:9.99});
     return;
   }
-  for (const doc of snap.docs) {
-    const p = { id: doc.id, ...doc.data() };
-    await addCard(p);
-  }
+  for (const doc of snap.docs) await addCard({id:doc.id, ...doc.data()});
 }
+loadProducts();
 
-loadProducts().catch(console.error);
+// ---------- SCANDIT CAMERA ----------
+const overlay = $("#scanner-overlay");
+const viewBox = $("#data-capture-view");
+const status = $("#scan-status");
+$("#close-scan").onclick = () => closeScanner();
 
-// ---------- SCANDIT — FRONT-SIDE ID CAPTURE (Option B) ----------
-const scannerOverlay = $("#scanner-overlay");
-const viewContainer = $("#data-capture-view");
-const scanStatus = $("#scan-status");
-$("#close-scan").addEventListener("click", closeScanner);
-
-let context, view, camera, idCapture;
+let ctx, view, cam, capture;
 
 async function openScanner() {
-  scannerOverlay.style.display = "grid";
-  scanStatus.textContent = "Loading Scandit…";
+  overlay.style.display = "grid";
+  status.textContent = "Starting camera...";
   try {
-    // Show progress as the WASM downloads (first run can take a few seconds)
-    loadingStatus.subscribe((info) => {
-      if (info && typeof info.percentage === "number") {
-        scanStatus.textContent = `Loading… ${Math.round(info.percentage)}%`;
-      }
+    loadingStatus.subscribe(info => {
+      if (info?.percentage) status.textContent = `Loading SDK… ${Math.round(info.percentage)}%`;
     });
 
     await configure({
-      licenseKey: `{{SCANDIT_LICENSE}}`,
-      // Point to CDN “sdc-lib” for matching version (7.6.1)
+      licenseKey: "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDRq/3pbdNQ2wHBxXMlLL1ubSkte/FG9MLxf7J9KQC5/jlqBwhtXC8O8amwpv0g1/Txo/v8tVBMqkxkYTEZ7AeUvXC9mb0GYDlt+RdXhQedpeU+YQxcj1zzQa+pYTlx1d5laJHh3WMjL1nKzEUZlZXZpUZbxASRzM48blxXef8EtyyVCnS5X2WyBWRUGEGVfjUIiawJRFrxu31ll5ghjcpeWHsJTdTrYUGgegsdXcz6jeB0jcg6cISpkQ+vfVYZ1Cz33hCdJIpjP6YdV1txoUHPQf/9KJkImFT6XFWj6khyUHtnZjDZyyApE4bWHuMZtDzghqN30nYaX47bZQbrSELMCguYjhVRrUaA4M1IBTHMjtwTlFNFSTups1/pUFPI4mNV8ZuKuRwANY9MO4STHjdCfX6CA/xjsbBbBc+b5N1N8E70TNlAUsov2sgisR7ICqNFXG+H93QFuKd3F6nVvY8DiYOZ+7HvY5KVBkIY2Fys70JRdPyRQeCpRdEmwzReb//77uF344Wt0UZmFXSNBAOEPJdDjRvAllzC7ZRtiGYiSbGlV9yDs6Ly6XF0miq2G3pZtiTCQqdYT2/R7M0ENi4qLYDnLbfFAiux3PI/AmUsOfbWRxnKARt2pWn0vFHIdgeswEMITqF2etKjPbjzy5LDs+YxXfF+D4h//svwIUeMuOAjunsNRs2ZUpzdMGAXzUTF/YEE/upE1tRmFrDAWDKzYpb9ouoKNNPDR9SgrwhcCKk+nXbpOhiWlkZjVmBr0edch/b/2ywfMtImPqq/CWix1RSlYHse85OSKKiXaGRp6FqhBccGh7h2FVOWvgVC75c7vJ+sOvksOxhLI8IR46aAnNDHatQwBjrHeIBBbNBNUKj2u34KXvvSvC6qM7FVWKUt1b5zu2rGc4NI=",
       libraryLocation: "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/sdc-lib/",
-      moduleLoaders: [idCaptureLoader({ enableVIZDocuments: true })]
+      moduleLoaders: [idCaptureLoader({enableVIZDocuments:true})]
     });
 
-    context = await DataCaptureContext.create();
+    ctx = await DataCaptureContext.create();
     view = new DataCaptureView();
-    await view.setContext(context);
-    await view.connectToElement(viewContainer);
+    await view.setContext(ctx);
+    await view.connectToElement(viewBox);
+    cam = Camera.default;
+    await ctx.setFrameSource(cam);
 
-    // Camera
-    camera = Camera.default;
-    await context.setFrameSource(camera);
-
-    // Only front-side “VIZ” (Visual Inspection Zone) capture
     const settings = new IdCaptureSettings();
     settings.supportedDocuments = new Set([IdDocumentType.IdCardVIZ, IdDocumentType.DrivingLicenseVIZ, IdDocumentType.PassportMRZ]);
-    idCapture = await IdCapture.forContext(context, settings);
+    capture = await IdCapture.forContext(ctx, settings);
+    IdCaptureOverlay.withIdCaptureForView(capture, view);
 
-    // Overlay UI
-    IdCaptureOverlay.withIdCaptureForView(idCapture, view);
-
-    // When any ID is captured successfully → mark verified and close
-    idCapture.addListener({
+    capture.addListener({
       didCaptureId: async () => {
         ID_VERIFIED = true;
-        updateCheckoutState();
-        scanStatus.textContent = "✅ ID captured";
-        setTimeout(closeScanner, 600);
+        overlay.style.display = "none";
+        scanIdBtn.textContent = "✅ ID Verified";
+        checkoutBtn.disabled = false;
+        await cam.switchToDesiredState(Camera.State.Off);
       }
     });
 
-    scanStatus.textContent = "Point your camera at the front of the ID";
-    await camera.switchToDesiredState(Camera.State.On);
-  } catch (err) {
-    console.error(err);
-    alert("Camera/Scanner error. Please allow camera permission and try again.");
-    closeScanner();
+    status.textContent = "Point your camera at the front of the ID";
+    await cam.switchToDesiredState(Camera.State.On);
+  } catch (e) {
+    alert("Camera failed: " + e.message);
+    overlay.style.display = "none";
   }
 }
 
 async function closeScanner() {
-  try {
-    if (camera) await camera.switchToDesiredState(Camera.State.Off);
-    if (idCapture) { await idCapture.isEnabled = false; }
-  } catch {}
-  scannerOverlay.style.display = "none";
+  if (cam) await cam.switchToDesiredState(Camera.State.Off);
+  overlay.style.display = "none";
 }
 
-// Open scanner when user taps the button
-scanIdBtn.addEventListener("click", () => {
-  if (ID_VERIFIED) return;
-  openScanner();
-});
+scanIdBtn.onclick = () => openScanner();
 
-// ---------- CHECKOUT (placeholder) ----------
-checkoutBtn.addEventListener("click", () => {
+checkoutBtn.onclick = () => {
   if (!CART.length) return alert("Your cart is empty.");
-  if (!ID_VERIFIED) return alert("Please scan your ID first.");
-  // TODO: integrate your Square link/EmailJS here (unchanged from your flow)
-  alert("Proceeding to checkout…");
-});
-
-// ---------- CART TOGGLE ----------
-$("#cart-btn").addEventListener("click", () => {
-  document.querySelector("#cart").scrollIntoView({ behavior: "smooth" });
-});
+  if (!ID_VERIFIED) return alert("Scan your ID first.");
+  alert("Proceeding to checkout...");
+};
