@@ -3,7 +3,6 @@ window.addEventListener("DOMContentLoaded", () => {
   const overlay = document.getElementById("age-check");
   const yes = document.getElementById("yesBtn");
   const no  = document.getElementById("noBtn");
-
   if (!overlay || !yes || !no) return;
 
   overlay.style.display = "grid";
@@ -19,7 +18,7 @@ window.addEventListener("DOMContentLoaded", () => {
   };
   ["click", "touchstart"].forEach(evt => {
     yes.addEventListener(evt, allow, { passive: false });
-    no.addEventListener(evt, deny, { passive: false });
+    no.addEventListener(evt, deny,  { passive: false });
   });
 });
 
@@ -56,18 +55,23 @@ let cart = [];
 let verified = false;
 let picker = null;
 
-// ---------- IMAGE LOADER ----------
+// ---------- IMAGE LOADER (for /products folder) ----------
 async function getImageURL(path){
   if (!path) return null;
   try {
-    const ref = path.startsWith("products/") ? storage.ref(path) : storage.ref("products/" + path);
+    const ref = path.startsWith("products/") ? storage.ref(path)
+                                            : storage.ref("products/" + path);
     return await ref.getDownloadURL();
-  } catch {
+  } catch (e) {
+    console.warn("⚠️ Could not load image:", path, e.message);
+    // fallback placeholder
     return "data:image/svg+xml;utf8," + encodeURIComponent(`
       <svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
         <rect width='100%' height='100%' fill='#0b0b0b'/>
-        <rect x='16' y='16' width='368' height='268' rx='16' fill='#141414' stroke='#ff8c00' stroke-width='4'/>
-        <text x='50%' y='55%' text-anchor='middle' font-size='28' fill='#ff8c00' font-family='Arial Black, Arial'>LBizzo</text>
+        <rect x='16' y='16' width='368' height='268' rx='16'
+          fill='#141414' stroke='#ff8c00' stroke-width='4'/>
+        <text x='50%' y='55%' text-anchor='middle' font-size='28'
+          fill='#ff8c00' font-family='Arial Black, Arial'>LBizzo</text>
       </svg>
     `);
   }
