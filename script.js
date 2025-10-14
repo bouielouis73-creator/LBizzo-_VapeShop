@@ -128,9 +128,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function startIDScan() {
     try {
-      
       msg.textContent = "Opening camera...";
-scanSection.classList.remove("active");
+      scanSection.classList.remove("active");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoEl.srcObject = stream;
       window._scannerStream = stream;
@@ -154,12 +153,11 @@ scanSection.classList.remove("active");
 
       // stop camera
       if (window._scannerStream) window._scannerStream.getTracks().forEach(t => t.stop());
-
       scanSection.classList.add("active");
 
       if (verified) {
         alert("✅ ID verified! Proceeding to checkout...");
-        proceedCheckout();
+        proceedCheckout(); // ✅ move to checkout flow
       } else {
         alert("❌ Sorry, you must be 21+.");
       }
@@ -176,22 +174,55 @@ scanSection.classList.remove("active");
     startIDScan();
   });
 
+  // ---------- EMAIL + SQUARE CHECKOUT ----------
   async function proceedCheckout() {
     const orderDetails = cart.map(p => `${p.name} - $${p.price}`).join("\n");
     const total = cart.reduce((sum, p) => sum + Number(p.price), 0);
 
     try {
+      // ✅ Send order email
       await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
         items: orderDetails,
         total: total.toFixed(2)
       });
       alert("✅ Order sent successfully!");
+
+      // ✅ Redirect to Square checkout
+      proceedToSquareCheckout(cart);
+
       cart = [];
       updateCartDisplay();
       cartSection.classList.add("hidden");
     } catch (err) {
       alert("❌ Failed to send order. Check console.");
       console.error(err);
+    }
+  }
+
+  // ---------- SQUARE CHECKOUT ----------
+  const SQUARE_FIXED_CHECKOUT_URL = "https://square.link/u/YOUR_SQUARE_LINK"; // your link
+  const SQUARE_DYNAMIC = false; // set true only if your Square link supports dynamic totals
+  const SQUARE_DYNAMIC_BASE = "https://square.link/u/YOUR_SQUARE_LINK";
+
+  function proceedToSquareCheckout(items) {
+    if (!items || !items.length) {
+      alert("Your cart is empty.");
+      return;
+    }
+
+    const note = items.map(i => i.name).join(", ");
+    const total = items.reduce((sum, i) => sum + (Number(i.price) || 0), 0);
+    const totalCents = Math.round(total * 100);
+
+    if (SQUARE_DYNAMIC) {
+      const url =
+        `${SQUARE_DYNAMIC_BASE}` +
+        `?amount_money[amount]=${totalCents}` +
+        `&amount_money[currency]=USD` +
+        `&note=${encodeURIComponent(note)}`;
+      window.location.assign(url);
+    } else {
+      window.location.assign(SQUARE_FIXED_CHECKOUT_URL);
     }
   }
 });
