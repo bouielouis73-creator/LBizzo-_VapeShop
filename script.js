@@ -7,36 +7,45 @@ document.addEventListener("DOMContentLoaded", async () => {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  // ---------- AGE VERIFICATION ----------
+  // ---------- ELEMENTS ----------
   const overlay = $("#age-check");
   const yes = $("#yesBtn");
   const no = $("#noBtn");
+  const productList = $("#product-list");
+  const cartBtn = $("#cart-btn");
+  const cartCount = $("#cart-count");
+  const cartSection = $("#cart");
+  const cartItems = $("#cart-items");
+  const totalEl = $("#total");
+  const closeCart = $("#close-cart");
+  const checkoutBtn = $("#checkout-btn");
+  const scanSection = $("#id-scan-section");
+  const videoEl = $("#id-video");
+  const msg = $("#id-message");
+  const cancelBtn = $("#id-cancel");
 
-  if (overlay && yes && no) {
-    overlay.style.display = "grid";
-    yes.addEventListener("click", async (e) => {
-      e.preventDefault();
-      overlay.style.display = "none";
-      await loadProducts(); // Only show products after clicking Yes
-    });
-    no.addEventListener("click", (e) => {
-      e.preventDefault();
-      alert("Sorry, you must be 21+ to enter.");
-      window.location.href = "https://google.com";
-    });
-  }
+  // ---------- AGE CHECK ----------
+  overlay.style.display = "grid";
+  yes.addEventListener("click", async (e) => {
+    e.preventDefault();
+    overlay.style.display = "none";
+    await loadProducts(); // only load Firebase products after age confirmed
+  });
+  no.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Sorry, you must be 21+ to enter.");
+    window.location.href = "https://google.com";
+  });
 
   // ---------- FIREBASE ----------
   const db = firebase.firestore();
   const storage = firebase.storage();
-  const productList = $("#product-list");
 
   async function getImageURL(path) {
     try {
       if (path.startsWith("http")) return path;
       return await storage.ref(path).getDownloadURL();
-    } catch (err) {
-      console.warn("⚠️ Could not load image:", path, err);
+    } catch {
       return "https://via.placeholder.com/150?text=No+Image";
     }
   }
@@ -45,7 +54,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const snap = await db.collection("products").get();
       productList.innerHTML = "";
-
       if (snap.empty) {
         productList.innerHTML = "<p>No products found.</p>";
         return;
@@ -57,7 +65,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         const card = document.createElement("div");
         card.className = "product";
         card.innerHTML = `
-          <img src="${imgURL}" alt="${p.name}" />
+          <img src="${imgURL}" alt="${p.name}">
           <h3>${p.name}</h3>
           <p>$${Number(p.price).toFixed(2)}</p>
           <button class="add-btn">Add to Cart</button>
@@ -66,20 +74,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         productList.appendChild(card);
       });
     } catch (err) {
-      console.error("❌ Error loading products:", err);
+      console.error("Error loading products:", err);
       productList.innerHTML = "<p>Error loading products.</p>";
     }
   }
 
   // ---------- CART ----------
   let cart = [];
-  const cartBtn = $("#cart-btn");
-  const cartCount = $("#cart-count");
-  const cartSection = $("#cart");
-  const cartItems = $("#cart-items");
-  const totalEl = $("#total");
-  const closeCart = $("#close-cart");
-  const checkoutBtn = $("#checkout-btn");
 
   function updateCartDisplay() {
     cartItems.innerHTML = "";
@@ -119,57 +120,48 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.classList.add("hidden");
   });
 
-  // ---------- SCANDIT AT CHECKOUT ----------
-  const scanSection = $("#id-scan-section");
-  const videoEl = $("#id-video");
-  const msg = $("#id-message");
-  const cancelBtn = $("#id-cancel");
-
+  // ---------- ID SCAN ----------
   cancelBtn.addEventListener("click", () => {
     scanSection.classList.add("hidden");
-    if (window._scannerStream) {
-      window._scannerStream.getTracks().forEach((t) => t.stop());
-    }
+    if (window._scannerStream) window._scannerStream.getTracks().forEach(t => t.stop());
   });
 
   async function startIDScan() {
     try {
       scanSection.classList.remove("hidden");
-      msg.textContent = "Opening camera…";
+      msg.textContent = "Opening camera...";
 
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoEl.srcObject = stream;
       window._scannerStream = stream;
 
-      await new Promise((r) => setTimeout(r, 2500));
-
+      // Wait 2.5s then capture frame
+      await new Promise(r => setTimeout(r, 2500));
       const canvas = document.createElement("canvas");
       canvas.width = videoEl.videoWidth;
       canvas.height = videoEl.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(videoEl, 0, 0);
-      const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg"));
+      const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
 
-      msg.textContent = "Verifying ID…";
-
+      msg.textContent = "Verifying ID...";
       const res = await fetch("/.netlify/functions/verify-id", {
         method: "POST",
         headers: { "Content-Type": "image/jpeg" },
-        body: blob,
+        body: blob
       });
       const { verified } = await res.json();
 
-      if (window._scannerStream) {
-        window._scannerStream.getTracks().forEach((t) => t.stop());
-      }
+      // stop camera
+      if (window._scannerStream) window._scannerStream.getTracks().forEach(t => t.stop());
+
+      scanSection.classList.add("hidden");
 
       if (verified) {
         alert("✅ ID verified! Proceeding to checkout...");
-        scanSection.classList.add("hidden");
         proceedCheckout();
       } else {
-        alert("❌ Sorry, must be 21+.");
-        scanSection.classList.add("hidden");
+        alert("❌ Sorry, you must be 21+.");
       }
     } catch (err) {
       console.error("Scanner error:", err);
@@ -178,19 +170,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // Run ONLY when pressing Checkout
   checkoutBtn.addEventListener("click", async () => {
     if (cart.length === 0) return alert("Your cart is empty!");
-    startIDScan(); // ✅ now runs only when pressing Checkout
+    startIDScan();
   });
 
   async function proceedCheckout() {
-    const orderDetails = cart.map((p) => `${p.name} - $${p.price}`).join("\n");
+    const orderDetails = cart.map(p => `${p.name} - $${p.price}`).join("\n");
     const total = cart.reduce((sum, p) => sum + Number(p.price), 0);
 
     try {
       await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
         items: orderDetails,
-        total: total.toFixed(2),
+        total: total.toFixed(2)
       });
       alert("✅ Order sent successfully!");
       cart = [];
