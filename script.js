@@ -1,32 +1,31 @@
 document.addEventListener("DOMContentLoaded", async () => {
-  if (window.__LBIZZO_BOOTED__) return;
-  window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo Vape Shop starting...");
+  if (window.__LBIZZO_LOADED__) return;
+  window.__LBIZZO_LOADED__ = true;
 
-  // ---------- Helpers ----------
-  const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
-  const debug = (msg) => { const bar = $("#debug"); if (bar) { bar.textContent = msg; bar.hidden = false; } console.log(msg); };
+  console.log("✅ LBizzo Vape Shop running...");
 
-  // ---------- Age Verification ----------
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+
+  // ---------- AGE VERIFICATION ----------
   const overlay = $("#age-check");
   const yes = $("#yesBtn");
   const no = $("#noBtn");
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => {
+    yes.addEventListener("click", e => {
       e.preventDefault();
       overlay.style.display = "none";
     });
-    no.addEventListener("click", (e) => {
+    no.addEventListener("click", e => {
       e.preventDefault();
       alert("Sorry, you must be 21+ to enter.");
       window.location.href = "https://google.com";
     });
   }
 
-  // ---------- Firebase Setup ----------
+  // ---------- FIREBASE ----------
   const db = firebase.firestore();
   const storage = firebase.storage();
   const productList = $("#product-list");
@@ -34,64 +33,52 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function getImageURL(path) {
     try {
       return await storage.ref(path).getDownloadURL();
-    } catch (err) {
-      console.warn("Image load failed:", path, err);
+    } catch {
       return "https://via.placeholder.com/150?text=No+Image";
     }
   }
 
   async function loadProducts() {
     productList.innerHTML = "";
-    try {
-      const snap = await db.collection("products").get();
-      if (snap.empty) {
-        productList.innerHTML = "<p>No products found.</p>";
-        return;
-      }
-
-      snap.forEach(async (doc) => {
-        const p = doc.data();
-        const imgURL = await getImageURL(p.image);
-        const card = document.createElement("div");
-        card.className = "product";
-        card.innerHTML = `
-          <img src="${imgURL}" alt="${p.name}" />
-          <h3>${p.name}</h3>
-          <p>$${Number(p.price).toFixed(2)}</p>
-          <button class="add-btn">Add to Cart</button>
-        `;
-        card.querySelector(".add-btn").addEventListener("click", () => addToCart(p));
-        productList.appendChild(card);
-      });
-      debug("✅ Products loaded from Firestore");
-    } catch (err) {
-      console.error("Failed to load products", err);
-      productList.innerHTML = "<p>Error loading products.</p>";
-    }
+    const snap = await db.collection("products").get();
+    snap.forEach(async (doc) => {
+      const p = doc.data();
+      const imgURL = await getImageURL(p.image);
+      const card = document.createElement("div");
+      card.className = "product";
+      card.innerHTML = `
+        <img src="${imgURL}" alt="${p.name}" />
+        <h3>${p.name}</h3>
+        <p>$${Number(p.price).toFixed(2)}</p>
+        <button class="add-btn">Add to Cart</button>
+      `;
+      card.querySelector(".add-btn").addEventListener("click", () => addToCart(p));
+      productList.appendChild(card);
+    });
   }
 
-  // ---------- Cart ----------
+  // ---------- CART ----------
   let cart = [];
   const cartBtn = $("#cart-btn");
+  const cartCount = $("#cart-count");
   const cartSection = $("#cart");
   const cartItems = $("#cart-items");
   const totalEl = $("#total");
   const closeCart = $("#close-cart");
+  const checkoutBtn = $("#checkout-btn");
 
   function updateCartDisplay() {
     cartItems.innerHTML = "";
     let total = 0;
     cart.forEach((p, i) => {
       const li = document.createElement("li");
-      li.innerHTML = `
-        ${p.name} - $${Number(p.price).toFixed(2)}
-        <button data-i="${i}" class="remove-btn">x</button>
-      `;
+      li.innerHTML = `${p.name} - $${Number(p.price).toFixed(2)}
+      <button class="remove-btn" data-i="${i}">x</button>`;
       cartItems.appendChild(li);
       total += Number(p.price);
     });
     totalEl.textContent = `Total: $${total.toFixed(2)}`;
-    $("#cart-count").textContent = cart.length;
+    cartCount.textContent = cart.length;
     $$(".remove-btn").forEach(btn =>
       btn.addEventListener("click", e => {
         cart.splice(e.target.dataset.i, 1);
@@ -105,28 +92,33 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateCartDisplay();
   }
 
-  cartBtn.addEventListener("click", () => cartSection.classList.toggle("hidden"));
-  closeCart.addEventListener("click", () => cartSection.classList.add("hidden"));
+  cartBtn.addEventListener("click", () => {
+    cartSection.classList.toggle("hidden");
+  });
 
-  // ---------- Checkout (EmailJS) ----------
-  $("#checkout-btn").addEventListener("click", () => {
-    if (cart.length === 0) return alert("Cart is empty!");
+  closeCart.addEventListener("click", () => {
+    cartSection.classList.add("hidden");
+  });
+
+  checkoutBtn.addEventListener("click", async () => {
+    if (cart.length === 0) return alert("Your cart is empty!");
     const orderDetails = cart.map(p => `${p.name} - $${p.price}`).join("\n");
-    const total = cart.reduce((a, b) => a + Number(b.price), 0);
-    emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
-      items: orderDetails,
-      total: total.toFixed(2)
-    }).then(() => {
+    const total = cart.reduce((sum, p) => sum + Number(p.price), 0);
+
+    try {
+      await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+        items: orderDetails,
+        total: total.toFixed(2)
+      });
       alert("✅ Order sent successfully!");
       cart = [];
       updateCartDisplay();
       cartSection.classList.add("hidden");
-    }).catch(err => {
+    } catch (err) {
       alert("❌ Failed to send order. Check console.");
       console.error(err);
-    });
+    }
   });
 
-  // ---------- Start ----------
   await loadProducts();
 });
