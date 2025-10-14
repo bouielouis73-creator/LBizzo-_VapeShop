@@ -259,9 +259,8 @@ else {
         }
         updateVerifyUI();
       });
-      camActive=true;
-      $("#startCamBtn").disabled=true;
-      $("#stopCamBtn").disabled=false;
+  const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
       debug("📸 Scandit camera active.", true);
     }catch(e){ alert("Camera error: "+(e.message||e)); }
   }
