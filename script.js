@@ -155,7 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       // stop camera
       if (window._scannerStream) window._scannerStream.getTracks().forEach(t => t.stop());
 
-      scanSection.classList.add("hidden");
+      scanSection.classList.add("active");
 
       if (verified) {
         alert("✅ ID verified! Proceeding to checkout...");
