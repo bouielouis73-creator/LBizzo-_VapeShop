@@ -5,124 +5,100 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA & Icons -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ff8c00">
-  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff8c00" />
+  <link rel="apple-touch-icon" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs -->
+  <!-- Firebase -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ EmailJS -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <!-- Scandit SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
 
-  <!-- ✅ Scandit SDK (must be before your script.js) -->
-  <script defer src="script.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
-
-  <!-- ✅ Your main script -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
 <body>
-  // ---------- AGE VERIFICATION (FINAL UNIVERSAL FIX) ----------
-window.addEventListener("DOMContentLoaded", () => {
-  const overlay = document.getElementById("age-check");
-  const yes = document.getElementById("yesBtn");
-  const no = document.getElementById("noBtn");
+  <!-- 🔒 Age Verification -->
+  <div id="age-check" style="
+    position:fixed;
+    inset:0;
+    display:grid;
+    place-items:center;
+    background:rgba(0,0,0,0.88);
+    backdrop-filter:blur(8px);
+    z-index:99999;">
+    <div style="background:#111;border:2px solid #ff8c00;
+                border-radius:14px;padding:24px;text-align:center;
+                color:#fff;max-width:320px;">
+      <h2>Are you 21 or older?</h2>
+      <p style="color:#ccc;">LBizzo Vape Shop requires age verification.</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
+        <button id="yesBtn" style="background:#0f0;color:#000;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;">Yes</button>
+        <button id="noBtn"  style="background:#f00;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;">No</button>
+      </div>
+    </div>
+  </div>
 
-  if (!overlay || !yes || !no) {
-    console.warn("Age-check elements missing.");
-    return;
-  }
-
-  // Show overlay explicitly
-  overlay.style.display = "grid";
-
-  const allow = (e) => {
-    e.preventDefault();
-    overlay.style.display = "none";
-    console.log("✅ Age verified overlay hidden");
-  };
-
-  const deny = (e) => {
-    e.preventDefault();
-    alert("Sorry, you must be 21+ to enter.");
-    window.location.href = "https://google.com";
-  };
-
-  // Attach both click and touch handlers (iOS-safe)
-  ["click", "touchstart"].forEach(evt => {
-    yes.addEventListener(evt, allow, { passive: false });
-    no.addEventListener(evt, deny,  { passive: false });
-  });
-});
-
-  <!-- 🔝 Topbar -->
+  <!-- 🔝 Header -->
   <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn" class="btn cart">Cart (<span id="cart-count">0</span>)</button>
   </header>
 
-  <!-- 🛍️ Product Grid -->
+  <!-- 🔹 Products -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- 🛒 Cart Section -->
+  <!-- 🛒 Cart -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
-    <p><b>Total:</b> $<span id="cart-total">0.00</span></p>
+    <p><strong>Total:</strong> $<span id="cart-total">0.00</span></p>
     <button id="clearCart" class="btn">Clear Cart</button>
-    <br><br>
-
-    <input id="custName" placeholder="Full name" />
-    <input id="custPhone" placeholder="Phone" />
-    <input id="custAddress" placeholder="Delivery address" />
-
-    <button id="checkoutBtn" class="btn primary" disabled>Verify ID to Checkout 🔒</button>
-    <p>Your order will be verified by ID and sent via EmailJS.</p>
   </section>
 
-  <!-- 🪪 Scandit ID Capture -->
+  <!-- ⭐ Loyalty -->
+  <section id="loyalty">
+    <h3>Loyalty Stars</h3>
+    <div id="loyalty-stars">
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+      <span class="star">★</span>
+    </div>
+  </section>
+
+  <!-- 🆔 Scandit Camera -->
   <section class="scanner">
     <h2>Verify Your ID (Front & Back)</h2>
-    <div>
+    <video id="scanVideo" playsinline autoplay muted></video>
+    <div class="scan-actions">
       <button id="startCamBtn" class="btn primary">Start Camera</button>
       <button id="stopCamBtn" class="btn">Stop Camera</button>
     </div>
-
-    <video id="scanVideo" playsinline autoplay muted></video>
-    <div id="scanOut" style="margin-top:8px;">❌ Not verified yet</div>
-    <div id="arrow" style="font-size:2rem;color:var(--orange);text-align:center;">⬇️</div>
+    <div id="scanOut">❌ Not verified yet</div>
   </section>
 
-  <!-- 🌟 Loyalty Stars -->
-  <section id="loyalty-stars">
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="progress-label">Buy 6 get 1 free</span>
+  <!-- 🧾 Checkout -->
+  <section class="checkout">
+    <input id="custName" placeholder="Full name" />
+    <input id="custPhone" placeholder="Phone" />
+    <input id="custAddress" placeholder="Delivery address" />
+    <button id="checkoutBtn" class="btn primary">Verify ID to Checkout 🔒</button>
+    <p>Your order will be verified by ID and sent via EmailJS.</p>
   </section>
 
-  <!-- ⚙️ Settings -->
-  <section id="settings" style="display:none;padding:16px;">
-    <h3>Settings</h3>
-    <p>Saved on this device only.</p>
-    <input id="emailjsPublic" placeholder="EmailJS Public Key" />
-    <input id="emailjsService" placeholder="EmailJS Service ID" />
-    <input id="emailjsTemplate" placeholder="EmailJS Template ID" />
-    <input id="squareBase" placeholder="Square Base Link (optional)" />
-    <button id="saveKeys" class="btn">Save</button>
-  </section>
+  <!-- Debug -->
+  <div id="debug"></div>
 
-  <div id="debug" hidden></div>
+  <script defer src="script.js"></script>
 </body>
 </html>
