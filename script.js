@@ -30,18 +30,18 @@ document.addEventListener("DOMContentLoaded", async () => {
   const storage = firebase.storage();
   const productList = $("#product-list");
 
-  // ✅ Single, correct image loader
+  // ✅ Image loader
   async function getImageURL(path) {
     try {
-      if (path.startsWith("http")) return path; // full URL case
-      return await storage.ref(path).getDownloadURL(); // storage path case
+      if (path.startsWith("http")) return path;
+      return await storage.ref(path).getDownloadURL();
     } catch (err) {
       console.warn("⚠️ Could not load image:", path, err);
       return "https://via.placeholder.com/150?text=No+Image";
     }
   }
 
-  // ✅ Load products from Firestore
+  // ✅ Load products
   async function loadProducts() {
     try {
       const snap = await db.collection("products").get();
@@ -120,26 +120,76 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.classList.add("hidden");
   });
 
-  // ---------- CHECKOUT (EmailJS + ID Verification) ----------
+  // ---------- ✅ ID SCAN BEFORE CHECKOUT ----------
+  const scanSection = $("#id-scan-section");
+  const videoEl = $("#id-video");
+  const msg = $("#id-message");
+  const cancelBtn = $("#id-cancel");
+
+  cancelBtn.addEventListener("click", () => {
+    scanSection.classList.add("hidden");
+    if (window._scannerStream) {
+      window._scannerStream.getTracks().forEach((t) => t.stop());
+    }
+  });
+
+  // Start camera and send photo to verify-id function
+  async function startIDScan() {
+    try {
+      scanSection.classList.remove("hidden");
+      msg.textContent = "Opening camera…";
+
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoEl.srcObject = stream;
+      window._scannerStream = stream;
+
+      // Wait a couple seconds for user to position ID
+      await new Promise((r) => setTimeout(r, 2500));
+
+      // Capture a frame
+      const canvas = document.createElement("canvas");
+      canvas.width = videoEl.videoWidth;
+      canvas.height = videoEl.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(videoEl, 0, 0);
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg"));
+
+      msg.textContent = "Verifying ID…";
+
+      const res = await fetch("/.netlify/functions/verify-id", {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: blob,
+      });
+      const { verified } = await res.json();
+
+      if (window._scannerStream) {
+        window._scannerStream.getTracks().forEach((t) => t.stop());
+      }
+
+      if (verified) {
+        alert("✅ ID verified! You are 21+.");
+        scanSection.classList.add("hidden");
+        proceedCheckout();
+      } else {
+        alert("❌ Sorry, we can’t sell tobacco products. You must be 21+.");
+        scanSection.classList.add("hidden");
+      }
+    } catch (err) {
+      console.error("Scanner error:", err);
+      alert("Camera not available or permission denied.");
+      scanSection.classList.add("hidden");
+    }
+  }
+
+  // ---------- CHECKOUT ----------
   checkoutBtn.addEventListener("click", async () => {
     if (cart.length === 0) return alert("Your cart is empty!");
+    // Before checkout, require ID scan
+    startIDScan();
+  });
 
-    // 🆔 Verify age before checkout
-    const birthYear = prompt("Enter your birth year from your ID (YYYY):", "2004");
-    const age = new Date().getFullYear() - Number(birthYear);
-
-    if (Number(birthYear) >= 2004 || age < 21) {
-      alert("❌ Sorry, we can’t sell you tobacco products. You must be 21+.");
-      checkoutBtn.disabled = true;
-      checkoutBtn.style.opacity = "0.5";
-      return;
-    } else {
-      alert("✅ ID verified! You are 21+.");
-      checkoutBtn.disabled = false;
-      checkoutBtn.style.opacity = "1";
-    }
-
-    // Proceed with checkout if verified
+  async function proceedCheckout() {
     const orderDetails = cart.map((p) => `${p.name} - $${p.price}`).join("\n");
     const total = cart.reduce((sum, p) => sum + Number(p.price), 0);
 
@@ -156,8 +206,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       alert("❌ Failed to send order. Check console.");
       console.error(err);
     }
-  });
+  }
 
-  // ✅ Start app
+  // ---------- START ----------
   await loadProducts();
 });
