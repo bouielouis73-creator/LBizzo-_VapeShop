@@ -14,9 +14,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => {
+    yes.addEventListener("click", async (e) => {
       e.preventDefault();
       overlay.style.display = "none";
+      await loadProducts(); // 🔥 show products after age confirm
     });
     no.addEventListener("click", (e) => {
       e.preventDefault();
@@ -30,7 +31,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   const storage = firebase.storage();
   const productList = $("#product-list");
 
-  // ✅ Image loader
   async function getImageURL(path) {
     try {
       if (path.startsWith("http")) return path;
@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ✅ Load products
   async function loadProducts() {
     try {
       const snap = await db.collection("products").get();
@@ -120,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.classList.add("hidden");
   });
 
-  // ---------- ✅ ID SCAN BEFORE CHECKOUT ----------
+  // ---------- SCANDIT VERIFY-ID ----------
   const scanSection = $("#id-scan-section");
   const videoEl = $("#id-video");
   const msg = $("#id-message");
@@ -133,7 +132,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   });
 
-  // Start camera and send photo to verify-id function
   async function startIDScan() {
     try {
       scanSection.classList.remove("hidden");
@@ -143,10 +141,8 @@ document.addEventListener("DOMContentLoaded", async () => {
       videoEl.srcObject = stream;
       window._scannerStream = stream;
 
-      // Wait a couple seconds for user to position ID
       await new Promise((r) => setTimeout(r, 2500));
 
-      // Capture a frame
       const canvas = document.createElement("canvas");
       canvas.width = videoEl.videoWidth;
       canvas.height = videoEl.videoHeight;
@@ -182,11 +178,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", async () => {
+  checkoutBtn.addEventListener("click", () => {
     if (cart.length === 0) return alert("Your cart is empty!");
-    // Before checkout, require ID scan
-    startIDScan();
+    startIDScan(); // 🔥 Require ID before checkout
   });
 
   async function proceedCheckout() {
@@ -207,7 +201,4 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error(err);
     }
   }
-
-  // ---------- START ----------
-  await loadProducts();
 });
