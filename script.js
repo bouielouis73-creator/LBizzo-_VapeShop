@@ -38,24 +38,17 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  async function loadProducts() {
-    productList.innerHTML = "";
-    const snap = await db.collection("products").get();
-    snap.forEach(async (doc) => {
-      const p = doc.data();
-      const imgURL = await getImageURL(p.image);
-      const card = document.createElement("div");
-      card.className = "product";
-      card.innerHTML = `
-        <img src="${imgURL}" alt="${p.name}" />
-        <h3>${p.name}</h3>
-        <p>$${Number(p.price).toFixed(2)}</p>
-        <button class="add-btn">Add to Cart</button>
-      `;
-      card.querySelector(".add-btn").addEventListener("click", () => addToCart(p));
-      productList.appendChild(card);
-    });
+  async function getImageURL(path) {
+  try {
+    // If it's already a full URL, just return it directly
+    if (path.startsWith("http")) return path;
+    // Otherwise, fetch from Firebase Storage
+    return await storage.ref(path).getDownloadURL();
+  } catch (err) {
+    console.warn("⚠️ Could not load image:", path, err);
+    return "https://via.placeholder.com/150?text=No+Image";
   }
+}
 
   // ---------- CART ----------
   let cart = [];
