@@ -1,81 +1,73 @@
 // ============================================================
-// ✅ LBizzo Vape Shop - Complete script.js
-// Includes: Firebase, Firestore, Storage, EmailJS, Scandit ID, PWA, Cart, Loyalty
+// ✅ LBizzo Vape Shop – Fixed script.js
+// Shows all products (name, price, image) from Firestore + Storage
+// Includes: EmailJS, Scandit ID, Cart, Checkout, Loyalty, PWA, Age Gate
 // ============================================================
 
 (() => {
   if (window.__LBIZZO_BOOTED__) return;
   window.__LBIZZO_BOOTED__ = true;
 
-  console.log("✅ LBizzo script booting…");
+  console.log("✅ LBizzo script starting...");
 
-  // ---------- Firebase Configuration ----------
+  // ---------- Firebase Config ----------
   const firebaseConfig = {
     apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
     authDomain: "lbizzodelivery.firebaseapp.com",
     projectId: "lbizzodelivery",
-    storageBucket: "lbizzodelivery.appspot.com", // ✅ Correct bucket name
+    storageBucket: "lbizzodelivery.appspot.com", // ✅ must end with .appspot.com
     messagingSenderId: "614540837455",
     appId: "1:614540837455:web:42709d7b585bbdc2b8203a",
   };
 
-  // ---------- Scandit License ----------
-  const SCANDIT_LICENSE_KEY = "YOUR_SCANDIT_LICENSE_KEY"; // Replace when ready
-
-  // ---------- EmailJS Setup ----------
-  const EMAILJS_PUBLIC_KEY = "jUx6gEqKl1tvL7yLs";
-  const EMAILJS_SERVICE_ID = "service_bk310ht";
-  const EMAILJS_TEMPLATE_ID = "template_sbbt8blk";
-
-  // ---------- Init Firebase ----------
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const storage = firebase.storage();
 
+  // ---------- EmailJS ----------
+  const EMAILJS_PUBLIC_KEY = "jUx6gEqKl1tvL7yLs";
+  const EMAILJS_SERVICE_ID = "service_bk310ht";
+  const EMAILJS_TEMPLATE_ID = "template_sbbt8blk";
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+
   // ---------- Helpers ----------
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
-  const debug = (msg) => console.log("🐞", msg);
 
   const PLACEHOLDER_IMG =
     "data:image/svg+xml;utf8," +
     encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' fill='#ff8c00' font-family='Arial' font-size='16'>Image</text></svg>`
+      `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='100%' height='100%' fill='#111'/><text x='50%' y='55%' dominant-baseline='middle' text-anchor='middle' fill='#ff8c00' font-family='Arial' font-size='16'>No Image</text></svg>`
     );
 
-  // ---------- EmailJS ----------
-  emailjs.init(EMAILJS_PUBLIC_KEY);
-
-  async function sendOrderEmail(order) {
-    const templateParams = {
-      name: order.name,
-      phone: order.phone,
-      address: order.address,
-      items: order.items.map(i => `${i.name} ($${i.price.toFixed(2)}) x${i.qty}`).join("\n"),
-      total: order.total.toFixed(2)
-    };
-    try {
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, templateParams);
-      alert("✅ Order sent successfully!");
-    } catch (err) {
-      console.error("EmailJS failed:", err);
-      alert("❌ Could not send order. Try again.");
+  // ---------- Loyalty Stars ----------
+  const MAX_STARS = 6;
+  const renderStars = () => {
+    const wrap = $("#stars");
+    if (!wrap) return;
+    wrap.innerHTML = "";
+    const have = Number(localStorage.getItem("lb_stars") || "0");
+    for (let i = 0; i < MAX_STARS; i++) {
+      const s = document.createElement("span");
+      s.className = "star" + (i < have ? " lit" : "");
+      s.textContent = "⭐";
+      wrap.appendChild(s);
     }
-  }
+  };
+  const addStar = () => {
+    const have = Number(localStorage.getItem("lb_stars") || "0");
+    localStorage.setItem("lb_stars", Math.min(MAX_STARS, have + 1));
+    renderStars();
+  };
 
   // ---------- Age Verification ----------
   const ageCheck = $("#age-check");
-  const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
-
-  if (ageCheck && yesBtn && noBtn) {
-    ageCheck.style.display = "grid";
-    yesBtn.addEventListener("click", () => (ageCheck.style.display = "none"));
-    noBtn.addEventListener("click", () => {
-      alert("Sorry, you must be 21+ to enter.");
-      window.location.href = "https://google.com";
-    });
-  }
+  $("#yesBtn")?.addEventListener("click", () => (ageCheck.style.display = "none"));
+  $("#noBtn")?.addEventListener("click", () => {
+    alert("Sorry, you must be 21+ to enter.");
+    window.location.href = "https://google.com";
+  });
+  ageCheck.style.display = "grid";
 
   // ---------- PWA Install ----------
   let deferredPrompt;
@@ -92,59 +84,63 @@
     installBtn.disabled = true;
   });
 
-  // ---------- Loyalty Stars ----------
-  const MAX_STARS = 6;
-  function getStars() { return Number(localStorage.getItem("lb_stars") || "0"); }
-  function setStars(n) { localStorage.setItem("lb_stars", n); renderStars(); }
-  function renderStars() {
-    const wrap = $("#stars");
-    wrap.innerHTML = "";
-    const have = getStars();
-    for (let i = 0; i < MAX_STARS; i++) {
-      const s = document.createElement("span");
-      s.className = "star" + (i < have ? " lit" : "");
-      s.textContent = "⭐";
-      wrap.appendChild(s);
-    }
-  }
-
   // ---------- Firebase Image Loader ----------
-  async function getImageURL(imageField) {
+  async function getImageURL(fileName) {
     try {
-      const path = imageField.startsWith("products/") ? imageField : `products/${imageField}`;
+      const path = fileName.startsWith("products/")
+        ? fileName
+        : `products/${fileName}`;
       return await storage.ref().child(path).getDownloadURL();
-    } catch {
+    } catch (err) {
+      console.warn("Image not found:", fileName);
       return PLACEHOLDER_IMG;
     }
   }
 
-  // ---------- Products ----------
-  const listEl = $("#product-list");
-
-  async function addCard(p) {
-    const img = await getImageURL(p.image);
-    const card = document.createElement("div");
-    card.className = "product";
-    card.innerHTML = `
-      <img src="${img}" alt="${p.name}" />
-      <div class="pad">
-        <h3>${p.name}</h3>
-        <p>$${p.price.toFixed(2)}</p>
-        <button class="btn primary add-btn">Add to Cart</button>
-      </div>`;
-    card.querySelector(".add-btn").addEventListener("click", () => addToCart(p));
-    listEl.appendChild(card);
-  }
-
+  // ---------- Load Products ----------
   async function loadProducts() {
-    listEl.innerHTML = "";
-    const snap = await db.collection("products").limit(50).get();
-    snap.forEach((doc) => addCard(doc.data()));
+    const listEl = $("#product-list");
+    listEl.innerHTML = "<p style='text-align:center;color:#777'>Loading products...</p>";
+
+    try {
+      const snapshot = await db.collection("products").limit(50).get();
+      if (snapshot.empty) {
+        listEl.innerHTML = "<p style='text-align:center;color:#777'>No products found</p>";
+        return;
+      }
+
+      listEl.innerHTML = "";
+      for (const doc of snapshot.docs) {
+        const data = doc.data();
+        const imgURL = await getImageURL(data.image);
+        const price = Number(data.price) || 0;
+
+        const card = document.createElement("div");
+        card.className = "product";
+        card.innerHTML = `
+          <img src="${imgURL}" alt="${data.name}" />
+          <div class="pad">
+            <h3>${data.name}</h3>
+            <p>$${price.toFixed(2)}</p>
+            <button class="btn primary add-btn">Add to Cart</button>
+          </div>
+        `;
+        card.querySelector(".add-btn").addEventListener("click", () => addToCart({
+          name: data.name,
+          price,
+          image: imgURL,
+        }));
+        listEl.appendChild(card);
+      }
+    } catch (err) {
+      console.error("❌ Firestore error:", err);
+      $("#product-list").innerHTML = "<p style='color:red;text-align:center'>Error loading products.</p>";
+    }
   }
 
   // ---------- Cart ----------
-  const cartBtn = $("#cart-btn");
   const cartEl = $("#cart");
+  const cartBtn = $("#cart-btn");
   const itemsEl = $("#cart-items");
   const totalEl = $("#cart-total");
   const countEl = $("#cart-count");
@@ -156,18 +152,19 @@
 
   function renderCart() {
     itemsEl.innerHTML = "";
+    let total = 0;
     cart.forEach((item, i) => {
       const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${item.price.toFixed(2)} × ${item.qty} 
-      <button class='btn ghost' data-i='${i}'>−</button>`;
+      total += item.price * item.qty;
+      li.innerHTML = `${item.name} - $${item.price.toFixed(2)} × ${item.qty}
+        <button class='btn ghost' data-i='${i}'>−</button>`;
       li.querySelector("button").addEventListener("click", () => {
-        cart[i].qty--;
-        if (cart[i].qty <= 0) cart.splice(i, 1);
+        item.qty--;
+        if (item.qty <= 0) cart.splice(i, 1);
         renderCart();
       });
       itemsEl.appendChild(li);
     });
-    const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
     totalEl.textContent = total.toFixed(2);
     countEl.textContent = cart.reduce((s, c) => s + c.qty, 0);
     checkoutBtn.disabled = !idVerified || cart.length === 0;
@@ -182,7 +179,7 @@
 
   cartBtn.addEventListener("click", () => (cartEl.hidden = !cartEl.hidden));
 
-  // ---------- Scandit ID Scanner ----------
+  // ---------- Scandit (Simulated) ----------
   const scanStatus = $("#scan-status");
   const scannerBox = $("#scanner");
   const closeScan = $("#close-scan");
@@ -193,7 +190,7 @@
     idVerified = ok;
     scanStatus.textContent = ok ? "ID verified" : "ID not verified";
     scanStatus.style.color = ok ? "#00d084" : "#ff6666";
-    checkoutBtn.disabled = !idVerified || cart.length === 0;
+    checkoutBtn.disabled = !ok || cart.length === 0;
   }
 
   async function startScanner() {
@@ -202,16 +199,14 @@
       stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
       video.srcObject = stream;
       video.play();
-
-      // Simulate successful scan
+      // simulate scan success
       setTimeout(() => {
         setVerified(true);
         stopScanner();
-        alert("✅ ID Verified");
+        alert("✅ ID verified");
       }, 3000);
-    } catch (err) {
-      alert("Camera not available or permission denied");
-      console.error(err);
+    } catch (e) {
+      alert("Camera error: " + e.message);
     }
   }
 
@@ -228,30 +223,34 @@
 
   // ---------- Checkout ----------
   checkoutBtn.addEventListener("click", async () => {
-    if (!idVerified) return alert("Scan your ID first!");
+    if (!idVerified) return alert("Please scan your ID first!");
     if (!cart.length) return alert("Your cart is empty!");
 
     const name = prompt("Your name:");
-    const phone = prompt("Your phone:");
+    const phone = prompt("Phone number:");
     const address = prompt("Delivery address:");
     if (!name || !phone || !address) return;
 
-    const order = {
-      name,
-      phone,
-      address,
-      items: cart,
-      total: cart.reduce((s, c) => s + c.price * c.qty, 0),
-    };
+    const total = cart.reduce((s, c) => s + c.price * c.qty, 0);
+    const order = { name, phone, address, items: cart, total };
 
-    await sendOrderEmail(order);
-    const stars = Math.min(6, getStars() + 1);
-    setStars(stars);
-    cart = [];
-    renderCart();
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        name, phone, address,
+        items: order.items.map(i => `${i.name} x${i.qty}`).join("\n"),
+        total: order.total.toFixed(2),
+      });
+      alert("✅ Order sent!");
+      addStar();
+      cart = [];
+      renderCart();
+    } catch (e) {
+      alert("❌ Email failed. Check EmailJS keys.");
+      console.error(e);
+    }
   });
 
-  // ---------- Startup ----------
+  // ---------- Start ----------
   window.addEventListener("DOMContentLoaded", async () => {
     renderStars();
     await loadProducts();
