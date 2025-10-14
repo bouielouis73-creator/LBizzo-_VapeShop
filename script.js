@@ -56,21 +56,34 @@ let cart = [];
 let verified = false;
 let picker = null;
 
-// ---------- PRODUCTS ----------
+// ---------- IMAGE LOADER (Fix for /products folder) ----------
 async function getImageURL(path){
-  try { return await storage.ref(path).getDownloadURL(); }
-  catch { return null; }
+  if (!path) return null;
+  try {
+    const ref = path.startsWith("products/") ? storage.ref(path) : storage.ref("products/" + path);
+    return await ref.getDownloadURL();
+  } catch (e) {
+    console.warn("⚠️ Could not load image:", path, e.message);
+    return "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
+        <rect width='100%' height='100%' fill='#0b0b0b'/>
+        <rect x='16' y='16' width='368' height='268' rx='16' fill='#141414' stroke='#ff8c00' stroke-width='4'/>
+        <text x='50%' y='55%' text-anchor='middle' font-size='28' fill='#ff8c00' font-family='Arial Black, Arial'>LBizzo</text>
+      </svg>
+    `);
+  }
 }
 
+// ---------- PRODUCTS ----------
 async function addProductCard(p){
   const list = $("#product-list");
   const img = await getImageURL(p.image);
   const card = document.createElement("div");
   card.className = "product";
   card.innerHTML = `
-    <img src="${img||''}" alt="${p.name}" />
+    <img src="${img}" alt="${p.name}" />
     <h3>${p.name}</h3>
-    <p>$${p.price}</p>
+    <p>$${(p.price||0).toFixed(2)}</p>
     <button class="btn primary add">Add to Cart</button>`;
   card.querySelector(".add").onclick = () => addToCart(p);
   list.appendChild(card);
@@ -79,9 +92,25 @@ async function addProductCard(p){
 async function loadProducts(){
   const list = $("#product-list");
   list.innerHTML = "";
-  const snap = await db.collection("products").get();
-  snap.forEach(doc => addProductCard(doc.data()));
-  debug(`✅ Loaded ${snap.size} products.`, true);
+  try {
+    const snap = await db.collection("products").get();
+    if (snap.empty) {
+      debug("⚠️ No products found in Firestore.", false);
+      return;
+    }
+    for (const doc of snap.docs) {
+      const d = doc.data();
+      await addProductCard({
+        name: d.name || "Unnamed Product",
+        price: Number(d.price) || 0,
+        image: d.image || null
+      });
+    }
+    debug(`✅ Loaded ${snap.size} products from Firebase.`, true);
+  } catch (e) {
+    console.error(e);
+    debug("❌ Error loading products: " + e.message, false);
+  }
 }
 
 // ---------- CART ----------
