@@ -56,14 +56,13 @@ let cart = [];
 let verified = false;
 let picker = null;
 
-// ---------- IMAGE LOADER (Fix for /products folder) ----------
+// ---------- IMAGE LOADER ----------
 async function getImageURL(path){
   if (!path) return null;
   try {
     const ref = path.startsWith("products/") ? storage.ref(path) : storage.ref("products/" + path);
     return await ref.getDownloadURL();
-  } catch (e) {
-    console.warn("⚠️ Could not load image:", path, e.message);
+  } catch {
     return "data:image/svg+xml;utf8," + encodeURIComponent(`
       <svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
         <rect width='100%' height='100%' fill='#0b0b0b'/>
