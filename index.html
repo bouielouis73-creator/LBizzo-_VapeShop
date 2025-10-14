@@ -5,14 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <link rel="apple-touch-icon" href="icons/icon-512.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
-
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
@@ -21,13 +13,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ EmailJS -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
-
-  <!-- ✅ Scandit -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6/build/engine/scandit-web-datacapture-barcode.min.js"></script>
-
-  <!-- ✅ App script -->
+  <!-- ✅ App -->
   <script defer src="script.js"></script>
 </head>
 <body>
@@ -35,45 +21,26 @@
   <div id="age-check">
     <div class="age-card">
       <h2>Are you 21 or older?</h2>
-      <div>
-        <button id="yesBtn">Yes</button>
-        <button id="noBtn">No</button>
-      </div>
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
     </div>
   </div>
 
   <!-- 🏪 Header -->
   <header>
     <h1>LBizzo Vape Shop</h1>
-    <div class="row">
-      <button id="install-btn" class="ghost">Install</button>
-      <button id="cart-btn" class="primary">🛒 (<span id="cart-count">0</span>)</button>
-    </div>
+    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
   </header>
-
-  <!-- 🌟 Loyalty -->
-  <div id="stars"></div>
 
   <!-- 🛍️ Products -->
   <main id="product-list" class="product-grid"></main>
 
   <!-- 🧾 Cart -->
-  <section id="cart" hidden>
+  <section id="cart" class="cart" hidden>
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <p>Total: $<span id="cart-total">0.00</span></p>
-    <div>
-      <button id="scan-btn">Scan ID</button>
-      <button id="checkout-btn" disabled>Checkout</button>
-    </div>
+    <button id="checkout-btn">Checkout</button>
   </section>
-
-  <!-- 🔍 Scandit Scanner -->
-  <section id="scanner" hidden>
-    <video id="preview" autoplay playsinline muted></video>
-    <button id="close-scan">Close</button>
-  </section>
-
-  <div id="debug"></div>
 </body>
 </html>
