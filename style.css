@@ -201,3 +201,19 @@ h1 {
   justify-content: center;
   margin-top: 0.75rem;
 }
+/* ✳️  Animated glowing arrow pointing to the ID scanner  */
+.glow-arrow {
+  position: fixed;
+  bottom: 180px;          /* adjust if it sits too high or low */
+  right: 40px;
+  font-size: 4rem;
+  color: #ff8c00;
+  text-shadow: 0 0 10px #ff8c00, 0 0 25px #ff8c00;
+  animation: bounceArrow 1s infinite ease-in-out;
+  z-index: 10000;
+}
+
+@keyframes bounceArrow {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
