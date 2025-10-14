@@ -5,36 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <link rel="apple-touch-icon" href="icons/icon-512.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
+  <!-- ✅ PWA & Icons -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff8c00">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
 
-  <!-- Styles -->
+  <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Firebase SDKs -->
+  <!-- ✅ Firebase SDKs -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- EmailJS -->
+  <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- Scandit SDK -->
+  <!-- ✅ Scandit SDK (must be before your script.js) -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
 
-  <!-- Main App -->
+  <!-- ✅ Your main script -->
+  <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
-
 <body>
-  <!-- AGE CHECK -->
+  <!-- 🔒 Age Gate -->
   <div id="age-check" class="overlay">
     <div class="overlay-card">
       <h2>Are you 21 or older?</h2>
-      <p>LBizzo Vape Shop requires age verification.</p>
       <div class="age-buttons">
         <button id="yesBtn" class="btn yes">Yes</button>
         <button id="noBtn" class="btn no">No</button>
@@ -42,68 +40,66 @@
     </div>
   </div>
 
-  <!-- TOPBAR -->
-  <div class="topbar">
+  <!-- 🔝 Topbar -->
+  <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
-  </div>
+    <button id="cart-btn" class="btn cart">Cart (<span id="cart-count">0</span>)</button>
+  </header>
 
-  <!-- LOYALTY STARS -->
-  <section id="loyalty-stars">
-    <span class="star">★</span><span class="star">★</span><span class="star">★</span>
-    <span class="star">★</span><span class="star">★</span><span class="star">★</span>
-    <span class="progress-label">Buy 6 vapes, get 1 free!</span>
-  </section>
-
-  <!-- PRODUCTS -->
+  <!-- 🛍️ Product Grid -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- CART -->
+  <!-- 🛒 Cart Section -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
+    <p><b>Total:</b> $<span id="cart-total">0.00</span></p>
+    <button id="clearCart" class="btn">Clear Cart</button>
+    <br><br>
+
+    <input id="custName" placeholder="Full name" />
+    <input id="custPhone" placeholder="Phone" />
+    <input id="custAddress" placeholder="Delivery address" />
+
+    <button id="checkoutBtn" class="btn primary" disabled>Verify ID to Checkout 🔒</button>
+    <p>Your order will be verified by ID and sent via EmailJS.</p>
+  </section>
+
+  <!-- 🪪 Scandit ID Capture -->
+  <section class="scanner">
+    <h2>Verify Your ID (Front & Back)</h2>
     <div>
-      <div>Total: <b>$<span id="cart-total">0.00</span></b></div>
-      <button id="clearCart" class="btn">Clear Cart</button>
-    </div>
-    <div class="form" style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;">
-      <input id="custName" placeholder="Full name" autocomplete="name" />
-      <input id="custPhone" placeholder="Phone" autocomplete="tel" />
-      <textarea id="custAddress" rows="2" placeholder="Delivery address"></textarea>
-      <button id="checkoutBtn" class="btn primary" disabled>Proceed to Checkout</button>
-      <p style="color:#888;font-size:.9rem;margin-top:.5rem;">Your order will be verified by ID and sent via EmailJS.</p>
-    </div>
-  </section>
-
-  <!-- SCANNER -->
-  <section id="scanner" class="scanner">
-    <h3>Verify Your ID (Front &amp; Back)</h3>
-    <video id="scanVideo" playsinline autoplay muted></video>
-    <div class="scan-actions">
       <button id="startCamBtn" class="btn primary">Start Camera</button>
-<button id="stopCamBtn" class="btn">Stop Camera</button>
+      <button id="stopCamBtn" class="btn">Stop Camera</button>
     </div>
-    <div class="scan-actions">
-      <button id="snapFront" class="btn">Capture Front</button>
-      <button id="clearFront" class="btn">Clear Front</button>
-      <button id="snapBack" class="btn">Capture Back</button>
-      <button id="clearBack" class="btn">Clear Back</button>
-    </div>
-    <div id="scanOut">Status: Not verified. Capture both sides to continue.</div>
+
+    <video id="scanVideo" playsinline autoplay muted></video>
+    <div id="scanOut" style="margin-top:8px;">❌ Not verified yet</div>
+    <div id="arrow" style="font-size:2rem;color:var(--orange);text-align:center;">⬇️</div>
   </section>
 
-  <!-- SETTINGS -->
-  <div id="settings" class="panel floating" style="display:none">
-    <h4>Settings</h4>
+  <!-- 🌟 Loyalty Stars -->
+  <section id="loyalty-stars">
+    <span class="star">★</span>
+    <span class="star">★</span>
+    <span class="star">★</span>
+    <span class="star">★</span>
+    <span class="star">★</span>
+    <span class="star">★</span>
+    <span class="progress-label">Buy 6 get 1 free</span>
+  </section>
+
+  <!-- ⚙️ Settings -->
+  <section id="settings" style="display:none;padding:16px;">
+    <h3>Settings</h3>
     <p>Saved on this device only.</p>
     <input id="emailjsPublic" placeholder="EmailJS Public Key" />
     <input id="emailjsService" placeholder="EmailJS Service ID" />
     <input id="emailjsTemplate" placeholder="EmailJS Template ID" />
     <input id="squareBase" placeholder="Square Base Link (optional)" />
-    <button id="saveKeys" class="btn primary">Save</button>
-  </div>
+    <button id="saveKeys" class="btn">Save</button>
+  </section>
 
-  <div id="debug"></div>
-<div id="arrow" class="glow-arrow">⬇️</div>
+  <div id="debug" hidden></div>
 </body>
 </html>
