@@ -30,17 +30,38 @@
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- 🔒 Age Check Overlay -->
-<div id="age-check" class="overlay" style="display:grid;">
-  <div class="overlay-card">
-    <h2>Are you 21 or older?</h2>
-    <p>LBizzo Vape Shop requires age verification.</p>
-    <div class="age-buttons">
-      <button id="yesBtn" class="btn yes">Yes</button>
-      <button id="noBtn" class="btn no">No</button>
-    </div>
-  </div>
-</div>
+  // ---------- AGE VERIFICATION (FINAL UNIVERSAL FIX) ----------
+window.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("age-check");
+  const yes = document.getElementById("yesBtn");
+  const no = document.getElementById("noBtn");
+
+  if (!overlay || !yes || !no) {
+    console.warn("Age-check elements missing.");
+    return;
+  }
+
+  // Show overlay explicitly
+  overlay.style.display = "grid";
+
+  const allow = (e) => {
+    e.preventDefault();
+    overlay.style.display = "none";
+    console.log("✅ Age verified overlay hidden");
+  };
+
+  const deny = (e) => {
+    e.preventDefault();
+    alert("Sorry, you must be 21+ to enter.");
+    window.location.href = "https://google.com";
+  };
+
+  // Attach both click and touch handlers (iOS-safe)
+  ["click", "touchstart"].forEach(evt => {
+    yes.addEventListener(evt, allow, { passive: false });
+    no.addEventListener(evt, deny,  { passive: false });
+  });
+});
 
   <!-- 🔝 Topbar -->
   <header class="topbar">
