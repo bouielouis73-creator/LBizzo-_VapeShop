@@ -41,29 +41,36 @@ else {
   // ---------- EmailJS ----------
   try { emailjs.init({ publicKey: KEYS.public }); } catch {}
 
-  // ---------- Age Verification (final fix) ----------
-window.addEventListener("load", () => {
-  const ageOverlay = document.getElementById("age-check");
-  const yesBtn = document.getElementById("yesBtn");
-  const noBtn = document.getElementById("noBtn");
+  // ---------- AGE VERIFICATION (FINAL UNIVERSAL FIX) ----------
+window.addEventListener("DOMContentLoaded", () => {
+  const overlay = document.getElementById("age-check");
+  const yes = document.getElementById("yesBtn");
+  const no = document.getElementById("noBtn");
 
-  if (!ageOverlay) return;
+  if (!overlay || !yes || !no) {
+    console.warn("Age-check elements missing.");
+    return;
+  }
 
-  // Always show overlay on page load
-  ageOverlay.style.display = "grid";
+  // Show overlay explicitly
+  overlay.style.display = "grid";
 
-  // ✅ YES button hides overlay
-  yesBtn?.addEventListener("click", (e) => {
+  const allow = (e) => {
     e.preventDefault();
-    ageOverlay.style.display = "none";
-    debug("✅ Age verified overlay hidden", true);
-  });
+    overlay.style.display = "none";
+    console.log("✅ Age verified overlay hidden");
+  };
 
-  // 🚫 NO button blocks access
-  noBtn?.addEventListener("click", (e) => {
+  const deny = (e) => {
     e.preventDefault();
     alert("Sorry, you must be 21+ to enter.");
     window.location.href = "https://google.com";
+  };
+
+  // Attach both click and touch handlers (iOS-safe)
+  ["click", "touchstart"].forEach(evt => {
+    yes.addEventListener(evt, allow, { passive: false });
+    no.addEventListener(evt, deny,  { passive: false });
   });
 });
 
