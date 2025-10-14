@@ -27,27 +27,25 @@
 </head>
 <body>
 
-  <!-- ✅ AGE VERIFICATION OVERLAY -->
+  <!-- ✅ Age Check -->
   <div id="age-check">
     <div class="age-content">
       <h2>Are you 21 or older?</h2>
-      <div class="actions">
-        <button id="yesBtn">Yes</button>
-        <button id="noBtn" class="secondary">No</button>
-      </div>
+      <button id="yesBtn">Yes</button>
+      <button id="noBtn">No</button>
     </div>
   </div>
 
-  <!-- ✅ HEADER -->
+  <!-- ✅ Header -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
   </header>
 
-  <!-- ✅ PRODUCT LIST -->
+  <!-- ✅ Product List -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- ✅ CART SECTION -->
+  <!-- ✅ Cart Section -->
   <section id="cart" class="cart hidden">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
@@ -56,13 +54,14 @@
     <button id="close-cart" class="close-cart">Close</button>
   </section>
 
-  <!-- ✅ ID SCAN OVERLAY -->
+  <!-- ✅ ID Scan Overlay -->
   <section id="id-scan-section" class="hidden">
-    <h2>🆔 Verify Your Age</h2>
-    <video id="id-video" autoplay playsinline></video>
-    <p id="id-message">Please scan the back of your ID.</p>
-    <button id="id-cancel">Cancel</button>
+    <div class="age-content">
+      <h2>🆔 Verify ID Before Checkout</h2>
+      <video id="id-video" autoplay playsinline></video>
+      <p id="id-message">Hold your ID steady...</p>
+      <button id="id-cancel">Cancel</button>
+    </div>
   </section>
-
 </body>
 </html>
