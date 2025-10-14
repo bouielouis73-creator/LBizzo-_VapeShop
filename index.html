@@ -1,66 +1,189 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LBizzo Vape Shop</title>
+  <title>LBizzo Delivery</title>
+  <meta name="theme-color" content="#000000" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="icon" href="/assets/icon-512.png" />
+  <style>
+    :root { --bg:#000; --fg:#fff; --accent:#ff8c00; --muted:#aaa; }
+    * { box-sizing:border-box; }
+    body {
+      margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
+      background:var(--bg); color:var(--fg);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;
+    }
+    .card {
+      width:100%; max-width:820px; background:#111;
+      border:2px solid var(--accent); border-radius:16px;
+      box-shadow:0 0 22px rgba(255,140,0,.35);
+      padding:22px;
+    }
+    h1{margin:0 0 8px;color:var(--accent);}
+    p.sub{margin:0 0 18px;color:var(--muted);}
+    label{display:block;margin:12px 0 6px;color:var(--fg);}
+    input,select,textarea{
+      width:100%;padding:12px 14px;border-radius:10px;border:1px solid #333;
+      background:#0c0c0c;color:var(--fg);font-size:16px;
+    }
+    .row{display:flex;gap:12px;flex-wrap:wrap;}
+    .row>div{flex:1 1 260px;}
+    .radios{display:flex;gap:14px;margin:8px 0 4px;flex-wrap:wrap;}
+    .radio{display:flex;align-items:center;gap:8px;}
+    .btns{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap;}
+    button{
+      background:var(--accent);color:#000;border:none;
+      font-weight:700;padding:12px 16px;border-radius:12px;font-size:16px;cursor:pointer;
+    }
+    button.secondary{background:#222;color:var(--accent);border:1px solid var(--accent);}
+    .status{margin-top:14px;font-size:14px;min-height:22px;}
+    footer{margin-top:18px;font-size:12px;color:var(--muted);text-align:center;}
 
-  <!-- ✅ PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <link rel="apple-touch-icon" href="icons/icon-512.png" />
-
-  <!-- ✅ Styles -->
-  <link rel="stylesheet" href="style.css" />
-
-  <!-- ✅ Firebase SDKs -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-
-  <!-- ✅ Scandit SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x"></script>
-
-  <!-- ✅ Your App Files -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
+    /* Age Gate Overlay */
+    .overlay{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);z-index:9999;
+    }
+    .modal{
+      width:min(520px,92vw);background:#0e0e0e;border:2px solid var(--accent);
+      border-radius:18px;padding:22px;box-shadow:0 0 40px rgba(255,140,0,.45);
+      text-align:center;
+    }
+    .modal h2{color:var(--accent);margin:0 0 8px;}
+    .modal p{color:var(--muted);margin:0 0 14px;}
+    .modal .actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .hidden{display:none!important;}
+    #scannerWrap{margin-top:14px;}
+    #video{width:100%;border-radius:12px;border:1px solid #333;background:#000;min-height:220px;}
+    #scanStatus{font-size:13px;color:var(--muted);margin-top:8px;}
+  </style>
 </head>
 <body>
-  <!-- ✅ Age Check -->
-  <div id="age-check">
-    <div class="age-content">
+  <main id="app" class="card">
+    <h1>LBizzo Delivery</h1>
+    <p class="sub">Order text (Twilio) + Pay Now (Square).</p>
+
+    <form id="smsForm">
+      <div class="row">
+        <div>
+          <label for="customerName">Customer name (optional)</label>
+          <input id="customerName" name="customerName" />
+        </div>
+      </div>
+
+      <label for="product">Choose product (add items later)</label>
+      <select id="product"><option>-- No products yet --</option></select>
+
+      <label for="quantity">Quantity</label>
+      <input id="quantity" type="number" min="1" value="1" />
+
+      <label for="phone">Customer phone</label>
+      <input id="phone" required />
+
+      <label>Message type</label>
+      <div class="radios">
+        <label class="radio"><input type="radio" name="mode" value="default" checked /> Default</label>
+        <label class="radio"><input type="radio" name="mode" value="template" /> Template</label>
+        <label class="radio"><input type="radio" name="mode" value="custom" /> Custom</label>
+      </div>
+
+      <label for="customMsg">Custom message</label>
+      <textarea id="customMsg" rows="3"></textarea>
+
+      <div class="btns">
+        <button type="submit">Send SMS</button>
+        <button type="button" id="payNow">Pay Now</button>
+      </div>
+      <div class="status" id="status"></div>
+    </form>
+
+    <footer>© <span id="year"></span> LBizzo Delivery</footer>
+  </main>
+
+  <!-- ✅ Age / ID Check Overlay -->
+  <div id="ageOverlay" class="overlay">
+    <div class="modal">
       <h2>Are you 21 or older?</h2>
-      <button id="yesBtn">Yes</button>
-      <button id="noBtn">No</button>
+      <p>Scan your ID to verify your age.</p>
+      <div class="actions">
+        <button id="startScan">Scan ID</button>
+      </div>
+
+      <div id="scannerWrap" class="hidden">
+        <p id="scanPrompt">Starting camera…</p>
+        <video id="video" autoplay playsinline></video>
+        <div id="scanStatus">Awaiting scan…</div>
+      </div>
+
+      <div id="denyMsg" class="hidden" style="color:#ffb380;font-weight:bold;">
+        ❌ Sorry, we can’t sell you tobacco products. You must be 21+.
+      </div>
     </div>
   </div>
 
-  <!-- ✅ Header -->
-  <header>
-    <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
-  </header>
+  <script>
+    /* ---------- footer year ---------- */
+    document.getElementById('year').textContent = new Date().getFullYear();
 
-  <!-- ✅ Product List -->
-  <main id="product-list" class="product-grid"></main>
+    /* ---------- Age / ID check ---------- */
+    const VERIFIED_KEY='lbizzo_verified_21';
+    const overlay=document.getElementById('ageOverlay');
+    const startScan=document.getElementById('startScan');
+    const denyMsg=document.getElementById('denyMsg');
+    const scannerWrap=document.getElementById('scannerWrap');
+    const scanStatus=document.getElementById('scanStatus');
 
-  <!-- ✅ Cart Section -->
-  <section id="cart" class="cart hidden">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="total">Total: $0.00</p>
+    // Skip overlay if verified already
+    if(localStorage.getItem(VERIFIED_KEY)==='true'){overlay.style.display='none';}
 
-    <!-- ✅ Visible Checkout Button -->
-    <button id="checkout-btn" class="checkout-btn">Checkout</button>
-    <button id="close-cart" class="close-cart">Close</button>
-  </section>
+    startScan.onclick=()=>{
+      scannerWrap.classList.remove('hidden');
+      scanStatus.textContent='Scanning ID… (mock example)';
+      // ⬇️ Mock birth year check — replace with real scanner if needed
+      setTimeout(()=>{
+        const birthYear=prompt('Enter birth year on ID (YYYY):','2004');
+        const age=new Date().getFullYear()-Number(birthYear);
+        if(Number(birthYear)>=2004||age<21){
+          denyMsg.classList.remove('hidden');
+          scanStatus.textContent='Denied — under 21.';
+        }else{
+          alert('✅ ID verified! You are 21+.');
+          localStorage.setItem(VERIFIED_KEY,'true');
+          overlay.style.display='none';
+        }
+      },1000);
+    };
 
-  <!-- ✅ ID Scanner Section -->
-  <section id="id-scan-section" class="hidden">
-    <h2>🆔 Verify Your Age</h2>
-    <video id="id-video" autoplay playsinline></video>
-    <p id="id-message">Please scan the back of your ID.</p>
-    <button id="close-scan">Cancel</button>
-  </section>
+    /* ---------- Send SMS ---------- */
+    document.getElementById('smsForm').onsubmit=async(e)=>{
+      e.preventDefault();
+      const status=document.getElementById('status');
+      const phone=document.getElementById('phone').value.trim();
+      const mode=document.querySelector('input[name=mode]:checked').value;
+      const name=document.getElementById('customerName').value.trim();
+      const custom=document.getElementById('customMsg').value.trim();
+      const qty=document.getElementById('quantity').value||1;
+      const prod=document.getElementById('product').value;
+      const payload={to:phone,mode,name,custom,product:{name:prod,qty}};
+      try{
+        const r=await fetch('/.netlify/functions/send-sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        const d=await r.json();
+        if(!r.ok)throw new Error(d.error);
+        status.textContent='✅ Sent';
+      }catch(err){status.textContent='❌ '+err.message;}
+    };
+
+    /* ---------- Pay Now ---------- */
+    document.getElementById('payNow').onclick=async()=>{
+      const prod=document.getElementById('product').value;
+      const qty=document.getElementById('quantity').value||1;
+      const payload={productId:'lbizzo',name:prod,price:0,quantity:qty};
+      const r=await fetch('/.netlify/functions/create-checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      const d=await r.json();
+      window.location.href=d.checkout_url;
+    };
+  </script>
 </body>
 </html>
