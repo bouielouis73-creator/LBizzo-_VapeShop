@@ -18,7 +18,7 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- Scandit SDK -->
+  <!-- Scandit -->
   <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
 
   <!-- EmailJS -->
@@ -26,36 +26,27 @@
 </head>
 <body>
   <!-- 🔒 Age Verification -->
-  <div id="age-check" style="
-    position:fixed;
-    inset:0;
-    display:grid;
-    place-items:center;
-    background:rgba(0,0,0,0.88);
-    backdrop-filter:blur(8px);
-    z-index:99999;">
-    <div style="background:#111;border:2px solid #ff8c00;
-                border-radius:14px;padding:24px;text-align:center;
-                color:#fff;max-width:320px;">
+  <div id="age-check" style="position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,0.9);backdrop-filter:blur(8px);z-index:99999;">
+    <div style="background:#111;border:2px solid #ff8c00;border-radius:14px;padding:24px;text-align:center;color:#fff;max-width:320px;">
       <h2>Are you 21 or older?</h2>
       <p style="color:#ccc;">LBizzo Vape Shop requires age verification.</p>
       <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;">
         <button id="yesBtn" style="background:#0f0;color:#000;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;">Yes</button>
-        <button id="noBtn"  style="background:#f00;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;">No</button>
+        <button id="noBtn" style="background:#f00;color:#fff;padding:10px 20px;border:none;border-radius:8px;font-weight:bold;">No</button>
       </div>
     </div>
   </div>
 
-  <!-- 🔝 Header -->
+  <!-- Header -->
   <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn" class="btn cart">Cart (<span id="cart-count">0</span>)</button>
   </header>
 
-  <!-- 🔹 Products -->
+  <!-- Products -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- 🛒 Cart -->
+  <!-- Cart -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
@@ -63,7 +54,7 @@
     <button id="clearCart" class="btn">Clear Cart</button>
   </section>
 
-  <!-- ⭐ Loyalty -->
+  <!-- Loyalty -->
   <section id="loyalty">
     <h3>Loyalty Stars</h3>
     <div id="loyalty-stars">
@@ -76,7 +67,7 @@
     </div>
   </section>
 
-  <!-- 🆔 Scandit Camera -->
+  <!-- ID Scanner -->
   <section class="scanner">
     <h2>Verify Your ID (Front & Back)</h2>
     <video id="scanVideo" playsinline autoplay muted></video>
@@ -87,7 +78,7 @@
     <div id="scanOut">❌ Not verified yet</div>
   </section>
 
-  <!-- 🧾 Checkout -->
+  <!-- Checkout -->
   <section class="checkout">
     <input id="custName" placeholder="Full name" />
     <input id="custPhone" placeholder="Phone" />
@@ -96,9 +87,7 @@
     <p>Your order will be verified by ID and sent via EmailJS.</p>
   </section>
 
-  <!-- Debug -->
   <div id="debug"></div>
-
   <script defer src="script.js"></script>
 </body>
 </html>
