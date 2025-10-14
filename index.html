@@ -4,110 +4,499 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
-  <meta name="description" content="LBizzo Vape Shop — fast vape delivery with loyalty rewards, ID scanning, and secure checkout." />
 
   <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <meta name="apple-mobile-web-app-title" content="LBizzo" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles -->
-  <link rel="stylesheet" href="style.css" />
+  <style>
+    :root {
+      --bg:#000; --panel:#111; --brand:#ff8c00; --text:#fff; --muted:#bbb; --bad:#ff5555; --good:#7fffb3;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial}
+    a{color:var(--brand)}
+    button{cursor:pointer;background:var(--brand);color:#000;border:none;border-radius:10px;padding:10px 14px;font-weight:700}
+    button:disabled{opacity:.55;cursor:not-allowed;filter:grayscale(1)}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 14px;border-bottom:2px solid #222;position:sticky;top:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);z-index:10}
+    header h1{margin:0;font-size:20px;letter-spacing:.6px}
+    #debug{position:fixed;bottom:0;left:0;right:0;padding:6px 10px;font-size:12px;background:#220;color:#ff6666;display:none;z-index:20}
 
-  <!-- ✅ Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    /* Age overlay */
+    #age-check{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:1000}
+    .age-card{background:var(--panel);border:2px solid var(--brand);border-radius:14px;padding:24px;max-width:420px;text-align:center;box-shadow:0 0 25px rgba(255,140,0,.35)}
+    .age-actions{display:flex;gap:10px;justify-content:center;margin-top:12px}
+    .ghost{background:#222;color:#fff;border:1px solid #333}
+
+    /* ID verify panel */
+    #id-verify{margin:14px;padding:14px;background:var(--panel);border:2px solid var(--brand);border-radius:14px;position:relative}
+    #id-verify h3{margin:0 0 8px 0;font-size:18px}
+    .verify-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .cam{background:#000;border:1px solid #333;border-radius:10px;padding:10px}
+    video{width:100%;border-radius:8px;background:#000}
+    .thumb{display:flex;gap:10px;margin-top:8px;align-items:center}
+    .thumb img{width:88px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #333;background:#000}
+    .status{margin-top:10px;font-size:13px;color:var(--muted)}
+    .arrow{position:absolute;right:12px;top:-16px;display:flex;align-items:center;gap:6px}
+    .arrow span{font-weight:800}
+    .glow{animation:glow 1s ease-in-out infinite alternate}
+    @keyframes glow{from{text-shadow:0 0 6px var(--brand)}to{text-shadow:0 0 16px var(--brand)}}
+
+    /* Product grid */
+    .product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px}
+    @media (min-width:700px){.product-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .product{background:var(--panel);border:1px solid #222;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+    .product img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#000}
+    .product .p-in{padding:10px;display:flex;flex-direction:column;gap:6px}
+    .product h3{margin:0;font-size:15px}
+    .price{color:var(--muted);font-size:14px}
+
+    /* Cart */
+    #cart{background:var(--panel);border-top:2px solid #222;padding:14px;position:sticky;bottom:0}
+    #cart h2{margin:0 0 8px 0;font-size:18px}
+    #cart-items{list-style:none;margin:0;padding:0;max-height:30vh;overflow:auto;border:1px solid #222;border-radius:10px}
+    #cart-items li{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px dashed #222}
+    #totals{display:flex;justify-content:space-between;align-items:center;padding-top:10px}
+    .danger{background:var(--bad);color:#000}
+    .good{background:var(--good);color:#000}
+
+    /* Checkout form */
+    .form{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}
+    .form input, .form textarea{background:#000;border:1px solid #333;border-radius:10px;color:#fff;padding:10px;width:100%}
+    .row{display:flex;gap:8px}
+
+    /* Settings (keys) */
+    #settings{position:fixed;right:12px;bottom:60px;background:var(--panel);border:2px solid var(--brand);border-radius:14px;padding:12px;width:320px;max-width:90vw;display:none;z-index:30}
+    #settings h4{margin:0 0 8px}
+    .small{font-size:12px;color:var(--muted)}
+    #gear{position:fixed;right:12px;bottom:12px;z-index:40;border-radius:50%;width:52px;height:52px}
+
+    /* Banners */
+    .banner{padding:8px 12px;border-left:4px solid var(--brand);background:rgba(255,140,0,.08);border-radius:10px}
+  </style>
+
+  <!-- ✅ Firebase SDKs (compat so v8-style code works) -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
   <!-- ✅ EmailJS -->
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK -->
-  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/browser/scandit-sdk.min.js"></script>
-
-  <!-- ✅ Small inline style -->
-  <style>
-    @keyframes bounce {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-    #scanArrow {
-      text-align: center; font-size: 1.2rem; color: #ff8c00;
-      animation: bounce 1.2s infinite; display: none;
-      margin-top: 8px; opacity: 1; transition: opacity 2s ease;
-    }
-    #scanner-status { text-align: center; color: #ff8c00; margin: 8px 0; }
-  </style>
+  <!-- (Optional) Scandit SDK hook: you can later add their script + license here -->
+  <!-- <script src="YOUR_SCANDIT_SDK_URL.js" defer></script> -->
 </head>
-
 <body>
-  <!-- ✅ AGE GATE -->
-  <div id="age-overlay" class="overlay">
-    <div class="overlay-card">
+  <!-- AGE GATE -->
+  <div id="age-check">
+    <div class="age-card">
       <h2>Are you 21 or older?</h2>
-      <div class="age-buttons">
-        <button id="yesBtn" class="btn yes">Yes</button>
-        <button id="noBtn" class="btn no">No</button>
+      <p class="small">LBizzo Vape Shop requires age verification.</p>
+      <div class="age-actions">
+        <button id="yesBtn">Yes</button>
+        <button id="noBtn" class="ghost">No</button>
       </div>
-      <small>LBizzo Vape Shop</small>
     </div>
   </div>
 
-  <!-- ✅ HEADER -->
-  <header class="topbar">
+  <header>
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" class="btn cart" aria-label="Open shopping cart">🛒 Cart (<span id="cart-count">0</span>)</button>
-    <div id="loyalty-stars" aria-label="Loyalty progress">
-      <span class="star" data-i="0">★</span>
-      <span class="star" data-i="1">★</span>
-      <span class="star" data-i="2">★</span>
-      <span class="star" data-i="3">★</span>
-      <span class="star" data-i="4">★</span>
-      <span class="star" data-i="5">★</span>
-      <span class="progress-label">Free vape at 6 ⭐</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
     </div>
   </header>
 
-  <div id="debug" hidden></div>
+  <!-- ID VERIFY -->
+  <section id="id-verify" class="banner">
+    <div class="arrow glow"><span>⬇</span> <span>Must send your ID before checkout</span></div>
+    <h3>Live Camera — Verify your ID (Front &amp; Back)</h3>
+    <div class="verify-row">
+      <div class="cam">
+        <video id="vid" playsinline autoplay muted></video>
+        <div class="row" style="margin-top:8px">
+          <button id="startCamBtn">Start Camera</button>
+          <button id="stopCamBtn" class="ghost">Stop</button>
+        </div>
+      </div>
+      <div class="cam">
+        <div class="thumb">
+          <div>
+            <div class="small">Front of ID</div>
+            <img id="frontImg" alt="Front ID" />
+            <div class="row" style="margin-top:6px">
+              <button id="snapFront">Capture Front</button>
+              <button id="clearFront" class="ghost">Clear</button>
+            </div>
+          </div>
+          <div>
+            <div class="small">Back of ID</div>
+            <img id="backImg" alt="Back ID" />
+            <div class="row" style="margin-top:6px">
+              <button id="snapBack">Capture Back</button>
+              <button id="clearBack" class="ghost">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="status" id="verifyStatus">Status: <b>Not verified</b>. Capture both sides to continue.</div>
+      </div>
+    </div>
+  </section>
 
-  <!-- ✅ PRODUCTS -->
-  <main id="product-list" class="product-grid"></main>
+  <!-- PRODUCTS -->
+  <main id="product-list" class="product-grid" aria-live="polite"></main>
 
-  <!-- ✅ CART -->
-  <section id="cart" class="cart">
+  <!-- CART -->
+  <section id="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
-    <p id="cart-total">Total: $0.00</p>
-    <button id="checkout-btn" class="btn primary" aria-label="Proceed to checkout">Checkout</button>
-    <div id="checkout-hint" style="margin-top:6px;font-size:.9rem;color:#888;">🔒 Scan ID to enable checkout</div>
-  </section>
-
-  <!-- ✅ ID SCANNER -->
-  <section id="id-scan" class="scanner">
-    <h2>Scan or Upload ID (PDF417/QR)</h2>
-    <p id="scanner-status">⏳ Loading Scandit SDK…</p>
-    <video id="scanVideo" playsinline muted></video>
-    <noscript>Your browser does not support camera scanning. Please upload a photo of your ID instead.</noscript>
-    <div class="scan-actions">
-      <button id="scanStart" class="btn" aria-label="Start ID scanner">Start Scanner</button>
-      <button id="scanStop" class="btn" aria-label="Stop ID scanner">Stop Scanner</button>
+    <div id="totals">
+      <div>Total: <b>$<span id="cart-total">0.00</span></b></div>
+      <div style="display:flex;gap:8px">
+        <button id="clearCart" class="danger">Clear</button>
+      </div>
     </div>
-    <pre id="scanOut"></pre>
-    <div id="scanArrow">⬇️ Point camera at BACK of your ID</div>
 
-    <div class="id-upload">
-      <h3>Or Take a Photo of Your ID</h3>
-      <input type="file" id="idPhotoInput" accept="image/*" capture="environment" class="btn" />
-      <p id="idUploadStatus" style="color:#ff8c00;margin-top:8px;"></p>
+    <!-- Checkout form -->
+    <div class="form">
+      <div class="row">
+        <input id="custName" placeholder="Full name" autocomplete="name" />
+        <input id="custPhone" placeholder="Phone" autocomplete="tel" />
+      </div>
+      <textarea id="custAddress" rows="2" placeholder="Delivery address"></textarea>
+      <button id="checkoutBtn" class="good" disabled>Proceed to Checkout</button>
+      <div class="small">Checkout will email your order (EmailJS) and optionally open your Square link.</div>
     </div>
   </section>
 
-  <!-- ✅ INSTALL BUTTON -->
-  <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
+  <!-- SETTINGS (Keys & Links) -->
+  <button id="gear">⚙️</button>
+  <div id="settings">
+    <h4>Settings</h4>
+    <div class="small">These are saved on this device only (localStorage).</div>
+    <div class="form">
+      <input id="emailjsPublic" placeholder="EmailJS Public Key (e.g. xxxxxxx)" />
+      <input id="emailjsService" placeholder="EmailJS Service ID (e.g. service_123)" />
+      <input id="emailjsTemplate" placeholder="EmailJS Template ID (e.g. template_123)" />
+      <input id="squareBase" placeholder="Square Base Link (optional)" />
+      <button id="saveKeys">Save</button>
+    </div>
+  </div>
 
-  <!-- ✅ APP LOGIC (load last so all buttons work) -->
-  <script src="firebase.js"></script>
-  <script src="script.js"></script>
+  <div id="debug"></div>
+
+  <script>
+    // -------- Helpers
+    const $ = (sel, root=document)=>root.querySelector(sel);
+    const $$ = (sel, root=document)=>Array.from(root.querySelectorAll(sel));
+    const debugBar = $("#debug");
+    const debug = (msg, ok=false)=>{
+      if(!debugBar) return;
+      debugBar.textContent = msg;
+      debugBar.style.display = "block";
+      debugBar.style.background = ok ? "#022" : "#220";
+      debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
+    };
+
+    // -------- Firebase (your exact config)
+    const firebaseConfig = {
+      apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+      authDomain: "lbizzodelivery.firebaseapp.com",
+      projectId: "lbizzodelivery",
+      storageBucket: "lbizzodelivery.firebasestorage.app",
+      messagingSenderId: "614540837455",
+      appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+    };
+    try {
+      firebase.initializeApp(firebaseConfig);
+    } catch (e) { /* double init safe */ }
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
+    // -------- EmailJS – load saved keys and init
+    const KEYS = {
+      public: localStorage.getItem("emailjs_public") || "",
+      service: localStorage.getItem("emailjs_service") || "",
+      template: localStorage.getItem("emailjs_template") || "",
+      square: localStorage.getItem("square_base") || ""
+    };
+    const applyKeyInputs = ()=>{
+      $("#emailjsPublic").value = KEYS.public;
+      $("#emailjsService").value = KEYS.service;
+      $("#emailjsTemplate").value = KEYS.template;
+      $("#squareBase").value = KEYS.square;
+    };
+    const persistKeys = ()=>{
+      KEYS.public = $("#emailjsPublic").value.trim();
+      KEYS.service = $("#emailjsService").value.trim();
+      KEYS.template = $("#emailjsTemplate").value.trim();
+      KEYS.square = $("#squareBase").value.trim();
+      localStorage.setItem("emailjs_public", KEYS.public);
+      localStorage.setItem("emailjs_service", KEYS.service);
+      localStorage.setItem("emailjs_template", KEYS.template);
+      localStorage.setItem("square_base", KEYS.square);
+      if (window.emailjs && KEYS.public) emailjs.init({ publicKey: KEYS.public });
+      debug("Settings saved.", true);
+    };
+    window.addEventListener("load", ()=>{
+      applyKeyInputs();
+      if (window.emailjs && KEYS.public) {
+        emailjs.init({ publicKey: KEYS.public });
+      }
+    });
+    $("#saveKeys").addEventListener("click", persistKeys);
+    $("#gear").addEventListener("click", ()=>{
+      const s = $("#settings");
+      s.style.display = (s.style.display === "block" ? "none" : "block");
+    });
+
+    // -------- Age gate
+    const ageCheck = $("#age-check");
+    $("#yesBtn").addEventListener("click", ()=>{ ageCheck.style.display = "none"; });
+    $("#noBtn").addEventListener("click", ()=>{
+      alert("Sorry, you must be 21+ to use this app.");
+      location.href = "https://www.google.com";
+    });
+
+    // -------- Live Camera + ID capture (front & back)
+    const video = $("#vid");
+    let stream = null;
+    let frontData = null, backData = null;
+    const updateVerifyUI = ()=>{
+      const ok = !!frontData && !!backData;
+      $("#verifyStatus").innerHTML = ok
+        ? 'Status: <b style="color:var(--good)">Verified</b>. You can checkout.'
+        : 'Status: <b>Not verified</b>. Capture both sides to continue.';
+      $("#checkoutBtn").disabled = !ok || cart.length === 0;
+      $(".arrow").classList.toggle("glow", !ok);
+    };
+    const startCam = async()=>{
+      try{
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio:false });
+        video.srcObject = stream;
+        debug("Camera started.", true);
+      }catch(err){
+        console.error(err);
+        debug("Camera error: " + err.message);
+        alert("Could not access camera. Please allow camera permission.");
+      }
+    };
+    const stopCam = ()=>{
+      if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; }
+      video.srcObject = null;
+      debug("Camera stopped.", true);
+    };
+    $("#startCamBtn").addEventListener("click", startCam);
+    $("#stopCamBtn").addEventListener("click", stopCam);
+
+    const captureFrame = ()=>{
+      if(!video.videoWidth){ alert("Camera not ready yet."); return null; }
+      const c = document.createElement("canvas");
+      c.width = video.videoWidth; c.height = video.videoHeight;
+      const ctx = c.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+      return c.toDataURL("image/jpeg", 0.85);
+    };
+    $("#snapFront").addEventListener("click", ()=>{
+      const d = captureFrame(); if(!d) return;
+      frontData = d; $("#frontImg").src = d; updateVerifyUI();
+    });
+    $("#clearFront").addEventListener("click", ()=>{ frontData=null; $("#frontImg").src=""; updateVerifyUI(); });
+    $("#snapBack").addEventListener("click", ()=>{
+      const d = captureFrame(); if(!d) return;
+      backData = d; $("#backImg").src = d; updateVerifyUI();
+    });
+    $("#clearBack").addEventListener("click", ()=>{ backData=null; $("#backImg").src=""; updateVerifyUI(); });
+
+    // NOTE (Scandit hook):
+    // If you later include Scandit’s SDK + license, you can run its scanning here in addition to the photo capture.
+    // This panel already enforces "front + back" image capture before enabling checkout.
+
+    // -------- Products (Firestore) + placeholders
+    const productList = $("#product-list");
+    const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+      <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'>
+        <rect width='100%' height='100%' fill='#000'/>
+        <rect x='32' y='32' width='448' height='448' rx='40' fill='#111' stroke='#ff8c00' stroke-width='8'/>
+        <text x='50%' y='54%' font-family='Arial Black, Arial' font-size='60' text-anchor='middle' fill='#ff8c00'>LBizzo</text>
+      </svg>
+    `);
+
+    async function getImageURL(path){
+      try{
+        if(!path) return null;
+        const ref = storage.ref(path);
+        return await ref.getDownloadURL();
+      }catch(e){ return null; }
+    }
+
+    async function addCard(p){
+      const priceNum = Number(p.price)||0;
+      let imgURL = p.image ? await getImageURL(p.image) : null;
+
+      const card = document.createElement("div");
+      card.className = "product";
+      card.innerHTML = `
+        <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+        <div class="p-in">
+          <h3>${p.name}</h3>
+          <div class="price">$${priceNum.toFixed(2)}</div>
+          <button class="add-btn">Add to Cart</button>
+        </div>
+      `;
+      card.querySelector(".add-btn").addEventListener("click", ()=>{
+        addToCart(p);
+      });
+      productList.appendChild(card);
+    }
+
+    async function loadProducts(){
+      productList.innerHTML = "";
+      try{
+        const snap = await db.collection("products").limit(200).get();
+        if(snap.empty){
+          // 50 placeholders if no products yet
+          const ph = Array.from({length:50}).map((_,i)=>({id:"ph"+i, name:`Product #${i+1}`, price:9.99, image:null}));
+          ph.forEach(addCard);
+          debug("No products found. Showing 50 placeholders.", true);
+        }else{
+          const list = [];
+          snap.forEach(doc=>{
+            const d = doc.data() || {};
+            list.push({ id: doc.id, name: d.name || "Unnamed", price: d.price || 0, image: d.image || null, square: d.square || "" });
+          });
+          // render
+          for(const p of list){ await addCard(p); }
+          debug(`Loaded ${list.length} products from Firestore.`, true);
+        }
+      }catch(e){
+        console.error(e);
+        debug("Error loading products: "+e.message);
+        // still give placeholders so the app is usable
+        const ph = Array.from({length:50}).map((_,i)=>({id:"ph"+i, name:`Product #${i+1}`, price:9.99, image:null}));
+        ph.forEach(addCard);
+      }
+    }
+
+    // -------- Cart
+    let cart = [];
+    const cartCount = $("#cart-count");
+    const cartItems = $("#cart-items");
+    const cartTotal = $("#cart-total");
+
+    function renderCart(){
+      cartItems.innerHTML = "";
+      let total = 0;
+      cart.forEach((it,idx)=>{
+        total += it.price * it.qty;
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <div>
+            <div><b>${it.name}</b></div>
+            <div class="small">$${it.price.toFixed(2)} × ${it.qty}</div>
+          </div>
+          <div class="row">
+            <button data-a="minus" class="ghost">−</button>
+            <button data-a="plus">+</button>
+            <button data-a="del" class="danger">Remove</button>
+          </div>
+        `;
+        li.addEventListener("click",(e)=>{
+          const a = e.target.getAttribute("data-a");
+          if(!a) return;
+          if(a==="minus"){ it.qty = Math.max(1, it.qty-1); }
+          if(a==="plus"){ it.qty += 1; }
+          if(a==="del"){ cart.splice(idx,1); }
+          saveCart(); renderCart();
+        });
+        cartItems.appendChild(li);
+      });
+      cartCount.textContent = cart.reduce((n,i)=>n+i.qty,0);
+      cartTotal.textContent = total.toFixed(2);
+      $("#checkoutBtn").disabled = !(frontData && backData) || cart.length===0;
+    }
+
+    function saveCart(){ localStorage.setItem("lb_cart", JSON.stringify(cart)); }
+    function loadCart(){ try{ cart = JSON.parse(localStorage.getItem("lb_cart")||"[]") }catch{ cart=[] } }
+    function addToCart(p){
+      const idx = cart.findIndex(i=>i.id===p.id);
+      if(idx>-1) cart[idx].qty += 1;
+      else cart.push({id:p.id, name:p.name, price:Number(p.price)||0, qty:1});
+      saveCart(); renderCart();
+    }
+
+    $("#clearCart").addEventListener("click", ()=>{ cart=[]; saveCart(); renderCart(); });
+
+    // -------- Checkout (requires verified ID)
+    $("#checkoutBtn").addEventListener("click", async ()=>{
+      if(!(frontData && backData)){
+        window.scrollTo({ top: $("#id-verify").offsetTop - 10, behavior: "smooth" });
+        alert("Please capture FRONT and BACK of your ID first.");
+        return;
+      }
+      if(cart.length===0){ alert("Your cart is empty."); return; }
+
+      const name = $("#custName").value.trim();
+      const phone = $("#custPhone").value.trim();
+      const address = $("#custAddress").value.trim();
+      if(!name || !phone || !address){
+        alert("Please enter your name, phone and delivery address.");
+        return;
+      }
+
+      // Prepare order summary
+      const itemsText = cart.map(i=>`${i.name} × ${i.qty} ($${(i.price*i.qty).toFixed(2)})`).join("\n");
+      const totalText = cartTotal.textContent;
+
+      // Send via EmailJS (if configured)
+      if(!(window.emailjs && KEYS.public && KEYS.service && KEYS.template)){
+        alert("EmailJS is not configured yet. Open ⚙️ and paste your keys, then try again.");
+        return;
+      }
+
+      try{
+        const params = {
+          name, phone, address,
+          items: itemsText,
+          total: totalText,
+          // include ID images (base64)
+          id_front: frontData,
+          id_back: backData
+        };
+        await emailjs.send(KEYS.service, KEYS.template, params);
+        debug("Order email sent via EmailJS.", true);
+
+        // Optional Square redirect
+        if(KEYS.square){
+          try{
+            const u = new URL(KEYS.square);
+            // We add a simple summary as params (Square may ignore, but useful if your link handler reads them)
+            u.searchParams.set("name", name);
+            u.searchParams.set("total", totalText);
+            window.location.href = u.toString();
+          }catch(_){ /* ignore bad URL */ }
+        } else {
+          alert("Order placed! We emailed your order. (Add a Square link in ⚙️ to redirect to payment.)");
+        }
+
+        // Clear cart after success
+        cart = []; saveCart(); renderCart();
+      }catch(err){
+        console.error(err);
+        alert("Could not send order email: " + (err?.text || err?.message || err));
+      }
+    });
+
+    // -------- Boot
+    async function boot(){
+      loadCart(); renderCart(); updateVerifyUI();
+      await loadProducts();
+      debug("✅ LBizzo JS booted.", true);
+    }
+    document.addEventListener("DOMContentLoaded", boot);
+  </script>
 </body>
 </html>
