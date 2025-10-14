@@ -1,138 +1,163 @@
-// ---------- ID SCANNER ----------
-async function startIDScan() {
-  const scanSection = document.getElementById("id-scan-section");
-  const msg = document.getElementById("id-message");
-  scanSection.classList.remove("hidden");
-  msg.textContent = "Loading camera…";
+document.addEventListener("DOMContentLoaded", async () => {
+  if (window.__LBIZZO_LOADED__) return;
+  window.__LBIZZO_LOADED__ = true;
 
-  try {
-    await ScanditSDK.configure("YOUR_SCANDIT_LICENSE_KEY", {
-      engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/",
+  console.log("✅ LBizzo Vape Shop running...");
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  // ---------- AGE VERIFICATION ----------
+  const overlay = $("#age-check");
+  const yes = $("#yesBtn");
+  const no = $("#noBtn");
+
+  if (overlay && yes && no) {
+    overlay.style.display = "grid";
+    yes.addEventListener("click", (e) => {
+      e.preventDefault();
+      overlay.style.display = "none";
     });
-
-    const barcodePicker = await ScanditSDK.BarcodePicker.create(
-      document.getElementById("id-video"),
-      { playSoundOnScan: true, vibrateOnScan: true }
-    );
-
-    const scanSettings = new ScanditSDK.ScanSettings({
-      enabledSymbologies: ["pdf417"], // Driver’s license barcode
-      codeDuplicateFilter: 1000,
+    no.addEventListener("click", (e) => {
+      e.preventDefault();
+      alert("Sorry, you must be 21+ to enter.");
+      window.location.href = "https://google.com";
     });
+  }
 
-    barcodePicker.applyScanSettings(scanSettings);
+  // ---------- FIREBASE ----------
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  const productList = $("#product-list");
 
-    barcodePicker.onScan((scanResult) => {
-      const code = scanResult.barcodes[0]?.data || "";
-      if (code.includes("DBB")) {
-        const dobMatch = code.match(/DBB(\d{8})/);
-        if (dobMatch) {
-          const year = parseInt(dobMatch[1].substring(0, 4), 10);
-          const age = new Date().getFullYear() - year;
-          if (year >= 2004 || age < 21) {
-            alert("❌ Sorry, we can’t sell you tobacco products. You must be 21+.");
-            document.getElementById("checkout-btn").disabled = true;
-            document.getElementById("checkout-btn").style.opacity = "0.5";
-            msg.textContent = "Access denied — under 21.";
-          } else {
-            alert("✅ ID verified! You are 21+.");
-            document.getElementById("checkout-btn").disabled = false;
-            document.getElementById("checkout-btn").style.opacity = "1";
-            msg.textContent = "Verified ✅";
-            scanSection.classList.add("hidden");
-          }
-        }
+  // ✅ Single, correct image loader
+  async function getImageURL(path) {
+    try {
+      if (path.startsWith("http")) return path; // full URL case
+      return await storage.ref(path).getDownloadURL(); // storage path case
+    } catch (err) {
+      console.warn("⚠️ Could not load image:", path, err);
+      return "https://via.placeholder.com/150?text=No+Image";
+    }
+  }
+
+  // ✅ Load products from Firestore
+  async function loadProducts() {
+    try {
+      const snap = await db.collection("products").get();
+      productList.innerHTML = "";
+
+      if (snap.empty) {
+        productList.innerHTML = "<p>No products found.</p>";
+        return;
       }
+
+      snap.forEach(async (doc) => {
+        const p = doc.data();
+        const imgURL = await getImageURL(p.image);
+        const card = document.createElement("div");
+        card.className = "product";
+        card.innerHTML = `
+          <img src="${imgURL}" alt="${p.name}" />
+          <h3>${p.name}</h3>
+          <p>$${Number(p.price).toFixed(2)}</p>
+          <button class="add-btn">Add to Cart</button>
+        `;
+        card.querySelector(".add-btn").addEventListener("click", () => addToCart(p));
+        productList.appendChild(card);
+      });
+    } catch (err) {
+      console.error("❌ Error loading products:", err);
+      productList.innerHTML = "<p>Error loading products.</p>";
+    }
+  }
+
+  // ---------- CART ----------
+  let cart = [];
+  const cartBtn = $("#cart-btn");
+  const cartCount = $("#cart-count");
+  const cartSection = $("#cart");
+  const cartItems = $("#cart-items");
+  const totalEl = $("#total");
+  const closeCart = $("#close-cart");
+  const checkoutBtn = $("#checkout-btn");
+
+  function updateCartDisplay() {
+    cartItems.innerHTML = "";
+    let total = 0;
+
+    cart.forEach((p, i) => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        ${p.name} - $${Number(p.price).toFixed(2)}
+        <button class="remove-btn" data-i="${i}">x</button>
+      `;
+      cartItems.appendChild(li);
+      total += Number(p.price);
     });
-  } catch (err) {
-    console.error(err);
-    msg.textContent = "Camera or scanner error.";
-  }
-}
 
-document.getElementById("close-scan").addEventListener("click", () => {
-  document.getElementById("id-scan-section").classList.add("hidden");
+    totalEl.textContent = `Total: $${total.toFixed(2)}`;
+    cartCount.textContent = cart.length;
+
+    $$(".remove-btn").forEach((btn) =>
+      btn.addEventListener("click", (e) => {
+        cart.splice(e.target.dataset.i, 1);
+        updateCartDisplay();
+      })
+    );
+  }
+
+  function addToCart(p) {
+    cart.push(p);
+    updateCartDisplay();
+  }
+
+  cartBtn.addEventListener("click", () => {
+    cartSection.classList.toggle("hidden");
+  });
+
+  closeCart.addEventListener("click", () => {
+    cartSection.classList.add("hidden");
+  });
+
+  // ---------- CHECKOUT (EmailJS + ID Verification) ----------
+  checkoutBtn.addEventListener("click", async () => {
+    if (cart.length === 0) return alert("Your cart is empty!");
+
+    // 🆔 Verify age before checkout
+    const birthYear = prompt("Enter your birth year from your ID (YYYY):", "2004");
+    const age = new Date().getFullYear() - Number(birthYear);
+
+    if (Number(birthYear) >= 2004 || age < 21) {
+      alert("❌ Sorry, we can’t sell you tobacco products. You must be 21+.");
+      checkoutBtn.disabled = true;
+      checkoutBtn.style.opacity = "0.5";
+      return;
+    } else {
+      alert("✅ ID verified! You are 21+.");
+      checkoutBtn.disabled = false;
+      checkoutBtn.style.opacity = "1";
+    }
+
+    // Proceed with checkout if verified
+    const orderDetails = cart.map((p) => `${p.name} - $${p.price}`).join("\n");
+    const total = cart.reduce((sum, p) => sum + Number(p.price), 0);
+
+    try {
+      await emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+        items: orderDetails,
+        total: total.toFixed(2),
+      });
+      alert("✅ Order sent successfully!");
+      cart = [];
+      updateCartDisplay();
+      cartSection.classList.add("hidden");
+    } catch (err) {
+      alert("❌ Failed to send order. Check console.");
+      console.error(err);
+    }
+  });
+
+  // ✅ Start app
+  await loadProducts();
 });
-
-// ✅ Attach scanner to checkout button
-document.getElementById("checkout-btn").addEventListener("click", (e) => {
-  e.preventDefault();
-  startIDScan();
-});
-/* ✅ Responsive Product Grid Fix */
-.product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 15px;
-  padding: 15px;
-}
-
-.product {
-  background: var(--card, #141414);
-  color: var(--text, #fff);
-  border-radius: 8px;
-  padding: 10px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.product:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 10px rgba(255,140,0,0.3);
-}
-
-.product img {
-  width: 100%;
-  max-width: 130px;
-  height: auto;
-  border-radius: 8px;
-  object-fit: cover;
-  margin-bottom: 6px;
-}
-
-.product h3 {
-  font-size: 0.9rem;
-  color: var(--orange, #ff8c00);
-  margin: 4px 0;
-}
-
-.product p {
-  font-size: 0.85rem;
-  color: #fff;
-  margin: 2px 0 8px;
-}
-
-/* ✅ Buttons inside product cards */
-.product button {
-  font-size: 0.8rem;
-  padding: 8px 10px;
-  width: 90%;
-  margin: 0 auto;
-  background: var(--orange, #ff8c00);
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.product button:hover {
-  background: #ffa733;
-}
-
-/* ✅ Mobile-friendly adjustments */
-@media (max-width: 480px) {
-  .product-grid {
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  }
-  .product img {
-    max-width: 110px;
-  }
-  .product h3 {
-    font-size: 0.8rem;
-  }
-  .product p {
-    font-size: 0.75rem;
-  }
-}
