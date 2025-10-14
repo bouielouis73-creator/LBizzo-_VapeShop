@@ -2,134 +2,75 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1"
-  />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
   <!-- ✅ PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#ff8c00" />
-  <link rel="apple-touch-icon" href="icons/icon-512.png" />
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ff8c00">
+  <link rel="apple-touch-icon" href="icons/icon-512.png">
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles (keep your style.css; this inline bit ensures it’s usable if CSS fails) -->
+  <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
-  <style>
-    :root { --orange:#ff8c00; --bg:#0b0b0b; --card:#141414; --text:#eaeaea; --muted:#888; }
-    html,body{margin:0;background:#000;color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto}
-    header{position:sticky;top:0;z-index:50;background:#111;border-bottom:1px solid #222;
-      display:flex;align-items:center;justify-content:space-between;padding:10px 12px}
-    .brand{display:flex;gap:10px;align-items:center}
-    .logo{width:34px;height:34px;border-radius:10px;background:#111;border:2px solid var(--orange);
-      display:grid;place-items:center;color:var(--orange);font-weight:900}
-    .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700}
-    .btn.primary{background:var(--orange);color:#111}
-    .btn.ghost{background:#222;color:var(--text)}
-    #product-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:12px}
-    .product{background:#111;border:1px solid #222;border-radius:14px;overflow:hidden}
-    .product img{width:100%;height:130px;object-fit:cover;background:#0a0a0a}
-    .product .pad{padding:10px}
-    .cart{position:fixed;right:10px;bottom:10px;left:10px;background:#0f0f0f;border:1px solid #222;
-      border-radius:14px;padding:10px}
-    #cart-items{list-style:none;margin:0;padding:0;max-height:180px;overflow:auto}
-    #cart-items li{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #222}
-    #age-check{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;place-items:center;padding:20px;z-index:1000}
-    .age-card{background:#111;border:1px solid #222;border-radius:16px;padding:18px;max-width:380px}
-    .row{display:flex;gap:8px;flex-wrap:wrap}
-    .muted{color:var(--muted)}
-    .stars{display:flex;gap:6px}
-    .star{font-size:20px}
-    .star.lit{color:var(--orange);filter:drop-shadow(0 0 6px var(--orange))}
-    #debug{position:fixed;left:10px;right:10px;bottom:0;background:#220;color:#ff6666;padding:6px;border-radius:8px 8px 0 0;display:none}
-    .scanner-box{border:1px solid #222;border-radius:14px;overflow:hidden;background:#090909;margin:10px 12px}
-    video{width:100%;height:auto;background:#000}
-    .pill{display:inline-block;padding:4px 8px;border-radius:999px;background:#222;border:1px solid #333}
-  </style>
 
-  <!-- ✅ Firebase SDKs (compat) -->
+  <!-- ✅ Firebase SDKs -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ EmailJS CDN -->
+  <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit Web SDK (Barcode Scanning) -->
-  <script
-    defer
-    src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6/build/engine/scandit-web-datacapture-barcode.min.js"
-  ></script>
+  <!-- ✅ Scandit -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6/build/engine/scandit-web-datacapture-barcode.min.js"></script>
 
-  <!-- ✅ App script -->
+  <!-- ✅ App -->
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- 🔒 Age Gate -->
+  <!-- 🔒 Age Verification -->
   <div id="age-check">
     <div class="age-card">
-      <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
-        <div class="logo">LB</div>
-        <div>
-          <h2 style="margin:0">Are you 21 or older?</h2>
-          <div class="muted">You must verify your age to enter.</div>
-        </div>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button id="yesBtn" class="btn primary">Yes, I'm 21+</button>
-        <button id="noBtn" class="btn ghost">No</button>
+      <h2>Are you 21 or older?</h2>
+      <div>
+        <button id="yesBtn">Yes</button>
+        <button id="noBtn">No</button>
       </div>
     </div>
   </div>
 
-  <!-- 🔝 Topbar -->
+  <!-- 🏪 Header -->
   <header>
-    <div class="brand">
-      <div class="logo">LB</div>
-      <div>
-        <div style="font-weight:800">LBizzo Vape Shop</div>
-        <div class="stars" id="stars" aria-label="loyalty stars"></div>
-      </div>
-    </div>
-    <div class="row">
-      <button id="install-btn" class="btn ghost">Install</button>
-      <button id="cart-btn" class="btn primary">🛒 (<span id="cart-count">0</span>)</button>
-    </div>
+    <h1>LBizzo Vape Shop</h1>
+    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
   </header>
 
-  <!-- 🧭 Scanner status -->
-  <div id="scan-status" class="pill" style="margin:8px 12px">ID not verified</div>
-
-  <!-- 🔎 Scandit Scanner (live camera) -->
-  <section id="scanner" class="scanner-box" hidden>
-    <div style="padding:10px;display:flex;justify-content:space-between;align-items:center">
-      <strong>Scan your ID</strong>
-      <button id="close-scan" class="btn ghost">Close</button>
-    </div>
-    <video id="preview" autoplay playsinline muted></video>
-    <div style="padding:10px" class="muted">We read PDF417 (driver’s license) / QR where present.</div>
-  </section>
+  <!-- 🌟 Loyalty Stars -->
+  <div id="stars"></div>
 
   <!-- 🛍️ Products -->
-  <main id="product-list" aria-live="polite"></main>
+  <main id="product-list" class="product-grid"></main>
 
   <!-- 🧾 Cart -->
-  <section id="cart" class="cart" hidden>
-    <div class="row" style="justify-content:space-between;align-items:center">
-      <strong>Cart</strong>
-      <div>Total: $<span id="cart-total">0.00</span></div>
-    </div>
+  <section id="cart" hidden>
+    <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
-    <div class="row" style="justify-content:space-between;margin-top:8px">
-      <button id="scan-btn" class="btn ghost">Scan ID</button>
-      <button id="checkout-btn" class="btn primary" disabled>Checkout</button>
+    <p>Total: $<span id="cart-total">0.00</span></p>
+    <div>
+      <button id="scan-btn">Scan ID</button>
+      <button id="checkout-btn" disabled>Checkout</button>
     </div>
   </section>
 
-  <!-- 🧪 Debug bar -->
+  <!-- 🔍 Scandit Scanner -->
+  <div id="scanner" hidden>
+    <video id="preview" autoplay playsinline muted></video>
+    <button id="close-scan">Close</button>
+  </div>
+
+  <!-- 🧪 Debug -->
   <div id="debug"></div>
 </body>
 </html>
