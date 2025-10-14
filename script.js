@@ -128,9 +128,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function startIDScan() {
     try {
-      scanSection.classList.remove("hidden");
+      
       msg.textContent = "Opening camera...";
-
+scanSection.classList.remove("active");
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoEl.srcObject = stream;
       window._scannerStream = stream;
