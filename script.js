@@ -14,10 +14,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => {
+    yes.addEventListener("click", async (e) => {
       e.preventDefault();
       overlay.style.display = "none";
-      loadProducts(); // show shop after age confirmation
+      await loadProducts(); // Only show products after clicking Yes
     });
     no.addEventListener("click", (e) => {
       e.preventDefault();
@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.classList.add("hidden");
   });
 
-  // ---------- SCANDIT ID CHECK ----------
+  // ---------- SCANDIT AT CHECKOUT ----------
   const scanSection = $("#id-scan-section");
   const videoEl = $("#id-video");
   const msg = $("#id-message");
@@ -164,11 +164,11 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
 
       if (verified) {
-        alert("✅ ID verified! You are 21+.");
+        alert("✅ ID verified! Proceeding to checkout...");
         scanSection.classList.add("hidden");
         proceedCheckout();
       } else {
-        alert("❌ Sorry, you must be 21+.");
+        alert("❌ Sorry, must be 21+.");
         scanSection.classList.add("hidden");
       }
     } catch (err) {
@@ -180,7 +180,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   checkoutBtn.addEventListener("click", async () => {
     if (cart.length === 0) return alert("Your cart is empty!");
-    startIDScan(); // 🔥 Scandit check before checkout
+    startIDScan(); // ✅ now runs only when pressing Checkout
   });
 
   async function proceedCheckout() {
