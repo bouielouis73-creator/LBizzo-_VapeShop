@@ -11,7 +11,7 @@ else {
     const bar = $("#debug");
     if (!bar) return;
     bar.textContent = msg;
-    bar.style.display = "block";
+    bar.hidden = false;
     bar.style.background = ok ? "#0c1a0c" : "#1a0c0c";
     bar.style.color = ok ? "#9ef1b0" : "#f19999";
   };
@@ -41,11 +41,24 @@ else {
   // ---------- EmailJS ----------
   try { emailjs.init({ publicKey: KEYS.public }); } catch {}
 
-  // ---------- Age Gate ----------
-  const ageOverlay = $("#age-check");
-  on($("#yesBtn"), "click", () => { ageOverlay.style.display = "none"; });
-  on($("#noBtn"), "click", () => { alert("Sorry, you must be 21+ to enter."); location.href="https://google.com"; });
-  window.addEventListener("load", () => { ageOverlay.style.display = "grid"; });
+  // ---------- Age Verification (fixed) ----------
+  document.addEventListener("DOMContentLoaded", () => {
+    const ageOverlay = document.getElementById("age-check");
+    const yesBtn = document.getElementById("yesBtn");
+    const noBtn = document.getElementById("noBtn");
+
+    if (ageOverlay) ageOverlay.style.display = "grid";
+
+    if (yesBtn) yesBtn.addEventListener("click", () => {
+      ageOverlay.style.display = "none";
+      debug("✅ Age verified overlay hidden", true);
+    });
+
+    if (noBtn) noBtn.addEventListener("click", () => {
+      alert("Sorry, you must be 21+ to enter.");
+      window.location.href = "https://google.com";
+    });
+  });
 
   // ---------- Load Products ----------
   const productList = $("#product-list");
@@ -60,7 +73,7 @@ else {
     productList.innerHTML="";
     try {
       const snap = await db.collection("products").limit(50).get();
-      if (snap.empty) { debug("No products found.", false); return; }
+      if (snap.empty) { debug("⚠️ No products found.", false); return; }
       for (const doc of snap.docs){
         const d = doc.data();
         const url = await getImageURL(d.image);
@@ -168,4 +181,42 @@ else {
     if(!verified) return alert("Please verify ID first.");
     const name=$("#custName").value.trim(), phone=$("#custPhone").value.trim(), addr=$("#custAddress").value.trim();
     if(!name||!phone||!addr) return alert("Fill all details.");
-    const items=cart.map(i=>`${i.name} × ${i.qty} = $${(i
+    const items=cart.map(i=>`${i.name} × ${i.qty} = $${(i.price*i.qty).toFixed(2)}`).join("\n");
+    const total=$("#cart-total").textContent;
+
+    try{
+      await emailjs.send(KEYS.service,KEYS.template,{name,phone,address:addr,items,total});
+      debug("📨 Order email sent!",true);
+      if(KEYS.square){ window.location.href=KEYS.square; }
+      cart=[]; saveCart(); renderCart(); updateCheckoutLock();
+    }catch(e){ alert("EmailJS error: "+(e.message||e)); }
+  });
+
+  // ---------- Loyalty Stars ----------
+  let starsCount=parseInt(localStorage.getItem("lb_stars")||"0");
+  function renderStars(){
+    const bar=$("#loyalty-stars");
+    const stars=$$(".star",bar);
+    stars.forEach((s,i)=>s.classList.toggle("active",i<starsCount));
+  }
+
+  async function addStarAndMaybeReward(){
+    starsCount++; if(starsCount>6) starsCount=1;
+    localStorage.setItem("lb_stars",starsCount);
+    renderStars();
+    if(starsCount===6){
+      await emailjs.send(KEYS.service,KEYS.template,{name:"Loyal Customer",items:"🎁 Free Vape Reward",total:"0.00"});
+      debug("🎁 Free vape reward sent!",true);
+    }
+  }
+
+  // ---------- Boot ----------
+  async function boot(){
+    renderCart();
+    await loadProducts();
+    renderStars();
+    updateVerifyUI();
+    debug("✅ LBizzo Ready", true);
+  }
+  document.addEventListener("DOMContentLoaded", boot);
+}
