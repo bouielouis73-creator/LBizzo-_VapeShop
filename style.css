@@ -1,219 +1,109 @@
 :root {
   --orange: #ff8c00;
-  --bg: #0b0b0b;
+  --bg: #000;
+  --text: #fff;
   --card: #141414;
-  --text: #eaeaea;
-  --muted: #888;
 }
-
-* { box-sizing: border-box; }
 
 body {
-  margin: 0;
-  font-family: system-ui, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-}
-
-/* Top Bar / Header */
-.topbar {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  background: #000;
-  border-bottom: 1px solid #111;
-  position: sticky;
-  top: 0;
-  z-index: 99;
-}
-h1 {
+  font-family: "Poppins", sans-serif;
   margin: 0;
-  font-size: 1.25rem;
-  color: var(--text);
+  padding: 0;
 }
 
-/* Buttons */
-.btn {
-  background: #111;
-  border: 1px solid #222;
-  color: #eee;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease-in-out;
+/* Header */
+header {
+  background: var(--card);
+  border-bottom: 2px solid var(--orange);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
 }
-.btn:hover { border-color: #333; }
-.btn.primary {
+
+header h1 {
+  color: var(--orange);
+  margin: 0;
+  font-size: 1.4em;
+}
+
+button {
   background: var(--orange);
-  border-color: var(--orange);
-  color: #000;
-  font-weight: 700;
+  color: var(--bg);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
 }
-.btn.cart { white-space: nowrap; }
-.btn.yes { background: #0f2; border-color: #0f2; }
-.btn.no { background: #300; border-color: #500; }
 
-/* Debug Bar */
-#debug {
-  position: sticky;
-  top: 48px;
-  padding: 0.35rem 0.5rem;
-  font-size: 0.85rem;
+button:hover {
+  opacity: 0.9;
 }
 
 /* Products */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
-  padding: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 15px;
+  padding: 20px;
 }
+
 .product {
   background: var(--card);
-  border: 1px solid #1b1b1b;
-  border-radius: 12px;
   padding: 10px;
-  text-align: center;
+  border-radius: 10px;
+  border: 1px solid #222;
 }
+
 .product img {
   width: 100%;
-  aspect-ratio: 4/3;
+  height: 150px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid #222;
-  background: #111;
 }
+
 .product h3 {
-  margin: 0.4rem 0;
-  font-size: 1rem;
-  color: var(--text);
-}
-.product p {
-  margin: 0.25rem 0 0.5rem;
-  color: #ddd;
+  color: var(--orange);
+  margin: 8px 0 4px;
 }
 
 /* Cart */
 .cart {
-  background: #000;
-  border-top: 1px solid #111;
-  padding: 16px;
-}
-#cart-items {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-#cart-items li {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.35rem 0;
-  border-bottom: 1px dashed #1d1d1d;
-}
-#cart-items button { margin-left: 0.5rem; }
-
-/* Loyalty Stars */
-#loyalty-stars {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  justify-content: center;
-  padding: 10px 0;
-}
-#loyalty-stars .star {
-  font-size: 1.2rem;
-  color: #333;
-  transition: transform 0.15s ease, color 0.15s ease;
-}
-#loyalty-stars .star.active {
-  color: var(--orange);
-  text-shadow: 0 0 8px rgba(255, 140, 0, 0.45);
-}
-#loyalty-stars .progress-label {
-  margin-left: 0.5rem;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-/* Install Button */
-.install-btn {
   position: fixed;
-  right: 12px;
-  bottom: 12px;
-  border: 1px solid #333;
-  background: #111;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  background: var(--card);
+  border: 2px solid var(--orange);
+  padding: 20px;
+  color: var(--text);
   border-radius: 10px;
-  padding: 0.6rem 0.8rem;
-  color: #fff;
-}
-.install-btn:hover { border-color: #444; }
-
-/* Scanner */
-.scanner {
-  padding: 16px;
-}
-#scanVideo {
-  width: 100%;
-  max-width: 460px;
-  border-radius: 10px;
-  border: 1px solid #222;
-  background: #000;
-}
-.scan-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin: 0.5rem 0;
-}
-#scanOut {
-  background: #0c0c0c;
-  border: 1px solid #1a1a1a;
-  color: #9ef;
-  padding: 0.5rem;
-  border-radius: 8px;
-  max-width: 460px;
-  white-space: pre-wrap;
+  z-index: 1000;
 }
 
-/* Overlay / Age Check */
-.overlay {
+.cart.hidden {
+  display: none;
+}
+
+/* Age Check */
+#age-check {
   position: fixed;
   inset: 0;
+  background: rgba(0, 0, 0, 0.95);
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
   z-index: 9999;
 }
-.overlay-card {
-  background: #0d0d0d;
-  border: 1px solid #222;
-  padding: 18px 16px;
-  border-radius: 12px;
-  max-width: 360px;
-  text-align: center;
-}
-.age-buttons {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 0.75rem;
-}
-/* ✳️  Animated glowing arrow pointing to the ID scanner  */
-.glow-arrow {
-  position: fixed;
-  bottom: 180px;          /* adjust if it sits too high or low */
-  right: 40px;
-  font-size: 4rem;
-  color: #ff8c00;
-  text-shadow: 0 0 10px #ff8c00, 0 0 25px #ff8c00;
-  animation: bounceArrow 1s infinite ease-in-out;
-  z-index: 10000;
-}
 
-@keyframes bounceArrow {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+#age-check .age-content {
+  background: var(--card);
+  border: 2px solid var(--orange);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
 }
