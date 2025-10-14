@@ -1,203 +1,137 @@
-/* ✅ LBizzo Brand Theme */
 :root {
   --orange: #ff8c00;
   --bg: #000;
-  --card: #141414;
   --text: #fff;
-  --muted: #aaa;
+  --card: #141414;
 }
 
 /* ---------- GLOBAL ---------- */
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Arial", sans-serif;
+  font-family: "Poppins", sans-serif;
   margin: 0;
   padding: 0;
-}
-
-h1, h2, h3, p, button {
-  color: var(--text);
-  margin: 0;
 }
 
 /* ---------- HEADER ---------- */
 header {
   background: var(--card);
-  color: var(--text);
-  text-align: center;
-  padding: 15px 0;
   border-bottom: 2px solid var(--orange);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
 }
 
 header h1 {
   color: var(--orange);
-  letter-spacing: 1px;
-  font-size: 1.6rem;
+  margin: 0;
+  font-size: 1.4em;
 }
 
-#cart-btn {
+/* ---------- BUTTONS ---------- */
+button {
   background: var(--orange);
-  color: #fff;
+  color: var(--bg);
   border: none;
-  border-radius: 6px;
   padding: 8px 14px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: bold;
-  margin-top: 8px;
 }
 
-#cart-btn:hover {
-  background: #ffa733;
+button:hover {
+  opacity: 0.9;
 }
 
-/* ---------- PRODUCT GRID ---------- */
+/* ---------- PRODUCTS ---------- */
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 15px;
-  padding: 15px;
+  padding: 20px;
 }
 
 .product {
   background: var(--card);
-  border-radius: 8px;
   padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #222;
   text-align: center;
-  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.2);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.product:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
 }
 
 .product img {
   width: 100%;
-  max-width: 130px;
-  border-radius: 6px;
+  height: 150px;
   object-fit: cover;
-  margin-bottom: 6px;
+  border-radius: 8px;
 }
 
 .product h3 {
   color: var(--orange);
-  font-size: 0.95rem;
-  margin: 4px 0;
+  margin: 8px 0 4px;
 }
 
-.product p {
-  color: #fff;
-  font-size: 0.85rem;
-  margin: 2px 0 8px;
-}
-
-.product button {
-  background: var(--orange);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 8px 10px;
+/* ---------- CART ---------- */
+.cart {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
   width: 90%;
-  cursor: pointer;
-  font-size: 0.8rem;
-  font-weight: bold;
-  transition: background 0.3s;
-}
-
-.product button:hover {
-  background: #ffa733;
-}
-
-/* ---------- CART SECTION ---------- */
-#cart {
+  max-width: 400px;
   background: var(--card);
-  color: var(--text);
-  border-top: 2px solid var(--orange);
+  border: 2px solid var(--orange);
   padding: 20px;
+  color: var(--text);
+  border-radius: 10px;
+  z-index: 1000;
 }
 
 .cart.hidden {
   display: none;
 }
 
-.checkout-btn,
-.close-cart {
-  display: block;
-  width: 90%;
-  margin: 10px auto;
-  padding: 12px;
-  font-size: 1.1em;
-  font-weight: bold;
-  background: var(--orange);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
-
-.checkout-btn:hover,
-.close-cart:hover {
-  background: #ffa733;
-}
-
 /* ---------- AGE CHECK ---------- */
 #age-check {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.95);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
+  display: grid;
+  place-items: center;
+  z-index: 9999;
 }
 
-.age-content {
+#age-check .age-content {
   background: var(--card);
-  padding: 30px;
   border: 2px solid var(--orange);
-  border-radius: 10px;
+  padding: 20px;
+  border-radius: 8px;
   text-align: center;
-  color: var(--text);
 }
 
-.age-content h2 {
-  color: var(--orange);
-  margin-bottom: 10px;
-}
-
-.age-content button {
-  margin: 8px;
-  background: var(--orange);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 10px 20px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.age-content button:hover {
-  background: #ffa733;
-}
-
-/* ---------- ID SCANNER OVERLAY ---------- */
+/* ---------- ✅ ID SCANNER SECTION ---------- */
 #id-scan-section {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.95);
-  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1em;
   z-index: 9999;
+  color: var(--text);
+}
+
+#id-scan-section.hidden {
+  display: none;
+}
+
+#id-scan-section h2 {
+  color: var(--orange);
+  margin-bottom: 8px;
 }
 
 #id-video {
@@ -205,19 +139,21 @@ header h1 {
   max-width: 380px;
   border: 3px solid var(--orange);
   border-radius: 10px;
-  box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+  box-shadow: 0 0 25px rgba(255, 140, 0, 0.4);
+  background: #000;
 }
 
 #id-message {
-  color: var(--text);
   font-size: 1.1em;
+  color: var(--text);
+  text-align: center;
 }
 
 #id-scan-section button {
   background: var(--orange);
-  color: var(--text);
+  color: #000;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   padding: 10px 20px;
   font-weight: bold;
   cursor: pointer;
@@ -225,33 +161,4 @@ header h1 {
 
 #id-scan-section button:hover {
   background: #ffa733;
-}
-
-/* ---------- MOBILE FRIENDLY ---------- */
-@media (max-width: 480px) {
-  header h1 {
-    font-size: 1.3rem;
-  }
-
-  .product-grid {
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  }
-
-  .product img {
-    max-width: 110px;
-  }
-
-  .product h3 {
-    font-size: 0.8rem;
-  }
-
-  .product p {
-    font-size: 0.75rem;
-  }
-
-  .checkout-btn,
-  .close-cart {
-    font-size: 1rem;
-    padding: 10px;
-  }
 }
