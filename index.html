@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
+  <meta name="description" content="LBizzo Vape Shop — fast vape delivery with loyalty rewards, ID scanning, and secure checkout." />
 
   <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
@@ -11,6 +12,7 @@
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="LBizzo" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- ✅ Styles -->
@@ -24,15 +26,27 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK (base) -->
-  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/scandit-sdk.min.js"></script>
+  <!-- ✅ Scandit SDK (base, now deferred and version locked) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/browser/scandit-sdk.min.js"></script>
 
   <!-- ✅ Small inline style just for the animated arrow -->
   <style>
     @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-    #scanArrow{ text-align:center; font-size:1.2rem; color:#ff8c00; animation:bounce 1.2s infinite;
-      display:none; margin-top:8px; opacity:1; transition:opacity 2s ease; }
-    #scandit-status{ text-align:center; color:#ff8c00; margin:8px 0; }
+    #scanArrow {
+      text-align: center;
+      font-size: 1.2rem;
+      color: #ff8c00;
+      animation: bounce 1.2s infinite;
+      display: none;
+      margin-top: 8px;
+      opacity: 1;
+      transition: opacity 2s ease;
+    }
+    #scanner-status {
+      text-align: center;
+      color: #ff8c00;
+      margin: 8px 0;
+    }
   </style>
 </head>
 
@@ -52,7 +66,7 @@
   <!-- ✅ HEADER -->
   <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <button id="cart-btn" class="btn cart" aria-label="Open shopping cart">🛒 Cart (<span id="cart-count">0</span>)</button>
     <div id="loyalty-stars" aria-label="Loyalty progress">
       <span class="star" data-i="0">★</span>
       <span class="star" data-i="1">★</span>
@@ -74,19 +88,22 @@
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <p id="cart-total">Total: $0.00</p>
-    <button id="checkout-btn" class="btn primary">Checkout</button>
+    <button id="checkout-btn" class="btn primary" aria-label="Proceed to checkout">Checkout</button>
     <div id="checkout-hint" style="margin-top:6px;font-size:.9rem;color:#888;">🔒 Scan ID to enable checkout</div>
   </section>
 
   <!-- ✅ ID SCANNER -->
   <section id="id-scan" class="scanner">
     <h2>Scan or Upload ID (PDF417/QR)</h2>
-    <p id="scandit-status">⏳ Loading Scandit SDK…</p>
+    <p id="scanner-status">⏳ Loading Scandit SDK…</p>
     <video id="scanVideo" playsinline muted></video>
+    <noscript>Your browser does not support camera scanning. Please upload a photo of your ID instead.</noscript>
+
     <div class="scan-actions">
-      <button id="scanStart" class="btn">Start Scanner</button>
-      <button id="scanStop" class="btn">Stop Scanner</button>
+      <button id="scanStart" class="btn" aria-label="Start ID scanner">Start Scanner</button>
+      <button id="scanStop" class="btn" aria-label="Stop ID scanner">Stop Scanner</button>
     </div>
+
     <pre id="scanOut"></pre>
     <div id="scanArrow">⬇️ Point camera at BACK of your ID</div>
 
