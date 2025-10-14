@@ -41,18 +41,31 @@ else {
   // ---------- EmailJS ----------
   try { emailjs.init({ publicKey: KEYS.public }); } catch {}
 
-  // ---------- Age Verification (fixed) ----------
-  document.addEventListener("DOMContentLoaded", () => {
-    const ageOverlay = document.getElementById("age-check");
-    const yesBtn = document.getElementById("yesBtn");
-    const noBtn = document.getElementById("noBtn");
+  // ---------- Age Verification (final fix) ----------
+window.addEventListener("load", () => {
+  const ageOverlay = document.getElementById("age-check");
+  const yesBtn = document.getElementById("yesBtn");
+  const noBtn = document.getElementById("noBtn");
 
-    if (ageOverlay) ageOverlay.style.display = "grid";
+  if (!ageOverlay) return;
 
-    if (yesBtn) yesBtn.addEventListener("click", () => {
-      ageOverlay.style.display = "none";
-      debug("✅ Age verified overlay hidden", true);
-    });
+  // Always show overlay on page load
+  ageOverlay.style.display = "grid";
+
+  // ✅ YES button hides overlay
+  yesBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    ageOverlay.style.display = "none";
+    debug("✅ Age verified overlay hidden", true);
+  });
+
+  // 🚫 NO button blocks access
+  noBtn?.addEventListener("click", (e) => {
+    e.preventDefault();
+    alert("Sorry, you must be 21+ to enter.");
+    window.location.href = "https://google.com";
+  });
+});
 
     if (noBtn) noBtn.addEventListener("click", () => {
       alert("Sorry, you must be 21+ to enter.");
