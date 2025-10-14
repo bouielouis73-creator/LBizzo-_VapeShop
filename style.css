@@ -1,11 +1,136 @@
-.checkout-btn, .close-cart {
+/* ✅ LBizzo Brand Theme */
+:root {
+  --orange: #ff8c00;
+  --bg: #000;
+  --card: #141414;
+  --text: #fff;
+  --muted: #aaa;
+}
+
+/* ---------- GLOBAL ---------- */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Arial", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, p, button {
+  color: var(--text);
+  margin: 0;
+}
+
+/* ---------- HEADER ---------- */
+header {
+  background: var(--card);
+  color: var(--text);
+  text-align: center;
+  padding: 15px 0;
+  border-bottom: 2px solid var(--orange);
+}
+
+header h1 {
+  color: var(--orange);
+  letter-spacing: 1px;
+  font-size: 1.6rem;
+}
+
+#cart-btn {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 8px;
+}
+
+#cart-btn:hover {
+  background: #ffa733;
+}
+
+/* ---------- PRODUCT GRID ---------- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 15px;
+  padding: 15px;
+}
+
+.product {
+  background: var(--card);
+  border-radius: 8px;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.product:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
+}
+
+.product img {
+  width: 100%;
+  max-width: 130px;
+  border-radius: 6px;
+  object-fit: cover;
+  margin-bottom: 6px;
+}
+
+.product h3 {
+  color: var(--orange);
+  font-size: 0.95rem;
+  margin: 4px 0;
+}
+
+.product p {
+  color: #fff;
+  font-size: 0.85rem;
+  margin: 2px 0 8px;
+}
+
+.product button {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  width: 90%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: bold;
+  transition: background 0.3s;
+}
+
+.product button:hover {
+  background: #ffa733;
+}
+
+/* ---------- CART SECTION ---------- */
+#cart {
+  background: var(--card);
+  color: var(--text);
+  border-top: 2px solid var(--orange);
+  padding: 20px;
+}
+
+.cart.hidden {
+  display: none;
+}
+
+.checkout-btn,
+.close-cart {
   display: block;
   width: 90%;
   margin: 10px auto;
   padding: 12px;
   font-size: 1.1em;
   font-weight: bold;
-  background: var(--orange, #ff8c00);
+  background: var(--orange);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -13,18 +138,60 @@
   transition: background 0.3s ease;
 }
 
-.checkout-btn:hover, .close-cart:hover {
+.checkout-btn:hover,
+.close-cart:hover {
   background: #ffa733;
 }
 
-.cart.hidden { display: none; }
+/* ---------- AGE CHECK ---------- */
+#age-check {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
 
-/* ✅ ID Scanner Overlay */
+.age-content {
+  background: var(--card);
+  padding: 30px;
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  text-align: center;
+  color: var(--text);
+}
+
+.age-content h2 {
+  color: var(--orange);
+  margin-bottom: 10px;
+}
+
+.age-content button {
+  margin: 8px;
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.age-content button:hover {
+  background: #ffa733;
+}
+
+/* ---------- ID SCANNER OVERLAY ---------- */
 #id-scan-section {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  color: #fff;
+  background: rgba(0, 0, 0, 0.95);
+  color: var(--text);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -33,11 +200,58 @@
   z-index: 9999;
 }
 
-#id-scan-section.hidden { display: none; }
-
 #id-video {
   width: 90%;
-  max-width: 400px;
-  border: 3px solid var(--orange, #ff8c00);
+  max-width: 380px;
+  border: 3px solid var(--orange);
   border-radius: 10px;
+  box-shadow: 0 0 20px rgba(255, 140, 0, 0.4);
+}
+
+#id-message {
+  color: var(--text);
+  font-size: 1.1em;
+}
+
+#id-scan-section button {
+  background: var(--orange);
+  color: var(--text);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#id-scan-section button:hover {
+  background: #ffa733;
+}
+
+/* ---------- MOBILE FRIENDLY ---------- */
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1.3rem;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  }
+
+  .product img {
+    max-width: 110px;
+  }
+
+  .product h3 {
+    font-size: 0.8rem;
+  }
+
+  .product p {
+    font-size: 0.75rem;
+  }
+
+  .checkout-btn,
+  .close-cart {
+    font-size: 1rem;
+    padding: 10px;
+  }
 }
