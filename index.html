@@ -18,6 +18,9 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
+  <!-- ✅ Scandit SDK -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x"></script>
+
   <!-- ✅ Your App Files -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
@@ -50,6 +53,14 @@
     <!-- ✅ Visible Checkout Button -->
     <button id="checkout-btn" class="checkout-btn">Checkout</button>
     <button id="close-cart" class="close-cart">Close</button>
+  </section>
+
+  <!-- ✅ ID Scanner Section -->
+  <section id="id-scan-section" class="hidden">
+    <h2>🆔 Verify Your Age</h2>
+    <video id="id-video" autoplay playsinline></video>
+    <p id="id-message">Please scan the back of your ID.</p>
+    <button id="close-scan">Cancel</button>
   </section>
 </body>
 </html>
