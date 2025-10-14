@@ -1,317 +1,413 @@
-/* ========= SCANDIT: stable loader (waits until fully ready) ========= */
-window.ScanditReady = false;
-
-(async () => {
-  try {
-    if (!window.ScanditSDK) {
-      await new Promise((resolve, reject) => {
-        const s = document.createElement("script");
-        s.src = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/browser/scandit-sdk.min.js";
-        s.onload = resolve;
-        s.onerror = reject;
-        document.head.appendChild(s);
-      });
-    }
-
-    console.log("⏳ Configuring Scandit SDK…");
-    await ScanditSDK.configure(
-      "AjeGjTUcEtL1CJWakqGDsHUqNSa2FUaEfgpehFQktDUvftJypGR1uUk4YOe9U57HnWknn6FAegM/Wa/Oul2VLYxdP6h8QNRpqnO6VYQmJrB/Fz8zCSq5ZxMO4g1dbz/yk0KhxtRmyOJUQZ3lPHPLmXRItF4heDTY2040ZyZ7hODuQ7g+6kYMgmRVn8G+Fv5waQ/MN/Rf7YmZYFPd7GGlg5Ry5dTxavIgUWA4H6dGZVnSUvih0lpLVZJ++O79R7YSL2CNET10lSNXXNySjEJ7o31fUt9aeyI1YmqYgLdMSQsDVEBqp3K+OEdPPAg1Qwrrb3S+c7ti7TGoQDhPAExRC61b3frNUhmU80Csg/Rr9GecBDyIbmFEGz52LPQ1a0vT2RpSouZ9gfC0YbTZpEwDNXha9vBcckqEUUeggFAakLpyVRj8231A8bd3emXvehAJRHGhqZNQEJWVeFq31B7mofwKdElOXyEFCSmAgGlY/hq9VPmkt3F4w9UNbPT8YGE5JW4v5JNu6TofHrsdVyEqKQIJNCUKDuNNKQrzA0ESIq/x/gNdCr/PbIjzx7i0L8yeYXuolP1vzJdIvhJvvt8vifaFwtftAmWCUj4GlFBq0e22RwYI7to1tt1IJ3llMZeAP6s6RreABtf8ZpeMyJd9Cw2VF2+7ZWrTNS0j2GqUH78Bt3CYOjli8Bg4YBrlKHjKFYo7jL49/b+4tN3BvSXJbn/7CK+AZ6PjYBKBmuQqQUUwotp7Gvd/0sjt3H7OWrAQb3n8mYK8u6WmJjuLIKQKSt6YoqfPviaj8N7ThlEter9fCXdlhqWDIIiBU0AXbn/jlCEVmhtvSUcXEh2QhNPaig8sLBrjtXnZQh/JNz2x9Xn49PMKUP0C/qia+HS09dfmKgNUDU0ikax1oVu7GlZPrIWhF5R41jZI60TqRMgx5Z4Q4k8oaEw0GLenxOJDxs9ehoPEY634tjJ+NV+8eU9VtOYtiQ5+5WJkf1yMZGtrdpo15xjZZHOjJwusEnEdzoXW1woDQDMrsQn1OnAG6VlALE73S15l9kPSZ1NDknDDitiRlxe1XIn3P7wFwG80QMQY58vTJ1rCdUF2mzg11LbTy/1YZyyn65CjsSGqWQLQrW9z3GoRR7+h35tBltE49sR7+JNR4U+e7qwb52bAQoWa0DLxsiswAAUjZcGevTCpWQvvxwhOqjCNcD/7Fxkpfc5NVvM=",
-      { engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/" }
-    );
-    await ScanditSDK.ready();
-    window.ScanditReady = true;
-    console.log("✅ Scandit SDK fully ready");
-    document.dispatchEvent(new Event("scandit-ready"));
-  } catch (e) {
-    console.error("❌ Scandit SDK failed:", e);
-  }
-})();
-
-/* ===================== MAIN APP ===================== */
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.__LBIZZO_BOOTED__) return;
+// ---------- LBizzo Vape Shop - script.js (all-in-one logic) ----------
+// Guard against double-boot if the file is accidentally included twice
+if (!window.__LBIZZO_BOOTED__) {
   window.__LBIZZO_BOOTED__ = true;
-  console.log("✅ LBizzo JS booting…");
 
-  // Helpers
+  // ===== Helpers =====
   const $ = (sel, root = document) => root.querySelector(sel);
-  const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
-  const on = (sel, ev, fn) => {
-    const el = typeof sel === "string" ? $(sel) : sel;
-    if (el) el.addEventListener(ev, fn);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const debugBar = (() => {
+    const el = $("#debug");
+    return el || null;
+  })();
+  const debug = (msg, ok = false) => {
+    if (!debugBar) return;
+    debugBar.textContent = msg;
+    debugBar.style.display = "block";
+    debugBar.style.background = ok ? "#022" : "#220";
+    debugBar.style.color = ok ? "#7fffb3" : "#ff6666";
+    // Keep last message visible
   };
 
-  /* 🔞 AGE CHECK */
-  const ageOverlay = $("#age-overlay");
-  on("#yesBtn", "click", () => {
-    ageOverlay && (ageOverlay.style.display = "none");
-    console.log("✅ Age confirmed");
-  });
-  on("#noBtn", "click", () => {
-    alert("Sorry, you must be 21 or older to enter.");
-    location.href = "https://google.com";
-  });
-
-  /* 🔥 FIREBASE INIT CHECK */
-  let db, storage;
+  // ===== Firebase (compat) =====
+  // Uses your exact config
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+    authDomain: "lbizzodelivery.firebaseapp.com",
+    projectId: "lbizzodelivery",
+    storageBucket: "lbizzodelivery.firebasestorage.app",
+    messagingSenderId: "614540837455",
+    appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+  };
   try {
-    db = firebase.firestore();
-    storage = firebase.storage();
-    console.log("✅ Firebase connected");
-  } catch (err) {
-    console.error("⚠️ Firebase not ready:", err);
-  }
+    if (!firebase.apps || !firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+  } catch (_) { /* safe if already initialized */ }
+  const db = firebase.firestore();
+  const storage = firebase.storage();
 
-  /* 💌 EMAILJS INIT */
-  try {
-    emailjs.init("jUx6gEqKI1tvL7yLs");
-    console.log("✅ EmailJS ready");
-  } catch (err) {
-    console.error("⚠️ EmailJS init failed:", err);
-  }
+  // ===== EmailJS (keys saved in localStorage) =====
+  const KEYS = {
+    public: localStorage.getItem("emailjs_public") || "",
+    service: localStorage.getItem("emailjs_service") || "",
+    template: localStorage.getItem("emailjs_template") || "",
+    square: localStorage.getItem("square_base") || ""
+  };
 
-  /* 🛒 CART */
-  const cartList = $("#cart-items");
-  const cartCount = $("#cart-count");
-  const totalEl = $("#cart-total");
-  const checkoutBtn = $("#checkout-btn");
-  let cart = JSON.parse(localStorage.getItem("cart") || "[]");
+  const applyKeyInputs = () => {
+    const p = $("#emailjsPublic"), s = $("#emailjsService"), t = $("#emailjsTemplate"), q = $("#squareBase");
+    if (p) p.value = KEYS.public;
+    if (s) s.value = KEYS.service;
+    if (t) t.value = KEYS.template;
+    if (q) q.value = KEYS.square;
+  };
 
-  function updateCartUI() {
-    if (!cartList || !cartCount || !totalEl) return;
-    cartList.innerHTML = "";
-    let total = 0;
-    cart.forEach((item, i) => {
-      const p = Number(item.price) || 0;
-      total += p;
-      const li = document.createElement("li");
-      li.innerHTML = `${item.name} - $${p.toFixed(2)} <button class="remove" data-i="${i}">❌</button>`;
-      cartList.appendChild(li);
+  const persistKeys = () => {
+    const p = $("#emailjsPublic"), s = $("#emailjsService"), t = $("#emailjsTemplate"), q = $("#squareBase");
+    KEYS.public = p ? p.value.trim() : KEYS.public;
+    KEYS.service = s ? s.value.trim() : KEYS.service;
+    KEYS.template = t ? t.value.trim() : KEYS.template;
+    KEYS.square = q ? q.value.trim() : KEYS.square;
+    localStorage.setItem("emailjs_public", KEYS.public);
+    localStorage.setItem("emailjs_service", KEYS.service);
+    localStorage.setItem("emailjs_template", KEYS.template);
+    localStorage.setItem("square_base", KEYS.square);
+    if (window.emailjs && KEYS.public) {
+      try { emailjs.init({ publicKey: KEYS.public }); } catch(_) {}
+    }
+    debug("Settings saved.", true);
+  };
+
+  // Try to init EmailJS on load if key already present
+  window.addEventListener("load", () => {
+    applyKeyInputs();
+    if (window.emailjs && KEYS.public) {
+      try { emailjs.init({ publicKey: KEYS.public }); } catch(_) {}
+    }
+  });
+
+  // Settings UI (optional; guarded)
+  const saveKeysBtn = $("#saveKeys");
+  if (saveKeysBtn) saveKeysBtn.addEventListener("click", persistKeys);
+
+  const gear = $("#gear");
+  if (gear) {
+    gear.addEventListener("click", () => {
+      const s = $("#settings");
+      if (!s) return;
+      s.style.display = s.style.display === "block" ? "none" : "block";
     });
-    totalEl.textContent = `Total: $${total.toFixed(2)}`;
-    cartCount.textContent = cart.length;
-    localStorage.setItem("cart", JSON.stringify(cart));
   }
-  updateCartUI();
 
-  on(cartList, "click", (e) => {
-    const btn = e.target.closest(".remove");
-    if (!btn) return;
-    const i = Number(btn.dataset.i);
-    if (!Number.isNaN(i)) {
-      cart.splice(i, 1);
-      updateCartUI();
-    }
-  });
+  // ===== Age Gate =====
+  const ageCheck = $("#age-check");
+  const yesBtn = $("#yesBtn");
+  const noBtn = $("#noBtn");
 
-  /* ⭐ LOYALTY STARS */
-  const stars = $$("#loyalty-stars .star");
-  let loyalty = parseInt(localStorage.getItem("loyaltyCount") || "0", 10);
-  const renderStars = () => stars.forEach((s, i) => s.classList.toggle("active", i < loyalty));
-  const addStar = () => {
-    loyalty++;
-    if (loyalty >= 6) {
-      alert("🎉 You earned a free vape!");
-      loyalty = 0;
+  if (yesBtn) {
+    yesBtn.addEventListener("click", () => {
+      if (ageCheck) ageCheck.style.display = "none";
+    });
+  }
+  if (noBtn) {
+    noBtn.addEventListener("click", () => {
+      alert("Sorry, you must be 21+ to use this app.");
+      try { window.location.href = "https://www.google.com"; } catch(_) {}
+    });
+  }
+
+  // ===== Live Camera + ID Capture (Front & Back) =====
+  // Works standalone. If you later add Scandit SDK, you can hook it in here as well.
+  const video = $("#vid");
+  const startCamBtn = $("#startCamBtn");
+  const stopCamBtn  = $("#stopCamBtn");
+  const frontImg = $("#frontImg");
+  const backImg  = $("#backImg");
+  const snapFront = $("#snapFront");
+  const clearFront = $("#clearFront");
+  const snapBack  = $("#snapBack");
+  const clearBack = $("#clearBack");
+  const verifyStatus = $("#verifyStatus");
+  const checkoutBtn = $("#checkoutBtn");
+  const arrowHint = $(".arrow");
+
+  let stream = null;
+  let frontData = null, backData = null;
+
+  const updateVerifyUI = () => {
+    const ok = !!frontData && !!backData;
+    if (verifyStatus) {
+      verifyStatus.innerHTML = ok
+        ? 'Status: <b style="color:#7fffb3">Verified</b>. You can checkout.'
+        : 'Status: <b>Not verified</b>. Capture both sides to continue.';
     }
-    localStorage.setItem("loyaltyCount", loyalty);
-    renderStars();
+    if (checkoutBtn) checkoutBtn.disabled = !ok || cart.length === 0;
+    if (arrowHint) arrowHint.classList.toggle("glow", !ok);
   };
-  renderStars();
 
-  /* 🔐 ID VERIFY FLAGS */
-  let ID_VERIFIED = false;
-  document.addEventListener("id-verified", () => {
-    ID_VERIFIED = true;
-    checkoutBtn.disabled = false;
-    $("#checkout-hint").textContent = "✅ ID verified — you can checkout";
-    $("#checkout-hint").style.color = "#00a86b";
-  });
-  document.addEventListener("id-reset", () => {
-    ID_VERIFIED = false;
-    checkoutBtn.disabled = true;
-    $("#checkout-hint").textContent = "🔒 Scan ID to enable checkout";
-    $("#checkout-hint").style.color = "#888";
-  });
-  checkoutBtn.disabled = true;
-
-  /* 💳 CHECKOUT BUTTON */
-  on(checkoutBtn, "click", async () => {
-    if (!cart.length) return alert("🛒 Your cart is empty!");
-    if (!ID_VERIFIED) return alert("⚠️ Please scan or upload a valid ID first.");
-
-    const total = cart.reduce((sum, i) => sum + (Number(i.price) || 0), 0).toFixed(2);
-    const name = prompt("Enter your name:") || "Unknown";
-    const phone = prompt("Enter your phone number:") || "N/A";
-    const address = prompt("Enter your delivery address:") || "N/A";
-
-    const order = {
-      name,
-      phone,
-      address,
-      items: cart.map(i => `${i.name} ($${i.price})`).join(", "),
-      total: `$${total}`
-    };
-
-    try {
-      await emailjs.send("service_bk310ht", "template_sb8tg8bk", order);
-      addStar();
-      cart = [];
-      updateCartUI();
-      alert("✅ Order sent! Redirecting to Square checkout...");
-      const totalCents = Math.round(parseFloat(total) * 100);
-      window.open(`https://square.link/u/GOvQxhqG?amount=${totalCents}`, "_blank");
-    } catch (err) {
-      console.error("EmailJS error:", err);
-      alert("⚠️ Order failed. Please try again.");
+  const startCam = async () => {
+    if (!video) {
+      debug("Camera element not found.", false);
+      return;
     }
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }, audio: false
+      });
+      video.srcObject = stream;
+      if (typeof video.play === "function") video.play();
+      debug("Camera started.", true);
+    } catch (err) {
+      console.error(err);
+      debug("Camera error: " + (err.message || err), false);
+      alert("Could not access camera. Please allow camera permission.");
+    }
+  };
+
+  const stopCam = () => {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    if (video) video.srcObject = null;
+    debug("Camera stopped.", true);
+  };
+
+  const captureFrame = () => {
+    if (!video || !video.videoWidth) {
+      alert("Camera not ready yet.");
+      return null;
+    }
+    const c = document.createElement("canvas");
+    c.width = video.videoWidth; c.height = video.videoHeight;
+    const ctx = c.getContext("2d");
+    ctx.drawImage(video, 0, 0);
+    return c.toDataURL("image/jpeg", 0.85);
+  };
+
+  if (startCamBtn) startCamBtn.addEventListener("click", startCam);
+  if (stopCamBtn)  stopCamBtn.addEventListener("click", stopCam);
+
+  if (snapFront) snapFront.addEventListener("click", () => {
+    const d = captureFrame(); if (!d) return;
+    frontData = d; if (frontImg) frontImg.src = d; updateVerifyUI();
+  });
+  if (clearFront) clearFront.addEventListener("click", () => {
+    frontData = null; if (frontImg) frontImg.src = ""; updateVerifyUI();
+  });
+  if (snapBack) snapBack.addEventListener("click", () => {
+    const d = captureFrame(); if (!d) return;
+    backData = d; if (backImg) backImg.src = d; updateVerifyUI();
+  });
+  if (clearBack) clearBack.addEventListener("click", () => {
+    backData = null; if (backImg) backImg.src = ""; updateVerifyUI();
   });
 
-  /* 🧱 LOAD PRODUCTS */
+  // ===== Products (Firestore) + Placeholders =====
   const productList = $("#product-list");
-  const PLACEHOLDER_IMG = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='480' height='360'><rect width='100%' height='100%' fill='%23111'/><rect x='12' y='12' width='456' height='336' rx='18' fill='black' stroke='%23ff8c00' stroke-width='6'/><text x='50%25' y='55%25' text-anchor='middle' font-family='Arial' font-size='42' fill='%23ff8c00'>LBizzo</text></svg>";
+  const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'>
+      <rect width='100%' height='100%' fill='#000'/>
+      <rect x='32' y='32' width='448' height='448' rx='40' fill='#111' stroke='#ff8c00' stroke-width='8'/>
+      <text x='50%' y='54%' font-family='Arial Black, Arial' font-size='60' text-anchor='middle' fill='#ff8c00'>LBizzo</text>
+    </svg>
+  `);
 
   async function getImageURL(path) {
-    try { return await storage.ref(path).getDownloadURL(); }
-    catch { return null; }
+    try {
+      if (!path) return null;
+      const ref = storage.ref(path);
+      return await ref.getDownloadURL();
+    } catch (_) {
+      return null;
+    }
   }
 
   async function addCard(p) {
+    if (!productList) return;
     const priceNum = Number(p.price) || 0;
-    const imgURL = p.image && !/^https?:\/\//i.test(p.image)
-      ? await getImageURL(p.image)
-      : p.image;
-
     const card = document.createElement("div");
     card.className = "product";
+
+    let imgURL = null;
+    try { imgURL = p.image ? await getImageURL(p.image) : null; } catch(_) {}
+
     card.innerHTML = `
-      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}" />
-      <h3>${p.name || "Unnamed Product"}</h3>
-      <p>$${priceNum.toFixed(2)}</p>
-      <button class="add-btn btn">Add to Cart</button>
+      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <div class="p-in">
+        <h3>${p.name}</h3>
+        <div class="price">$${priceNum.toFixed(2)}</div>
+        <button class="add-btn">Add to Cart</button>
+      </div>
     `;
-    on(card.querySelector(".add-btn"), "click", () => {
-      cart.push({ name: p.name || "Item", price: priceNum });
-      updateCartUI();
-    });
+    const btn = card.querySelector(".add-btn");
+    if (btn) btn.addEventListener("click", () => addToCart(p));
     productList.appendChild(card);
   }
 
   async function loadProducts() {
+    if (!productList) return;
+    productList.innerHTML = "";
     try {
-      const snap = await db.collection("products").get();
-      if (!snap.empty) {
-        console.log("✅ Loaded products:", snap.size);
-        productList.innerHTML = "";
-        for (const doc of snap.docs) await addCard(doc.data());
-      } else throw new Error("No products in Firestore");
-    } catch (err) {
-      console.warn("⚠️ Firestore failed:", err.message);
-      productList.innerHTML = "";
-      for (let i = 1; i <= 30; i++) await addCard({ name: `LBizzo Placeholder #${i}`, price: 0 });
+      const snap = await db.collection("products").limit(200).get();
+      if (snap.empty) {
+        const ph = Array.from({ length: 50 }).map((_, i) =>
+          ({ id: "ph" + i, name: `Product #${i + 1}`, price: 9.99, image: null })
+        );
+        for (const p of ph) await addCard(p);
+        debug("No products found. Showing 50 placeholders.", true);
+      } else {
+        const list = [];
+        snap.forEach(doc => {
+          const d = doc.data() || {};
+          list.push({
+            id: doc.id,
+            name: d.name || "Unnamed",
+            price: Number(d.price) || 0,
+            image: d.image || null,
+            square: d.square || ""
+          });
+        });
+        for (const p of list) await addCard(p);
+        debug(`Loaded ${list.length} products from Firestore.`, true);
+      }
+    } catch (e) {
+      console.error(e);
+      debug("Error loading products: " + (e.message || e), false);
+      // Fallback placeholders so UI stays usable
+      const ph = Array.from({ length: 50 }).map((_, i) =>
+        ({ id: "ph" + i, name: `Product #${i + 1}`, price: 9.99, image: null })
+      );
+      for (const p of ph) await addCard(p);
     }
   }
-  loadProducts();
 
-  /* 🎥 SCANDIT SCANNER */
-  const scanStart = $("#scanStart"), scanStop = $("#scanStop"), scanOut = $("#scanOut"), scanArrow = $("#scanArrow"), statusEl = $("#scanner-status");
-  let scanner = null;
+  // ===== Cart =====
+  let cart = [];
+  const cartCount = $("#cart-count");
+  const cartItems = $("#cart-items");
+  const cartTotal = $("#cart-total");
+  const clearCartBtn = $("#clearCart");
 
-  document.addEventListener("scandit-ready", () => {
-    if (statusEl) {
-      statusEl.textContent = "✅ Scandit ready — you can now scan or upload ID.";
-      statusEl.style.color = "#00ff88";
-    }
-  });
+  function saveCart() {
+    try { localStorage.setItem("lb_cart", JSON.stringify(cart)); } catch(_) {}
+  }
+  function loadCart() {
+    try { cart = JSON.parse(localStorage.getItem("lb_cart") || "[]"); }
+    catch { cart = []; }
+  }
 
-  on(scanStart, "click", async () => {
-    if (!window.ScanditReady) return alert("⚠️ Please wait — scanner still loading.");
-    try {
-      scanner = await ScanditSDK.BarcodePicker.create($("#scanVideo"), {
-        playSoundOnScan: true, vibrateOnScan: true, accessCamera: true
+  function renderCart() {
+    if (cartItems) cartItems.innerHTML = "";
+    let total = 0;
+    cart.forEach((it, idx) => {
+      total += it.price * it.qty;
+      if (!cartItems) return;
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <div>
+          <div><b>${it.name}</b></div>
+          <div class="small">$${it.price.toFixed(2)} × ${it.qty}</div>
+        </div>
+        <div class="row">
+          <button data-a="minus" class="ghost">−</button>
+          <button data-a="plus">+</button>
+          <button data-a="del" class="danger">Remove</button>
+        </div>
+      `;
+      li.addEventListener("click", (e) => {
+        const a = e.target.getAttribute("data-a");
+        if (!a) return;
+        if (a === "minus") it.qty = Math.max(1, it.qty - 1);
+        if (a === "plus")  it.qty += 1;
+        if (a === "del")   cart.splice(idx, 1);
+        saveCart(); renderCart();
       });
-      const settings = new ScanditSDK.ScanSettings({ enabledSymbologies: ["pdf417"], codeDuplicateFilter: 1000 });
-      scanner.applyScanSettings(settings);
-      scanOut.textContent = "📸 Point camera at back barcode of your ID...";
-      scanArrow.style.display = "block";
-      setTimeout(() => (scanArrow.style.opacity = 0), 4000);
+      cartItems.appendChild(li);
+    });
 
-      scanner.on("scan", (res) => {
-        const txt = res.barcodes.map(b => b.data).join("\n");
-        const dobMatch = txt.match(/DBB(\d{8})/);
-        const hasHeader = /^@?ANSI/i.test(txt) || /AAMVA/i.test(txt);
-        if (!dobMatch || !hasHeader) return alert("⚠️ Invalid ID. Try again.");
-        const y = +dobMatch[1].slice(0, 4);
-        const m = +dobMatch[1].slice(4, 6) - 1;
-        const d = +dobMatch[1].slice(6, 8);
-        const birth = new Date(y, m, d);
-        const age = new Date().getFullYear() - birth.getFullYear();
-        if (age >= 21) {
-          alert("✅ ID Verified: 21+");
-          document.dispatchEvent(new Event("id-verified"));
-        } else {
-          alert("🚫 Under 21");
-          document.dispatchEvent(new Event("id-reset"));
-        }
-      });
-    } catch (err) {
-      console.error("Scanner error:", err);
-      alert("❌ Could not start scanner.");
-    }
-  });
+    if (cartCount) cartCount.textContent = cart.reduce((n, i) => n + i.qty, 0);
+    if (cartTotal) cartTotal.textContent = total.toFixed(2);
+    if (checkoutBtn) checkoutBtn.disabled = !(frontData && backData) || cart.length === 0;
+  }
 
-  on(scanStop, "click", () => {
-    if (scanner) {
-      scanner.destroy();
-      scanner = null;
-      scanOut.textContent = "Scanner stopped.";
-      document.dispatchEvent(new Event("id-reset"));
-    }
-  });
+  function addToCart(p) {
+    const idx = cart.findIndex(i => i.id === p.id);
+    if (idx > -1) cart[idx].qty += 1;
+    else cart.push({ id: p.id, name: p.name, price: Number(p.price) || 0, qty: 1 });
+    saveCart(); renderCart();
+  }
 
-  /* 📸 ID PHOTO UPLOAD */
-  const fileInput = $("#idPhotoInput"), idStatus = $("#idUploadStatus");
-  on(fileInput, "change", async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    idStatus.textContent = "🔍 Checking ID photo...";
-    if (!["image/jpeg", "image/png"].includes(file.type)) return alert("❌ Invalid file type.");
+  if (clearCartBtn) {
+    clearCartBtn.addEventListener("click", () => {
+      cart = [];
+      saveCart();
+      renderCart();
+    });
+  }
 
-    try {
-      const buffer = new Uint8Array(await file.arrayBuffer());
-      const result = await ScanditSDK.BarcodeScanner.scanImage(buffer, { enabledSymbologies: ["pdf417"] });
-      if (result.barcodes.length === 0) return alert("⚠️ Could not read barcode from photo.");
-      const txt = result.barcodes[0].data;
-      const dob = txt.match(/DBB(\d{8})/);
-      if (!dob) return alert("⚠️ No DOB found in barcode.");
-      const y = +dob[1].slice(0, 4), m = +dob[1].slice(4, 6) - 1, d = +dob[1].slice(6, 8);
-      const age = new Date().getFullYear() - y;
-      if (age >= 21) {
-        idStatus.textContent = "✅ ID verified by photo (21+)";
-        document.dispatchEvent(new Event("id-verified"));
-      } else {
-        idStatus.textContent = "🚫 Under 21 — cannot checkout";
-        document.dispatchEvent(new Event("id-reset"));
+  // ===== Checkout (requires verified ID) =====
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener("click", async () => {
+      if (!(frontData && backData)) {
+        const idv = $("#id-verify");
+        if (idv) window.scrollTo({ top: idv.offsetTop - 10, behavior: "smooth" });
+        alert("Please capture FRONT and BACK of your ID first.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      idStatus.textContent = "❌ Could not verify ID photo.";
-    }
-  });
+      if (cart.length === 0) { alert("Your cart is empty."); return; }
 
-  /* ⚙️ PWA INSTALL */
-  let deferredPrompt;
-  window.addEventListener("beforeinstallprompt", (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const btn = $("#install-btn");
-    btn.hidden = false;
-    btn.onclick = async () => {
-      btn.hidden = true;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null;
-    };
-  });
-  window.addEventListener("appinstalled", () => alert("✅ LBizzo installed!"));
-});
+      const name = ($("#custName") && $("#custName").value.trim()) || "";
+      const phone = ($("#custPhone") && $("#custPhone").value.trim()) || "";
+      const address = ($("#custAddress") && $("#custAddress").value.trim()) || "";
+      if (!name || !phone || !address) {
+        alert("Please enter your name, phone and delivery address.");
+        return;
+      }
+
+      // Prepare order summary
+      const itemsText = cart.map(i => `${i.name} × ${i.qty} ($${(i.price * i.qty).toFixed(2)})`).join("\n");
+      const totalText = cartTotal ? cartTotal.textContent : cart.reduce((s,i)=>s+i.price*i.qty,0).toFixed(2);
+
+      // Ensure EmailJS is configured
+      if (!(window.emailjs && KEYS.public && KEYS.service && KEYS.template)) {
+        alert("EmailJS is not configured yet. Tap ⚙️ and paste your keys, then try again.");
+        return;
+      }
+
+      try {
+        const params = {
+          name, phone, address,
+          items: itemsText,
+          total: totalText,
+          id_front: frontData,
+          id_back: backData
+        };
+        await emailjs.send(KEYS.service, KEYS.template, params);
+        debug("Order email sent via EmailJS.", true);
+
+        // Optional Square redirect
+        if (KEYS.square) {
+          try {
+            const u = new URL(KEYS.square);
+            u.searchParams.set("name", name);
+            u.searchParams.set("total", totalText);
+            window.location.href = u.toString();
+          } catch(_) { /* ignore malformed URL */ }
+        } else {
+          alert("Order placed! We emailed your order. (Add a Square link in ⚙️ to redirect to payment.)");
+        }
+
+        // Clear cart after success
+        cart = [];
+        saveCart();
+        renderCart();
+      } catch (err) {
+        console.error(err);
+        alert("Could not send order email: " + (err?.text || err?.message || err));
+      }
+    });
+  }
+
+  // ===== Boot =====
+  async function boot() {
+    loadCart();
+    renderCart();
+    updateVerifyUI();
+    await loadProducts();
+    debug("✅ LBizzo JS booted.", true);
+  }
+  document.addEventListener("DOMContentLoaded", boot);
+}
+// ---------- end script.js ----------
