@@ -14,66 +14,36 @@
   <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
   <style>
-    /* minimal styling for scanner overlay */
-    #scanner-overlay {
-      position: fixed; inset: 0; display: none; place-items: center;
-      background: rgba(0,0,0,.85); z-index: 10000;
-    }
-    #scanner-card {
-      width: min(920px, 94vw); height: min(640px, 80vh);
-      background:#111; border:2px solid #ff8c00; border-radius:14px; padding:12px;
-      display:flex; flex-direction:column; gap:10px;
-    }
-    #data-capture-view { flex:1; min-height: 280px; border-radius:10px; overflow:hidden; }
-    #scan-actions { display:flex; gap:8px; justify-content:space-between; align-items:center; }
-    #scan-status { font: 600 14px/1.3 system-ui; color:#ffcf99; }
-    .btn { background:#ff8c00; color:#000; border:none; padding:10px 14px; border-radius:10px; font-weight:700 }
-    .btn[disabled] { opacity:.5 }
-    #checkout-btn.btn { position:sticky; bottom:10px; }
-    /* product grid fallback */
-    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
-    .product{background:#111;border:1px solid #333;border-radius:12px;padding:10px}
+    body{background:#000;color:#fff;margin:0;font-family:system-ui}
+    header{display:flex;justify-content:space-between;align-items:center;padding:14px;background:#111}
+    h1{color:#fff;margin:0}
+    .btn{background:#ff8c00;color:#000;font-weight:700;border:none;padding:10px 14px;border-radius:10px}
+    .btn[disabled]{opacity:.5}
+    .product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;padding:10px}
+    .product{background:#111;border:1px solid #333;border-radius:12px;padding:10px;text-align:center}
     .product img{width:100%;height:140px;object-fit:cover;border-radius:10px;background:#000}
-    header{display:flex;justify-content:space-between;align-items:center;padding:12px}
+    #scanner-overlay{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.85);z-index:10000}
+    #scanner-card{width:min(920px,94vw);height:min(640px,80vh);background:#111;border:2px solid #ff8c00;border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+    #data-capture-view{flex:1;min-height:280px;border-radius:10px;overflow:hidden}
+    #scan-actions{display:flex;gap:8px;justify-content:space-between;align-items:center}
+    #scan-status{font:600 14px/1.3 system-ui;color:#ffcf99}
   </style>
 
   <!-- Firebase SDKs (compat) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-
-  <!-- Your firebase.js should call initializeApp(...) and expose window.db & window.storage -->
   <script defer src="firebase.js"></script>
-
-  <!-- Scandit Web SDK (v7) via CDN using import maps (Core + Barcode + ID) -->
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-core@7.6.1/build/js/index.js" />
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@7.6.1/build/js/index.js" />
-  <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/build/js/index.js" />
-  <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
-  <script type="importmap">
-  {
-    "imports": {
-      "@scandit/web-datacapture-core": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-core@7.6.1/build/js/index.js",
-      "@scandit/web-datacapture-barcode": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@7.6.1/build/js/index.js",
-      "@scandit/web-datacapture-id": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/build/js/index.js",
-      "@scandit/web-datacapture-core/": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-core@7.6.1/",
-      "@scandit/web-datacapture-barcode/": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-barcode@7.6.1/",
-      "@scandit/web-datacapture-id/": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/"
-    }
-  }
-  </script>
-
-  <!-- App logic -->
-  <script type="module" src="script.js"></script>
 </head>
+
 <body>
-  <!-- Age check overlay (kept) -->
-  <div id="age-check" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); backdrop-filter: blur(6px); z-index:9999; place-items:center;">
+  <!-- Age Check -->
+  <div id="age-check" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9999;place-items:center;">
     <div style="background:#111;border:2px solid #ff8c00;color:#fff;border-radius:16px;padding:24px;max-width:420px;text-align:center">
       <h2>Are you 21 or older?</h2>
       <div style="display:flex;gap:10px;justify-content:center;margin-top:12px">
         <button id="yesBtn" class="btn">Yes</button>
-        <button id="noBtn"  class="btn">No</button>
+        <button id="noBtn" class="btn">No</button>
       </div>
     </div>
   </div>
@@ -85,24 +55,38 @@
 
   <main id="product-list" class="product-grid"></main>
 
-  <section id="cart" class="cart" style="padding:12px">
+  <section id="cart" style="padding:12px;">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <button id="scan-id-btn" class="btn">🔓 Scan ID to Unlock Checkout</button>
     <button id="checkout-btn" class="btn" disabled>✅ Checkout</button>
   </section>
 
-  <!-- Scandit scanner overlay -->
+  <!-- Scanner Overlay -->
   <div id="scanner-overlay">
     <div id="scanner-card">
       <div id="data-capture-view"></div>
       <div id="scan-actions">
         <span id="scan-status">Open camera…</span>
-        <div>
-          <button id="close-scan" class="btn" style="background:#333;color:#fff">Close</button>
-        </div>
+        <button id="close-scan" class="btn" style="background:#333;color:#fff">Close</button>
       </div>
     </div>
   </div>
+
+  <!-- Scandit SDK Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "@scandit/web-datacapture-core": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-core@7.6.1/build/js/index.js",
+      "@scandit/web-datacapture-id": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/build/js/index.js",
+      "@scandit/web-datacapture-core/": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-core@7.6.1/",
+      "@scandit/web-datacapture-id/": "https://cdn.jsdelivr.net/npm/@scandit/web-datacapture-id@7.6.1/"
+    }
+  }
+  </script>
+  <script async src="https://ga.jspm.io/npm:es-module-shims@1.10.0/dist/es-module-shims.js"></script>
+
+  <!-- Main script -->
+  <script type="module" defer src="script.js"></script>
 </body>
 </html>
