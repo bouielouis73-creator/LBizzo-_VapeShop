@@ -19,34 +19,25 @@
   <link rel="stylesheet" href="style.css" />
 
   <!-- ✅ Firebase SDKs -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
   <!-- ✅ EmailJS -->
-  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK (base, now deferred and version locked) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/browser/scandit-sdk.min.js"></script>
+  <!-- ✅ Scandit SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.12.1/build/browser/scandit-sdk.min.js"></script>
 
-  <!-- ✅ Small inline style just for the animated arrow -->
+  <!-- ✅ Small inline style -->
   <style>
-    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+    @keyframes bounce {0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
     #scanArrow {
-      text-align: center;
-      font-size: 1.2rem;
-      color: #ff8c00;
-      animation: bounce 1.2s infinite;
-      display: none;
-      margin-top: 8px;
-      opacity: 1;
-      transition: opacity 2s ease;
+      text-align: center; font-size: 1.2rem; color: #ff8c00;
+      animation: bounce 1.2s infinite; display: none;
+      margin-top: 8px; opacity: 1; transition: opacity 2s ease;
     }
-    #scanner-status {
-      text-align: center;
-      color: #ff8c00;
-      margin: 8px 0;
-    }
+    #scanner-status { text-align: center; color: #ff8c00; margin: 8px 0; }
   </style>
 </head>
 
@@ -98,12 +89,10 @@
     <p id="scanner-status">⏳ Loading Scandit SDK…</p>
     <video id="scanVideo" playsinline muted></video>
     <noscript>Your browser does not support camera scanning. Please upload a photo of your ID instead.</noscript>
-
     <div class="scan-actions">
       <button id="scanStart" class="btn" aria-label="Start ID scanner">Start Scanner</button>
       <button id="scanStop" class="btn" aria-label="Stop ID scanner">Stop Scanner</button>
     </div>
-
     <pre id="scanOut"></pre>
     <div id="scanArrow">⬇️ Point camera at BACK of your ID</div>
 
@@ -117,8 +106,8 @@
   <!-- ✅ INSTALL BUTTON -->
   <button id="install-btn" hidden class="install-btn">📲 Install LBizzo App</button>
 
-  <!-- ✅ APP LOGIC -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
+  <!-- ✅ APP LOGIC (load last so all buttons work) -->
+  <script src="firebase.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
