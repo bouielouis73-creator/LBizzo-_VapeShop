@@ -5,29 +5,32 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs -->
+  <!-- Firebase SDKs -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ EmailJS -->
+  <!-- EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- ✅ App Script (we’ll add this next) -->
+  <!-- Scandit SDK (add your license key in script.js) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
+
+  <!-- App Script -->
   <script defer src="script.js"></script>
 </head>
 
 <body>
-  <!-- ✅ AGE CHECK -->
+  <!-- AGE CHECK -->
   <div id="age-check">
     <div class="age-card">
       <h2>Are you 21 or older?</h2>
@@ -39,38 +42,46 @@
     </div>
   </div>
 
-  <!-- ✅ HEADER -->
+  <!-- HEADER -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
   </header>
 
-  <!-- ✅ ID VERIFY CAMERA -->
-  <section id="id-verify" class="banner">
-    <div class="arrow glow"><span>⬇</span> <span>Must send your ID before checkout</span></div>
-    <h3>Live Camera — Verify your ID (Front &amp; Back)</h3>
+  <!-- LOYALTY STARS -->
+  <section id="loyalty" class="panel">
+    <h3>Loyalty Stars</h3>
+    <div id="stars" class="stars"></div>
+    <p class="small">Buy 6 vapes, get your next one free!</p>
+    <div id="freeBanner"></div>
+  </section>
+
+  <!-- ID VERIFY -->
+  <section id="id-verify" class="panel">
+    <div class="arrow glow"><span>⬇</span> <span>Scan or capture your ID before checkout</span></div>
+    <h3>Live Camera — ID Verification (Front &amp; Back)</h3>
     <div class="verify-row">
       <div class="cam">
         <video id="vid" playsinline autoplay muted></video>
-        <div class="row" style="margin-top:8px">
+        <div class="row">
           <button id="startCamBtn">Start Camera</button>
           <button id="stopCamBtn" class="ghost">Stop</button>
         </div>
       </div>
       <div class="cam">
-        <div class="thumb">
-          <div>
+        <div class="thumbs">
+          <div class="thumb">
             <div class="small">Front of ID</div>
             <img id="frontImg" alt="Front ID" />
-            <div class="row" style="margin-top:6px">
+            <div class="row">
               <button id="snapFront">Capture Front</button>
               <button id="clearFront" class="ghost">Clear</button>
             </div>
           </div>
-          <div>
+          <div class="thumb">
             <div class="small">Back of ID</div>
             <img id="backImg" alt="Back ID" />
-            <div class="row" style="margin-top:6px">
+            <div class="row">
               <button id="snapBack">Capture Back</button>
               <button id="clearBack" class="ghost">Clear</button>
             </div>
@@ -81,21 +92,19 @@
     </div>
   </section>
 
-  <!-- ✅ PRODUCTS -->
+  <!-- PRODUCTS -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- ✅ CART -->
+  <!-- CART -->
   <section id="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
     <div id="totals">
       <div>Total: <b>$<span id="cart-total">0.00</span></b></div>
-      <div style="display:flex;gap:8px">
-        <button id="clearCart" class="danger">Clear</button>
-      </div>
+      <button id="clearCart" class="danger">Clear Cart</button>
     </div>
 
-    <!-- ✅ CHECKOUT FORM -->
+    <!-- CHECKOUT FORM -->
     <div class="form">
       <div class="row">
         <input id="custName" placeholder="Full name" autocomplete="name" />
@@ -103,15 +112,15 @@
       </div>
       <textarea id="custAddress" rows="2" placeholder="Delivery address"></textarea>
       <button id="checkoutBtn" class="good" disabled>Proceed to Checkout</button>
-      <div class="small">Checkout will email your order (EmailJS) and optionally open your Square link.</div>
+      <div class="small">Your order will be verified by ID and sent via EmailJS.</div>
     </div>
   </section>
 
-  <!-- ✅ SETTINGS PANEL -->
+  <!-- SETTINGS -->
   <button id="gear">⚙️</button>
-  <div id="settings">
+  <div id="settings" class="panel floating">
     <h4>Settings</h4>
-    <div class="small">Saved locally only (not sent anywhere).</div>
+    <div class="small">Saved on this device only.</div>
     <div class="form">
       <input id="emailjsPublic" placeholder="EmailJS Public Key" />
       <input id="emailjsService" placeholder="EmailJS Service ID" />
