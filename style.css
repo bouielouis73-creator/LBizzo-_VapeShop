@@ -1,33 +1,162 @@
-#id-scan-section {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.95);
-  display: grid;
-  place-items: center;
-  z-index: 9999;
+:root {
+  --orange: #ff8c00;
+  --bg: #000;
+  --text: #fff;
+  --card: #141414;
 }
-#id-scan-section .age-content {
+
+/* ---------- GLOBAL ---------- */
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Poppins", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------- HEADER ---------- */
+header {
+  background: var(--card);
+  border-bottom: 2px solid var(--orange);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+}
+
+header h1 {
+  color: var(--orange);
+  margin: 0;
+  font-size: 1.4em;
+}
+
+button {
+  background: var(--orange);
+  color: var(--bg);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+button:hover {
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* ---------- PRODUCTS ---------- */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  padding: 16px;
+}
+
+.product {
+  background: var(--card);
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #222;
+  text-align: center;
+  box-shadow: 0 0 10px rgba(255,140,0,0.2);
+}
+
+.product img {
+  width: 100%;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #000;
+}
+
+.product h3 {
+  color: var(--orange);
+  margin: 8px 0 4px;
+  font-size: 1rem;
+}
+
+.product p {
+  color: var(--text);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+/* ---------- CART ---------- */
+.cart {
+  position: fixed;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
   background: var(--card);
   border: 2px solid var(--orange);
   padding: 20px;
-  border-radius: 8px;
-  text-align: center;
+  color: var(--text);
+  border-radius: 10px;
+  z-index: 1000;
+  box-shadow: 0 0 25px rgba(255,140,0,0.25);
 }
-#id-video {
+
+.cart.hidden {
+  display: none;
+}
+
+.cart h2 {
+  color: var(--orange);
+  margin-top: 0;
+}
+
+.cart button {
   width: 100%;
-  max-width: 320px;
-  border: 2px solid var(--orange);
-  border-radius: 8px;
-  margin: 10px 0;
+  margin-top: 8px;
 }
-.hidden { display: none; }
-/* ID Scanner Overlay */
+
+/* ---------- AGE CHECK ---------- */
+#age-check {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(10px);
+}
+
+#age-check .age-content {
+  background: var(--card);
+  border: 2px solid var(--orange);
+  padding: 25px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 0 25px rgba(255,140,0,0.3);
+}
+
+#age-check h2 {
+  color: var(--orange);
+  margin-bottom: 15px;
+}
+
+#age-check button {
+  margin: 6px;
+  font-size: 1.1em;
+}
+
+#age-check .secondary {
+  background: transparent;
+  color: var(--orange);
+  border: 1px solid var(--orange);
+}
+
+/* ---------- ID SCANNER ---------- */
 #id-scan-section {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.9);
   backdrop-filter: blur(8px);
-  display: none; /* hidden until checkout */
+  display: none;
   align-items: center;
   justify-content: center;
   z-index: 10000;
@@ -39,7 +168,7 @@
 
 #id-overlay {
   text-align: center;
-  color: white;
+  color: var(--text);
 }
 
 #id-video {
@@ -48,6 +177,7 @@
   border: 2px solid var(--orange);
   border-radius: 8px;
   margin-bottom: 10px;
+  background: #000;
 }
 
 #id-message {
@@ -62,4 +192,28 @@
   color: var(--orange);
   padding: 8px 16px;
   border-radius: 6px;
+}
+
+/* ---------- MOBILE FIX ---------- */
+@media (max-width: 500px) {
+  header h1 {
+    font-size: 1.1em;
+  }
+
+  .product img {
+    height: 110px;
+  }
+
+  .product h3 {
+    font-size: 0.9rem;
+  }
+
+  .product p {
+    font-size: 0.8rem;
+  }
+
+  button {
+    font-size: 0.9rem;
+    padding: 7px 12px;
+  }
 }
