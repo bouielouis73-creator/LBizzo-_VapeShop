@@ -1,32 +1,23 @@
-import fetch from "node-fetch";
-
-export async function handler(event) {
-  try {
-    const key = process.env.SCANDIT_LICENSE_KEY;
-    const image = event.body; // raw image data from browser
-
-    const r = await fetch("https://api.scandit.com/id/v2/verify", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${key}`,
-        "Content-Type": "application/octet-stream"
-      },
-      body: image
-    });
-
-    const data = await r.json();
-    const birthYear = data.result?.document?.dateOfBirth?.year;
-    const verified = birthYear && birthYear < 2004;
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ verified })
-    };
-  } catch (err) {
-    console.error("Scandit verify error:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ verified: false })
-    };
-  }
+#id-scan-section {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
 }
+#id-scan-section .age-content {
+  background: var(--card);
+  border: 2px solid var(--orange);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+}
+#id-video {
+  width: 100%;
+  max-width: 320px;
+  border: 2px solid var(--orange);
+  border-radius: 8px;
+  margin: 10px 0;
+}
+.hidden { display: none; }
