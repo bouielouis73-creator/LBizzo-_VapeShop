@@ -21,3 +21,45 @@
   margin: 10px 0;
 }
 .hidden { display: none; }
+/* ID Scanner Overlay */
+#id-scan-section {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  display: none; /* hidden until checkout */
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+#id-scan-section.active {
+  display: flex;
+}
+
+#id-overlay {
+  text-align: center;
+  color: white;
+}
+
+#id-video {
+  width: 90%;
+  max-width: 400px;
+  border: 2px solid var(--orange);
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+#id-message {
+  color: var(--orange);
+  font-size: 1.1em;
+  margin-bottom: 10px;
+}
+
+#id-cancel {
+  background: transparent;
+  border: 1px solid var(--orange);
+  color: var(--orange);
+  padding: 8px 16px;
+  border-radius: 6px;
+}
