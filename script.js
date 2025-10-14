@@ -14,10 +14,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", async (e) => {
+    yes.addEventListener("click", (e) => {
       e.preventDefault();
       overlay.style.display = "none";
-      await loadProducts(); // 🔥 show products after age confirm
+      loadProducts(); // show shop after age confirmation
     });
     no.addEventListener("click", (e) => {
       e.preventDefault();
@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.classList.add("hidden");
   });
 
-  // ---------- SCANDIT VERIFY-ID ----------
+  // ---------- SCANDIT ID CHECK ----------
   const scanSection = $("#id-scan-section");
   const videoEl = $("#id-video");
   const msg = $("#id-message");
@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         scanSection.classList.add("hidden");
         proceedCheckout();
       } else {
-        alert("❌ Sorry, we can’t sell tobacco products. You must be 21+.");
+        alert("❌ Sorry, you must be 21+.");
         scanSection.classList.add("hidden");
       }
     } catch (err) {
@@ -178,9 +178,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  checkoutBtn.addEventListener("click", () => {
+  checkoutBtn.addEventListener("click", async () => {
     if (cart.length === 0) return alert("Your cart is empty!");
-    startIDScan(); // 🔥 Require ID before checkout
+    startIDScan(); // 🔥 Scandit check before checkout
   });
 
   async function proceedCheckout() {
