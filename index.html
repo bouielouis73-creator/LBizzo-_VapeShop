@@ -6,11 +6,12 @@
   <title>LBizzo Vape Shop</title>
 
   <!-- ✅ PWA -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#ff8c00">
-  <link rel="apple-touch-icon" href="icons/icon-512.png">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#ff8c00" />
+  <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
@@ -26,7 +27,7 @@
   <!-- ✅ Scandit -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6/build/engine/scandit-web-datacapture-barcode.min.js"></script>
 
-  <!-- ✅ App -->
+  <!-- ✅ App script -->
   <script defer src="script.js"></script>
 </head>
 <body>
@@ -44,10 +45,13 @@
   <!-- 🏪 Header -->
   <header>
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <div class="row">
+      <button id="install-btn" class="ghost">Install</button>
+      <button id="cart-btn" class="primary">🛒 (<span id="cart-count">0</span>)</button>
+    </div>
   </header>
 
-  <!-- 🌟 Loyalty Stars -->
+  <!-- 🌟 Loyalty -->
   <div id="stars"></div>
 
   <!-- 🛍️ Products -->
@@ -65,12 +69,11 @@
   </section>
 
   <!-- 🔍 Scandit Scanner -->
-  <div id="scanner" hidden>
+  <section id="scanner" hidden>
     <video id="preview" autoplay playsinline muted></video>
     <button id="close-scan">Close</button>
-  </div>
+  </section>
 
-  <!-- 🧪 Debug -->
   <div id="debug"></div>
 </body>
 </html>
