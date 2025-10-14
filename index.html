@@ -22,15 +22,15 @@
   <!-- EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 
-  <!-- Scandit SDK (for ID verification) -->
+  <!-- Scandit SDK -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/scandit-sdk.min.js"></script>
 
-  <!-- Main App Script -->
+  <!-- Main App -->
   <script defer src="script.js"></script>
 </head>
 
 <body>
-  <!-- 🔒 AGE CHECK OVERLAY -->
+  <!-- AGE CHECK -->
   <div id="age-check" class="overlay">
     <div class="overlay-card">
       <h2>Are you 21 or older?</h2>
@@ -42,36 +42,30 @@
     </div>
   </div>
 
-  <!-- 🧡 TOPBAR -->
+  <!-- TOPBAR -->
   <div class="topbar">
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn" class="btn cart">🛒 Cart (<span id="cart-count">0</span>)</button>
   </div>
 
-  <!-- ⭐ LOYALTY STARS -->
+  <!-- LOYALTY STARS -->
   <section id="loyalty-stars">
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
-    <span class="star">★</span>
+    <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    <span class="star">★</span><span class="star">★</span><span class="star">★</span>
     <span class="progress-label">Buy 6 vapes, get 1 free!</span>
   </section>
 
-  <!-- 🛍️ PRODUCTS -->
+  <!-- PRODUCTS -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- 🧾 CART -->
+  <!-- CART -->
   <section id="cart" class="cart">
     <h2>Your Cart</h2>
     <ul id="cart-items"></ul>
-    <div style="margin-top:.5rem">
+    <div>
       <div>Total: <b>$<span id="cart-total">0.00</span></b></div>
       <button id="clearCart" class="btn">Clear Cart</button>
     </div>
-
-    <!-- Checkout Form -->
     <div class="form" style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;">
       <input id="custName" placeholder="Full name" autocomplete="name" />
       <input id="custPhone" placeholder="Phone" autocomplete="tel" />
@@ -81,27 +75,24 @@
     </div>
   </section>
 
-  <!-- 🆔 ID SCANNER -->
+  <!-- SCANNER -->
   <section id="scanner" class="scanner">
     <h3>Verify Your ID (Front &amp; Back)</h3>
     <video id="scanVideo" playsinline autoplay muted></video>
-
     <div class="scan-actions">
       <button id="startCamBtn" class="btn primary">Start Camera</button>
       <button id="stopCamBtn" class="btn">Stop</button>
     </div>
-
     <div class="scan-actions">
       <button id="snapFront" class="btn">Capture Front</button>
       <button id="clearFront" class="btn">Clear Front</button>
       <button id="snapBack" class="btn">Capture Back</button>
       <button id="clearBack" class="btn">Clear Back</button>
     </div>
-
     <div id="scanOut">Status: Not verified. Capture both sides to continue.</div>
   </section>
 
-  <!-- ⚙️ SETTINGS PANEL -->
+  <!-- SETTINGS -->
   <div id="settings" class="panel floating" style="display:none">
     <h4>Settings</h4>
     <p>Saved on this device only.</p>
@@ -112,7 +103,6 @@
     <button id="saveKeys" class="btn primary">Save</button>
   </div>
 
-  <!-- 🔧 DEBUG BAR -->
   <div id="debug"></div>
 </body>
 </html>
