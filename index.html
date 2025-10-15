@@ -9,67 +9,127 @@
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs -->
+  <!-- ✅ Firebase SDKs (compat) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ Scandit SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x"></script>
+  <!-- ✅ EmailJS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- ✅ Your App Files -->
-  <script defer src="firebase.js"></script>
+  <!-- ✅ App scripts -->
   <script defer src="script.js"></script>
+
+  <style>
+    /* Minimal helpers so the new pieces show nicely even if your CSS is different */
+    :root { --orange:#ff8c00; --bg:#0b0b0b; --card:#141414; --text:#eaeaea; --muted:#888; }
+    body{background:#000;color:#fff;font-family:system-ui, Arial, sans-serif;margin:0}
+    header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111;border-bottom:1px solid #222}
+    #product-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:12px}
+    .product{background:#141414;border:1px solid #222;border-radius:10px;padding:10px;text-align:center}
+    .product img{width:100%;height:120px;object-fit:cover;border-radius:8px;background:#0b0b0b}
+    .add-btn{width:100%;padding:8px 10px;margin-top:8px;border-radius:8px;border:0;background:var(--orange);color:#000;font-weight:700}
+    #cart-btn{position:relative;background:var(--orange);color:#000;border:0;border-radius:20px;padding:8px 12px;font-weight:800}
+    #cart-count{position:absolute;top:-6px;right:-6px;background:#000;color:var(--orange);border:2px solid var(--orange);border-radius:999px;min-width:22px;text-align:center;font-size:12px;padding:2px 5px}
+    #cart{position:fixed;inset:0;background:#000c;display:none;place-items:center;padding:12px}
+    #cart .panel{background:#111;border:1px solid #222;color:#fff;border-radius:14px;max-width:520px;width:100%;padding:12px}
+    #cart-items{max-height:40vh;overflow:auto;margin:8px 0}
+    .row{display:flex;gap:8px;align-items:center;justify-content:space-between;border-bottom:1px dashed #222;padding:6px 0}
+    .ghost{opacity:.35}
+    .danger{background:#300;color:#fff}
+    .muted{color:#aaa}
+    .glow{animation:glow 1.1s ease-in-out infinite alternate}
+    @keyframes glow { from { box-shadow:0 0 0px var(--orange);} to { box-shadow:0 0 14px var(--orange);} }
+    .arrow{display:block;margin:6px auto 10px auto;font-weight:800;color:var(--orange);text-align:center}
+    #age-check{position:fixed;inset:0;background:#000;display:none;place-items:center;z-index:9999}
+    #age-check .box{background:#111;border:1px solid #222;padding:18px 16px;border-radius:12px;text-align:center;max-width:360px}
+    .btn{padding:10px 14px;border-radius:10px;border:0;font-weight:800}
+    .btn-primary{background:var(--orange);color:#000}
+    .btn-outline{background:transparent;border:2px solid var(--orange);color:var(--orange)}
+    .small{font-size:12px;color:#aaa}
+    .stars{display:flex;gap:6px;align-items:center}
+    .star{font-size:18px}
+  </style>
 </head>
 <body>
 
-  <!-- ✅ Age Check -->
-  <div id="age-check">
-    <div class="age-content">
-      <h2>Are you 21 or older?</h2>
-      <button id="yesBtn">Yes</button>
-      <button id="noBtn">No</button>
-    </div>
-  </div>
-
-  <!-- ✅ Header -->
   <header>
-    <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <strong>LBizzo Vape Shop</strong>
+    <button id="cart-btn">
+      Cart <span id="cart-count">0</span>
+    </button>
   </header>
 
-  <!-- ✅ Product List -->
-  <main id="product-list" class="product-grid"></main>
+  <!-- Loyalty -->
+  <div style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between">
+    <div class="stars"><span>⭐</span><span class="star" id="star1">☆</span><span class="star" id="star2">☆</span><span class="star" id="star3">☆</span><span class="star" id="star4">☆</span><span class="star" id="star5">☆</span><span class="star" id="star6">☆</span></div>
+    <div class="small">Free vape at 6 ⭐</div>
+  </div>
 
-  <!-- ✅ Cart Section -->
-  <section id="cart" class="cart hidden">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="total">Total: $0.00</p>
-    <button id="checkout-btn" class="checkout-btn">Checkout</button>
-    <button id="close-cart" class="close-cart">Close</button>
-  </section>
+  <!-- Products -->
+  <main id="product-list"></main>
 
-  <!-- ✅ ID Scan Overlay -->
-  <section id="id-scan-section" class="hidden">
-    <div class="age-content">
-      <h2>🆔 Verify ID Before Checkout</h2>
-      <video id="id-video" autoplay playsinline></video>
-      <p id="id-message">Hold your ID steady...</p>
-      <button id="id-cancel">Cancel</button>
+  <!-- Cart -->
+  <section id="cart">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="margin:6px 0;">Your Cart</h3>
+        <button id="close-cart" class="btn btn-outline">Close</button>
+      </div>
+
+      <div id="cart-items"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div>Total:</div>
+        <strong id="total">$0.00</strong>
+      </div>
+
+      <!-- ✅ ID photo capture must be completed before Checkout is enabled -->
+      <div id="id-photo-box" style="margin-top:12px;border:1px dashed #333;border-radius:10px;padding:10px">
+        <div class="arrow glow">⬇ Scan / Capture Your ID (Front & Back) ⬇</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="small">Front of ID</label>
+            <input id="front-input" type="file" accept="image/*" capture="environment" />
+            <img id="front-preview" alt="" style="width:100%;margin-top:6px;border-radius:8px;display:none" />
+          </div>
+          <div>
+            <label class="small">Back of ID</label>
+            <input id="back-input" type="file" accept="image/*" capture="environment" />
+            <img id="back-preview" alt="" style="width:100%;margin-top:6px;border-radius:8px;display:none" />
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button id="verify-id-btn" class="btn btn-outline" disabled>Verify ID</button>
+          <span id="verify-status" class="small muted">Add both images to enable verification.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:12px;">
+        <button id="keep-shopping" class="btn btn-outline">Keep Shopping</button>
+        <button id="checkout-btn" class="btn btn-primary" disabled>Checkout</button>
+      </div>
+
+      <div id="debug" class="small muted" style="margin-top:8px;display:none"></div>
     </div>
   </section>
-<!-- ✅ ID Scanner (hidden until checkout) -->
-<section id="id-scan-section" class="hidden">
-  <div id="id-overlay">
-    <video id="id-video" autoplay playsinline></video>
-    <p id="id-message">Hold your ID steady...</p>
-    <button id="id-cancel">Cancel</button>
-  </div>
-</section>
+
+  <!-- Age Gate -->
+  <section id="age-check">
+    <div class="box">
+      <h2>Are you 21 or older?</h2>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="yesBtn" class="btn btn-primary">Yes</button>
+        <button id="noBtn" class="btn btn-outline">No</button>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
