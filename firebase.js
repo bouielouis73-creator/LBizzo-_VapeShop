@@ -12,8 +12,6 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
   console.log("✅ Firebase initialized for LBizzo Vape Shop");
-} else {
-  console.log("⚠️ Firebase already initialized — skipping duplicate init");
 }
 
 const db = firebase.firestore();
