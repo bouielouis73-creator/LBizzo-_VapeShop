@@ -1,207 +1,343 @@
-// script.js — LBizzo Vape Shop (Full Fixed Version)
+// -------------------- CONFIG (edit these) --------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+  authDomain: "lbizzodelivery.firebaseapp.com",
+  projectId: "lbizzodelivery",
+  storageBucket: "lbizzodelivery.firebasestorage.app",
+  messagingSenderId: "614540837455",
+  appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
+};
+
+// EmailJS (replace with your real keys)
+const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
+const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
+const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
+
+// Firestore collection & Storage folder for product images
+const PRODUCTS_COLLECTION = "products"; // Firestore collection
+// In Storage, image paths should look like "products/whatever.jpg"
+const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
+  `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
+     <rect width='100%' height='100%' fill='#0b0b0b'/>
+     <text x='50%' y='50%' fill='#ff8c00' text-anchor='middle' font-size='20' font-family='Arial'>No Image</text>
+   </svg>`
+);
+
+// -------------------- INIT --------------------
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
 
-  console.log("✅ LBizzo Vape Shop initialized...");
+  console.log("✅ LBizzo Vape Shop running...");
 
-  // ---------- HELPERS ----------
+  // Helpers
   const $ = (s, r = document) => r.querySelector(s);
-  const on = (el, evts, fn, opts) => {
-    if (!el) return;
-    evts.split(" ").forEach(e =>
-      el.addEventListener(e, fn, opts || { passive: false })
-    );
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const debugBar = $("#debug");
+  const debug = (msg, ok = false) => {
+    if (!debugBar) return;
+    debugBar.style.display = "block";
+    debugBar.textContent = msg;
+    debugBar.style.color = ok ? "#7fffb3" : "#ff8888";
   };
-  const toast = (msg) => {
-    const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
-    t.textContent = msg;
-    Object.assign(t.style, {
-      position: "fixed",
-      left: "50%",
-      transform: "translateX(-50%)",
-      bottom: "20px",
-      background: "#111",
-      color: "#fff",
-      border: "1px solid #ff8c00",
-      borderRadius: "8px",
-      padding: "10px 14px",
-      zIndex: "9999",
-    });
-    clearTimeout(t._hide);
-    t._hide = setTimeout(() => t.remove(), 2200);
-  };
+  const fmt = n => `$${(Number(n)||0).toFixed(2)}`;
 
-  // ---------- AGE VERIFICATION ----------
-  const overlay = $("#age-check");
-  const yesBtn = $("#yesBtn");
-  const noBtn = $("#noBtn");
-
-  if (overlay && yesBtn && noBtn) {
-    overlay.style.display = "grid";
-    overlay.style.zIndex = "9999";
-    document.body.style.overflow = "hidden";
-
-    const allow = (e) => {
-      e.preventDefault();
-      overlay.style.display = "none";
-      document.body.style.overflow = "auto";
-      toast("✅ Age verified");
-    };
-
-    const deny = (e) => {
-      e.preventDefault();
-      alert("Sorry, you must be 21+ to enter.");
-      location.href = "https://google.com";
-    };
-
-    ["click", "touchstart"].forEach((ev) => {
-      yesBtn.addEventListener(ev, allow, { passive: false });
-      noBtn.addEventListener(ev, deny, { passive: false });
-    });
-  }
-
-  // ---------- FIREBASE ----------
-  if (!firebase.apps.length) {
-    const firebaseConfig = {
-      apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
-      authDomain: "lbizzodelivery.firebaseapp.com",
-      projectId: "lbizzodelivery",
-      storageBucket: "lbizzodelivery.firebasestorage.app",
-      messagingSenderId: "614540837455",
-      appId: "1:614540837455:web:42709d7b585bbdc2b8203a"
-    };
-    firebase.initializeApp(firebaseConfig);
-  }
+  // Boot Firebase (compat)
+  firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const storage = firebase.storage();
 
-  // ---------- ELEMENTS ----------
-  const productList = $("#product-list");
-  const cartBtn = $("#cart-btn");
-  const closeCart = $("#close-cart");
-  const cartSection = $("#cart");
-  const cartItems = $("#cart-items");
-  const cartCount = $("#cart-count");
-  const totalEl = $("#total");
-  const checkoutBtn = $("#checkout-btn");
-  const scanBtn = $("#start-scan");
-
-  // ---------- PRODUCTS ----------
-  const PLACEHOLDER_IMG = "data:image/svg+xml," + encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200'><rect width='100%' height='100%' fill='#0b0b0b'/><text x='50%' y='50%' fill='#ff8c00' font-size='18' text-anchor='middle'>No Image</text></svg>"
-  );
-
-  async function getImageURL(path) {
-    try { return await storage.ref(path).getDownloadURL(); }
-    catch { return PLACEHOLDER_IMG; }
+  // EmailJS
+  if (window.emailjs) {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
   }
 
-  async function addCard(p) {
-    const price = Number(p.price) || 0;
-    const img = p.image ? await getImageURL(p.image) : PLACEHOLDER_IMG;
+  // Sound (WebAudio beep, works on iOS after first user gesture)
+  let audioCtx = null;
+  function beep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "square"; o.frequency.value = 880;
+      g.gain.value = 0.03;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); setTimeout(()=>o.stop(), 110);
+    } catch {}
+  }
+
+  // ---------- ELEMENTS ----------
+  const overlay = $("#age-check");
+  const yes = $("#yesBtn");
+  const no = $("#noBtn");
+  const productList = $("#product-list");
+  const cartBtn = $("#cart-btn");
+  const cartCount = $("#cart-count");
+  const cartSection = $("#cart");
+  const cartItems = $("#cart-items");
+  const totalEl = $("#total");
+  const closeCart = $("#close-cart");
+  const checkoutBtn = $("#checkout-btn");
+  const keepShopping = $("#keep-shopping");
+
+  // ID flow elements
+  const frontInput = $("#front-input");
+  const backInput  = $("#back-input");
+  const frontPreview = $("#front-preview");
+  const backPreview  = $("#back-preview");
+  const verifyBtn = $("#verify-id-btn");
+  const verifyStatus = $("#verify-status");
+  const idBox = $("#id-photo-box");
+
+  // ---------- AGE VERIFICATION ----------
+  if (overlay && yes && no) {
+    overlay.style.display = "grid";
+    const allow = (e) => {
+      e.preventDefault();
+      overlay.style.display = "none";
+    };
+    const deny = (e) => {
+      e.preventDefault();
+      alert("Sorry, you must be 21+ to enter.");
+      window.location.href = "https://google.com";
+    };
+    ["click", "touchstart"].forEach(evt => {
+      yes.addEventListener(evt, allow, { passive: false });
+      no.addEventListener(evt, deny, { passive: false });
+    });
+  }
+
+  // ---------- CART STATE ----------
+  const cart = {
+    items: [], // {id, name, price, image, qty}
+    add(p) {
+      const found = this.items.find(i => i.id === p.id);
+      if (found) found.qty += 1; else this.items.push({ ...p, qty: 1 });
+      this.render();
+      beep();
+    },
+    remove(id) {
+      const i = this.items.find(x => x.id === id);
+      if (!i) return;
+      i.qty -= 1;
+      if (i.qty <= 0) this.items = this.items.filter(x => x.id !== id);
+      this.render();
+    },
+    total() {
+      return this.items.reduce((a, b) => a + (Number(b.price)||0) * b.qty, 0);
+    },
+    render() {
+      cartItems.innerHTML = "";
+      this.items.forEach(item => {
+        const row = document.createElement("div");
+        row.className = "row";
+        row.innerHTML = `
+          <div style="display:flex;align-items:center;gap:8px">
+            <img src="${item.image || PLACEHOLDER_IMG}" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:8px;background:#000"/>
+            <div>
+              <div>${item.name}</div>
+              <div class="small muted">${fmt(item.price)} × ${item.qty}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn danger" data-dec="${item.id}">−</button>
+            <button class="btn btn-primary" data-inc="${item.id}">＋</button>
+          </div>
+        `;
+        cartItems.appendChild(row);
+      });
+      totalEl.textContent = fmt(this.total());
+      cartCount.textContent = String(this.items.reduce((a,b)=>a+b.qty,0));
+      // Disable checkout until ID verified AND cart has items
+      refreshCheckoutAvailability();
+      // Wire inc/dec
+      $$("#cart-items [data-dec]").forEach(btn => btn.addEventListener("click", () => cart.remove(btn.dataset.dec)));
+      $$("#cart-items [data-inc]").forEach(btn => btn.addEventListener("click", () => cart.add(cart.items.find(i=>i.id===btn.dataset.inc))));
+    }
+  };
+
+  // ---------- UI WIRING ----------
+  cartBtn.addEventListener("click", () => { cartSection.style.display = "grid"; });
+  closeCart.addEventListener("click", () => { cartSection.style.display = "none"; });
+  keepShopping.addEventListener("click", () => { cartSection.style.display = "none"; });
+
+  // ---------- PRODUCTS ----------
+  async function getImageURL(path) {
+    try {
+      return await storage.ref().child(path).getDownloadURL();
+    } catch (e) {
+      console.warn("Image missing:", path, e);
+      return null;
+    }
+  }
+
+  async function addCard(doc) {
+    const p = doc.data();
+    const id = doc.id;
+    const priceNum = Number(p.price) || 0;
+    const imgURL = p.image ? await getImageURL(p.image) : null;
+
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
-      <img src="${img}" alt="${p.name}">
-      <h3>${p.name}</h3>
-      <p>$${price.toFixed(2)}</p>
-      <button class="add-btn">Add to Cart</button>`;
-    on(card.querySelector(".add-btn"), "click touchstart", () => addToCart({ id: p.id, name: p.name, price, image: img }));
+      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <h3>${p.name || "Unnamed"}</h3>
+      <p>${fmt(priceNum)}</p>
+      <button class="add-btn">Add to Cart</button>
+    `;
     productList.appendChild(card);
+
+    const productObj = { id, name: p.name || "Unnamed", price: priceNum, image: imgURL };
+    card.querySelector(".add-btn").addEventListener("click", () => cart.add(productObj));
   }
 
   async function loadProducts() {
-    const snap = await db.collection("products").get();
-    if (snap.empty) {
-      productList.innerHTML = "<p style='color:#ccc'>No products found.</p>";
-    } else {
-      snap.forEach(doc => addCard({ id: doc.id, ...doc.data() }));
-    }
-  }
-
-  // ---------- CART ----------
-  let cart = JSON.parse(localStorage.getItem("lb_cart") || "[]");
-  let idVerified = false;
-
-  const saveCart = () => localStorage.setItem("lb_cart", JSON.stringify(cart));
-
-  const renderCart = () => {
-    cartCount.textContent = cart.reduce((a, c) => a + c.qty, 0);
-    cartItems.innerHTML = "";
-    let total = 0;
-    for (const i of cart) {
-      total += i.price * i.qty;
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <div class="row">
-          <strong>${i.name}</strong>
-          <div>$${(i.price * i.qty).toFixed(2)}</div>
-          <div>
-            <button class="minus">−</button>
-            <span>${i.qty}</span>
-            <button class="plus">+</button>
-            <button class="remove">x</button>
-          </div>
-        </div>`;
-      on(li.querySelector(".plus"), "click touchstart", () => { i.qty++; saveCart(); renderCart(); });
-      on(li.querySelector(".minus"), "click touchstart", () => { i.qty = Math.max(1, i.qty - 1); saveCart(); renderCart(); });
-      on(li.querySelector(".remove"), "click touchstart", () => { cart = cart.filter(c => c.id !== i.id); saveCart(); renderCart(); });
-      cartItems.appendChild(li);
-    }
-    totalEl.textContent = "$" + total.toFixed(2);
-  };
-
-  const addToCart = (item) => {
-    const found = cart.find(c => c.id === item.id);
-    found ? found.qty++ : cart.push({ ...item, qty: 1 });
-    saveCart(); renderCart(); toast("Added to cart");
-  };
-
-  on(cartBtn, "click touchstart", () => (cartSection.hidden = false));
-  on(closeCart, "click touchstart", () => (cartSection.hidden = true));
-
-  // ---------- SCANDIT ID VERIFICATION ----------
-  async function startIDScan() {
+    productList.innerHTML = "";
     try {
-      await ScanditSDK.configure(window.SCANDIT_LICENSE, {
-        engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/"
-      });
-      const picker = await ScanditSDK.BarcodePicker.create(document.body, {
-        playSoundOnScan: true,
-        vibrateOnScan: true
-      });
-      const settings = new ScanditSDK.ScanSettings({ enabledSymbologies: ["pdf417"] });
-      await picker.applyScanSettings(settings);
-      picker.onScan(result => {
-        if (result.barcodes.length) {
-          idVerified = true;
-          checkoutBtn.disabled = false;
-          toast("✅ ID Verified");
-          picker.destroy();
+      const snap = await db.collection(PRODUCTS_COLLECTION).orderBy("name").get();
+      if (snap.empty) {
+        // show placeholders if empty
+        for (let i=1;i<=12;i++){
+          const fake = document.createElement("div");
+          fake.className = "product ghost";
+          fake.innerHTML = `
+            <img src="${PLACEHOLDER_IMG}" />
+            <h3>Product #${i}</h3>
+            <p>${fmt(9.99)}</p>
+            <button class="add-btn" disabled>Add to Cart</button>
+          `;
+          productList.appendChild(fake);
         }
-      });
+        debug("No Firestore products found in 'products' collection.", false);
+        return;
+      }
+      snap.forEach(addCard);
     } catch (e) {
       console.error(e);
-      alert("Camera access failed. Check permissions or Scandit key.");
+      debug("Failed to load products. Check Firestore rules & collection name 'products'.", false);
     }
   }
-  on(scanBtn, "click touchstart", e => { e.preventDefault(); startIDScan(); });
 
-  // ---------- CHECKOUT ----------
-  on(checkoutBtn, "click touchstart", async (e) => {
-    if (!idVerified) {
-      e.preventDefault();
-      toast("Please scan your ID first");
-      return startIDScan();
+  await loadProducts();
+
+  // ---------- LOYALTY (very simple demo) ----------
+  const stars = [$("#star1"),$("#star2"),$("#star3"),$("#star4"),$("#star5"),$("#star6")];
+  function setStars(n){
+    stars.forEach((s,i)=> s.textContent = (i < n) ? "⭐" : "☆");
+  }
+  let earned = Number(localStorage.getItem("lb_stars")||0);
+  setStars(earned);
+
+  // ---------- ID PHOTO CAPTURE + VERIFY ----------
+  let frontBase64 = null;
+  let backBase64  = null;
+  let idVerified  = false;
+  function refreshCheckoutAvailability(){
+    checkoutBtn.disabled = !(idVerified && cart.items.length>0);
+  }
+  function updateVerifyButtonState(){
+    verifyBtn.disabled = !(frontBase64 && backBase64);
+    verifyStatus.textContent = verifyBtn.disabled
+      ? "Add both images to enable verification."
+      : "Ready to verify. We’ll securely check your ID.";
+  }
+  async function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+  async function handleFile(inputEl, previewEl, setter) {
+    const f = inputEl.files && inputEl.files[0];
+    if (!f) return;
+    const b64 = await fileToBase64(f);
+    setter(b64);
+    previewEl.src = b64;
+    previewEl.style.display = "block";
+    updateVerifyButtonState();
+  }
+  frontInput.addEventListener("change", ()=>handleFile(frontInput, frontPreview, v=>frontBase64=v));
+  backInput.addEventListener("change",  ()=>handleFile(backInput,  backPreview,  v=>backBase64=v));
+
+  verifyBtn.addEventListener("click", async () => {
+    verifyBtn.disabled = true;
+    verifyStatus.textContent = "Verifying your ID…";
+    idBox.classList.remove("glow");
+
+    try {
+      const resp = await fetch("/.netlify/functions/verify-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ front: frontBase64, back: backBase64 })
+      });
+
+      if (!resp.ok) throw new Error(`Server responded ${resp.status}`);
+      const data = await resp.json();
+
+      if (data && data.verified) {
+        idVerified = true;
+        verifyStatus.textContent = `✅ Verified: ${data.name || "ID ok"} (DOB ${data.dob || "—"})`;
+        checkoutBtn.disabled = cart.items.length === 0 ? true : false;
+        idBox.classList.remove("glow");
+        beep();
+      } else {
+        idVerified = false;
+        verifyStatus.textContent = `❌ Couldn’t verify ID. ${data && data.message ? data.message : ""}`;
+        idBox.classList.add("glow");
+      }
+    } catch (e) {
+      console.error(e);
+      idVerified = false;
+      verifyStatus.textContent = "❌ Verification service unavailable. Try again.";
+      idBox.classList.add("glow");
+    } finally {
+      verifyBtn.disabled = !(frontBase64 && backBase64);
+      refreshCheckoutAvailability();
     }
-    toast("✅ Checkout ready — processing order...");
-    // Add your EmailJS or Square checkout here
   });
 
-  // ---------- INIT ----------
-  await loadProducts();
-  renderCart();
-  checkoutBtn.disabled = true;
-  console.log("🚀 All buttons working, age verified, Scandit active.");
+  // Keep the box glowing until verified
+  idBox.classList.add("glow");
+
+  // ---------- CHECKOUT ----------
+  checkoutBtn.addEventListener("click", async () => {
+    if (!idVerified) {
+      alert("Please verify your ID before checkout.");
+      return;
+    }
+    if (!cart.items.length) return;
+
+    // Send order via EmailJS
+    const itemsText = cart.items.map(i => `${i.name} x${i.qty} — ${fmt(i.price*i.qty)}`).join("\n");
+    const payload = {
+      name: "LBizzo Customer",
+      phone: "(unknown)",
+      address: "(pickup or delivery addr)",
+      items: itemsText,
+      total: fmt(cart.total())
+    };
+
+    try {
+      if (!window.emailjs) throw new Error("EmailJS not loaded");
+      const r = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
+      console.log("EmailJS result:", r);
+      alert("Order placed! Check your email.");
+      // Earn a star
+      earned = Math.min(6, earned + 1);
+      localStorage.setItem("lb_stars", String(earned));
+      setStars(earned);
+      // Clear cart
+      cart.items = [];
+      cart.render();
+      cartSection.style.display = "none";
+    } catch (e) {
+      console.error(e);
+      alert("Could not send order email. Please try again.");
+    }
+  });
+
+  // Initial render
+  cart.render();
 });
