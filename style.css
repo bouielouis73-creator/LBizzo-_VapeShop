@@ -1,232 +1,116 @@
-/* -------------------- LBizzo Vape Shop Styles -------------------- */
 :root {
   --orange: #ff8c00;
   --bg: #000;
-  --card: #111;
+  --card: #141414;
   --text: #fff;
-  --muted: #999;
 }
 
-/* ---------- Base ---------- */
 body {
   margin: 0;
-  font-family: "Arial", sans-serif;
+  font-family: Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
 }
 
-/* ---------- Header ---------- */
 header {
-  background: #0a0a0a;
-  color: var(--orange);
+  background: #111;
+  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 18px;
-  font-size: 1.1em;
-  font-weight: bold;
-  border-bottom: 2px solid var(--orange);
+  padding: 12px 18px;
 }
 
 #cart-btn {
   background: var(--orange);
-  color: #000;
+  color: black;
   border: none;
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: bold;
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-
-#cart-btn:hover {
-  transform: scale(1.1);
 }
 
 #cart-count {
-  background: #000;
+  background: black;
   color: var(--orange);
-  padding: 3px 8px;
+  padding: 3px 7px;
   border-radius: 50%;
-  font-size: 0.9em;
   margin-left: 4px;
 }
 
-/* ---------- Loyalty Stars ---------- */
-#loyalty {
-  text-align: center;
-  margin: 10px 0;
-  font-size: 18px;
-}
-
-#stars {
-  font-size: 22px;
-  color: var(--orange);
-  margin-bottom: 4px;
-}
-
-/* ---------- Products Grid ---------- */
 #product-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
   padding: 12px;
 }
 
 .product {
   background: var(--card);
-  border: 1px solid #222;
-  border-radius: 12px;
+  padding: 10px;
+  border-radius: 10px;
   text-align: center;
-  padding: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.product:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 0 10px var(--orange);
-}
-
-/* ✅ Square image cards */
+/* ✅ fixed square image size */
 .product img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1;  /* makes every product image perfectly square */
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #000;
 }
 
-/* ---------- Product Info ---------- */
-.product h3 {
-  color: var(--orange);
-  font-size: 1em;
-  margin: 10px 0 6px;
-}
-
-.product p {
-  margin: 0;
-  color: var(--text);
-  font-weight: bold;
-}
-
-/* ---------- Add Button ---------- */
-.add-btn {
-  margin-top: 10px;
+button.add-btn {
   background: var(--orange);
-  color: #000;
   border: none;
-  padding: 8px 14px;
+  padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
+  color: black;
   font-weight: bold;
-  transition: transform 0.15s ease, background 0.15s ease;
+  margin-top: 8px;
 }
 
-.add-btn:hover {
-  background: #ffa733;
-  transform: scale(1.05);
-}
-
-/* ---------- Cart Section ---------- */
 #cart {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.95);
-  color: var(--text);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000c;
+  color: white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  z-index: 9999;
 }
 
 .hidden {
-  display: none !important;
+  display: none;
 }
 
-#cart h2 {
-  color: var(--orange);
-  margin-bottom: 16px;
-}
-
-#cart-items {
-  width: 90%;
-  max-height: 50vh;
-  overflow-y: auto;
-  margin-bottom: 20px;
-}
-
-.cart-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #1a1a1a;
-  border-radius: 8px;
-  padding: 8px;
-  margin: 6px 0;
-}
-
-.cart-item img {
-  width: 50px;
-  height: 50px;
-  border-radius: 6px;
-  object-fit: cover;
-}
-
-#total {
-  color: var(--orange);
-  font-size: 1.2em;
-}
-
-#checkout-btn,
-#close-cart {
-  background: var(--orange);
-  color: #000;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  margin-top: 10px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-#checkout-btn:hover,
-#close-cart:hover {
-  background: #ffa733;
-}
-
-/* ---------- Age Verification Overlay ---------- */
-.overlay {
+#age-check {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
+  background: #000e;
   display: none;
   place-items: center;
-  z-index: 99999;
 }
 
 .modal {
-  background: #141414;
-  padding: 25px;
+  background: var(--card);
+  padding: 20px;
   border-radius: 10px;
   text-align: center;
-  color: var(--text);
-  border: 2px solid var(--orange);
+  color: white;
 }
 
-.modal h2 {
-  color: var(--orange);
-  margin-bottom: 16px;
+#loyalty {
+  text-align: center;
+  margin: 10px;
 }
 
-.modal .btns button {
-  margin: 6px;
-  background: var(--orange);
-  border: none;
-  padding: 8px 16px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: bold;
+#stars {
+  font-size: 22px;
 }
