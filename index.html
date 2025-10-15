@@ -22,11 +22,13 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- ✅ App scripts -->
+  <!-- ✅ Your Firebase Config (must load before main app) -->
+  <script defer src="firebase.js"></script>
+
+  <!-- ✅ Main App Script -->
   <script defer src="script.js"></script>
 
   <style>
-    /* Minimal helpers so the new pieces show nicely even if your CSS is different */
     :root { --orange:#ff8c00; --bg:#0b0b0b; --card:#141414; --text:#eaeaea; --muted:#888; }
     body{background:#000;color:#fff;font-family:system-ui, Arial, sans-serif;margin:0}
     header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#111;border-bottom:1px solid #222}
@@ -56,8 +58,8 @@
     .star{font-size:18px}
   </style>
 </head>
-<body>
 
+<body>
   <header>
     <strong>LBizzo Vape Shop</strong>
     <button id="cart-btn">
@@ -106,13 +108,13 @@
           </div>
         </div>
 
-        <div style="display:flex;gap:8px;margin-top:10px">
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button id="verify-id-btn" class="btn btn-outline" disabled>Verify ID</button>
           <span id="verify-status" class="small muted">Add both images to enable verification.</span>
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:12px;">
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
         <button id="keep-shopping" class="btn btn-outline">Keep Shopping</button>
         <button id="checkout-btn" class="btn btn-primary" disabled>Checkout</button>
       </div>
