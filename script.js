@@ -1,4 +1,4 @@
-// -------------------- CONFIG (edit these) --------------------
+// -------------------- CONFIG --------------------
 const firebaseConfig = {
   apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
   authDomain: "lbizzodelivery.firebaseapp.com",
@@ -13,9 +13,11 @@ const EMAILJS_SERVICE_ID = "YOUR_SERVICE_ID";
 const EMAILJS_TEMPLATE_ID = "YOUR_TEMPLATE_ID";
 const EMAILJS_PUBLIC_KEY = "YOUR_PUBLIC_KEY";
 
-// Firestore collection & Storage folder for product images
-const PRODUCTS_COLLECTION = "products"; // Firestore collection
-// In Storage, image paths should look like "products/whatever.jpg"
+// Square checkout link (change this to your real Square checkout URL)
+const SQUARE_CHECKOUT_URL = "https://square.link/u/YOUR_CHECKOUT_LINK";
+
+// Firestore collection & Storage folder
+const PRODUCTS_COLLECTION = "products";
 const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
   `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
      <rect width='100%' height='100%' fill='#0b0b0b'/>
@@ -33,6 +35,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   // Helpers
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const fmt = n => `$${(Number(n)||0).toFixed(2)}`;
+
   const debugBar = $("#debug");
   const debug = (msg, ok = false) => {
     if (!debugBar) return;
@@ -40,29 +44,29 @@ document.addEventListener("DOMContentLoaded", async () => {
     debugBar.textContent = msg;
     debugBar.style.color = ok ? "#7fffb3" : "#ff8888";
   };
-  const fmt = n => `$${(Number(n)||0).toFixed(2)}`;
 
-  // Boot Firebase (compat)
+  // Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.firestore();
   const storage = firebase.storage();
 
   // EmailJS
-  if (window.emailjs) {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-  }
+  if (window.emailjs) emailjs.init(EMAILJS_PUBLIC_KEY);
 
-  // Sound (WebAudio beep, works on iOS after first user gesture)
+  // Simple beep sound
   let audioCtx = null;
   function beep() {
     try {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const o = audioCtx.createOscillator();
       const g = audioCtx.createGain();
-      o.type = "square"; o.frequency.value = 880;
+      o.type = "square";
+      o.frequency.value = 880;
       g.gain.value = 0.03;
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); setTimeout(()=>o.stop(), 110);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start();
+      setTimeout(() => o.stop(), 120);
     } catch {}
   }
 
@@ -80,7 +84,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const checkoutBtn = $("#checkout-btn");
   const keepShopping = $("#keep-shopping");
 
-  // ID flow elements
+  // ID elements
   const frontInput = $("#front-input");
   const backInput  = $("#back-input");
   const frontPreview = $("#front-preview");
@@ -89,27 +93,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   const verifyStatus = $("#verify-status");
   const idBox = $("#id-photo-box");
 
-  // ---------- AGE VERIFICATION ----------
+  // ---------- AGE GATE ----------
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    const allow = (e) => {
-      e.preventDefault();
-      overlay.style.display = "none";
-    };
-    const deny = (e) => {
-      e.preventDefault();
-      alert("Sorry, you must be 21+ to enter.");
-      window.location.href = "https://google.com";
-    };
-    ["click", "touchstart"].forEach(evt => {
-      yes.addEventListener(evt, allow, { passive: false });
-      no.addEventListener(evt, deny, { passive: false });
+    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
+    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); window.location.href = "https://google.com"; };
+    ["click","touchstart"].forEach(evt=>{
+      yes.addEventListener(evt,allow,{passive:false});
+      no.addEventListener(evt,deny,{passive:false});
     });
   }
 
-  // ---------- CART STATE ----------
+  // ---------- CART ----------
   const cart = {
-    items: [], // {id, name, price, image, qty}
+    items: [],
     add(p) {
       const found = this.items.find(i => i.id === p.id);
       if (found) found.qty += 1; else this.items.push({ ...p, qty: 1 });
@@ -148,27 +145,21 @@ document.addEventListener("DOMContentLoaded", async () => {
       });
       totalEl.textContent = fmt(this.total());
       cartCount.textContent = String(this.items.reduce((a,b)=>a+b.qty,0));
-      // Disable checkout until ID verified AND cart has items
       refreshCheckoutAvailability();
-      // Wire inc/dec
       $$("#cart-items [data-dec]").forEach(btn => btn.addEventListener("click", () => cart.remove(btn.dataset.dec)));
       $$("#cart-items [data-inc]").forEach(btn => btn.addEventListener("click", () => cart.add(cart.items.find(i=>i.id===btn.dataset.inc))));
     }
   };
 
-  // ---------- UI WIRING ----------
+  // ---------- UI ----------
   cartBtn.addEventListener("click", () => { cartSection.style.display = "grid"; });
   closeCart.addEventListener("click", () => { cartSection.style.display = "none"; });
   keepShopping.addEventListener("click", () => { cartSection.style.display = "none"; });
 
   // ---------- PRODUCTS ----------
   async function getImageURL(path) {
-    try {
-      return await storage.ref().child(path).getDownloadURL();
-    } catch (e) {
-      console.warn("Image missing:", path, e);
-      return null;
-    }
+    try { return await storage.ref().child(path).getDownloadURL(); }
+    catch { return null; }
   }
 
   async function addCard(doc) {
@@ -176,7 +167,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const id = doc.id;
     const priceNum = Number(p.price) || 0;
     const imgURL = p.image ? await getImageURL(p.image) : null;
-
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
@@ -186,7 +176,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       <button class="add-btn">Add to Cart</button>
     `;
     productList.appendChild(card);
-
     const productObj = { id, name: p.name || "Unnamed", price: priceNum, image: imgURL };
     card.querySelector(".add-btn").addEventListener("click", () => cart.add(productObj));
   }
@@ -196,7 +185,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       const snap = await db.collection(PRODUCTS_COLLECTION).orderBy("name").get();
       if (snap.empty) {
-        // show placeholders if empty
         for (let i=1;i<=12;i++){
           const fake = document.createElement("div");
           fake.className = "product ghost";
@@ -204,8 +192,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             <img src="${PLACEHOLDER_IMG}" />
             <h3>Product #${i}</h3>
             <p>${fmt(9.99)}</p>
-            <button class="add-btn" disabled>Add to Cart</button>
-          `;
+            <button class="add-btn" disabled>Add to Cart</button>`;
           productList.appendChild(fake);
         }
         debug("No Firestore products found in 'products' collection.", false);
@@ -214,130 +201,127 @@ document.addEventListener("DOMContentLoaded", async () => {
       snap.forEach(addCard);
     } catch (e) {
       console.error(e);
-      debug("Failed to load products. Check Firestore rules & collection name 'products'.", false);
+      debug("Failed to load products. Check Firestore rules.", false);
     }
   }
-
   await loadProducts();
 
-  // ---------- LOYALTY (very simple demo) ----------
+  // ---------- LOYALTY ----------
   const stars = [$("#star1"),$("#star2"),$("#star3"),$("#star4"),$("#star5"),$("#star6")];
-  function setStars(n){
-    stars.forEach((s,i)=> s.textContent = (i < n) ? "⭐" : "☆");
-  }
+  function setStars(n){ stars.forEach((s,i)=> s.textContent = (i<n) ? "⭐" : "☆"); }
   let earned = Number(localStorage.getItem("lb_stars")||0);
   setStars(earned);
 
-  // ---------- ID PHOTO CAPTURE + VERIFY ----------
+  // ---------- ID PHOTO FLOW ----------
   let frontBase64 = null;
   let backBase64  = null;
   let idVerified  = false;
+
   function refreshCheckoutAvailability(){
     checkoutBtn.disabled = !(idVerified && cart.items.length>0);
   }
+
   function updateVerifyButtonState(){
     verifyBtn.disabled = !(frontBase64 && backBase64);
     verifyStatus.textContent = verifyBtn.disabled
       ? "Add both images to enable verification."
-      : "Ready to verify. We’ll securely check your ID.";
+      : "Ready to verify. We'll securely check your ID.";
   }
-  async function fileToBase64(file) {
-    return new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result);
-      r.onerror = rej;
+
+  async function fileToBase64(file){
+    return new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result);
+      r.onerror=rej;
       r.readAsDataURL(file);
     });
   }
-  async function handleFile(inputEl, previewEl, setter) {
-    const f = inputEl.files && inputEl.files[0];
-    if (!f) return;
-    const b64 = await fileToBase64(f);
+
+  async function handleFile(inputEl, previewEl, setter){
+    const f=inputEl.files&&inputEl.files[0];
+    if(!f)return;
+    const b64=await fileToBase64(f);
     setter(b64);
-    previewEl.src = b64;
-    previewEl.style.display = "block";
+    previewEl.src=b64;
+    previewEl.style.display="block";
     updateVerifyButtonState();
   }
-  frontInput.addEventListener("change", ()=>handleFile(frontInput, frontPreview, v=>frontBase64=v));
-  backInput.addEventListener("change",  ()=>handleFile(backInput,  backPreview,  v=>backBase64=v));
 
-  verifyBtn.addEventListener("click", async () => {
-    verifyBtn.disabled = true;
-    verifyStatus.textContent = "Verifying your ID…";
+  frontInput.addEventListener("change",()=>handleFile(frontInput,frontPreview,v=>frontBase64=v));
+  backInput.addEventListener("change",()=>handleFile(backInput,backPreview,v=>backBase64=v));
+
+  verifyBtn.addEventListener("click", async ()=>{
+    verifyBtn.disabled=true;
+    verifyStatus.textContent="Verifying your ID…";
     idBox.classList.remove("glow");
 
     try {
       const resp = await fetch("/.netlify/functions/verify-id", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ front: frontBase64, back: backBase64 })
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({ front: frontBase64, back: backBase64 })
+      }).catch(err=>{
+        console.error(err);
+        verifyStatus.textContent="❌ Could not reach verification server.";
+        idBox.classList.add("glow");
       });
 
-      if (!resp.ok) throw new Error(`Server responded ${resp.status}`);
+      if(!resp) return;
+      if(!resp.ok) throw new Error(`Server ${resp.status}`);
       const data = await resp.json();
 
-      if (data && data.verified) {
-        idVerified = true;
-        verifyStatus.textContent = `✅ Verified: ${data.name || "ID ok"} (DOB ${data.dob || "—"})`;
-        checkoutBtn.disabled = cart.items.length === 0 ? true : false;
-        idBox.classList.remove("glow");
+      if(data && data.verified){
+        idVerified=true;
+        verifyStatus.textContent=`✅ Verified: ${data.name||"ID ok"} (DOB ${data.dob||"—"})`;
         beep();
       } else {
-        idVerified = false;
-        verifyStatus.textContent = `❌ Couldn’t verify ID. ${data && data.message ? data.message : ""}`;
+        idVerified=false;
+        verifyStatus.textContent=`❌ Couldn't verify ID. ${data && data.message?data.message:""}`;
         idBox.classList.add("glow");
       }
-    } catch (e) {
+    } catch(e){
       console.error(e);
-      idVerified = false;
-      verifyStatus.textContent = "❌ Verification service unavailable. Try again.";
+      idVerified=false;
+      verifyStatus.textContent="❌ Verification failed or offline.";
       idBox.classList.add("glow");
     } finally {
-      verifyBtn.disabled = !(frontBase64 && backBase64);
+      verifyBtn.disabled=!(frontBase64&&backBase64);
       refreshCheckoutAvailability();
     }
   });
 
-  // Keep the box glowing until verified
   idBox.classList.add("glow");
 
   // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", async () => {
-    if (!idVerified) {
-      alert("Please verify your ID before checkout.");
-      return;
-    }
-    if (!cart.items.length) return;
+  checkoutBtn.addEventListener("click", async ()=>{
+    if(!idVerified){ alert("Please verify your ID before checkout."); return; }
+    if(!cart.items.length) return;
 
-    // Send order via EmailJS
-    const itemsText = cart.items.map(i => `${i.name} x${i.qty} — ${fmt(i.price*i.qty)}`).join("\n");
+    const itemsText = cart.items.map(i=>`${i.name} x${i.qty} — ${fmt(i.price*i.qty)}`).join("\n");
     const payload = {
       name: "LBizzo Customer",
       phone: "(unknown)",
-      address: "(pickup or delivery addr)",
+      address: "(pickup or delivery)",
       items: itemsText,
       total: fmt(cart.total())
     };
 
-    try {
-      if (!window.emailjs) throw new Error("EmailJS not loaded");
-      const r = await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
-      console.log("EmailJS result:", r);
-      alert("Order placed! Check your email.");
-      // Earn a star
-      earned = Math.min(6, earned + 1);
-      localStorage.setItem("lb_stars", String(earned));
+    try{
+      if(!window.emailjs) throw new Error("EmailJS missing");
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, payload);
+      alert("Order confirmed! Redirecting to Square checkout...");
+      earned=Math.min(6,earned+1);
+      localStorage.setItem("lb_stars",String(earned));
       setStars(earned);
-      // Clear cart
-      cart.items = [];
+      cart.items=[];
       cart.render();
-      cartSection.style.display = "none";
-    } catch (e) {
+      cartSection.style.display="none";
+      window.location.href = SQUARE_CHECKOUT_URL;
+    }catch(e){
       console.error(e);
-      alert("Could not send order email. Please try again.");
+      alert("❌ Could not send order or open checkout. Try again.");
     }
   });
 
-  // Initial render
   cart.render();
 });
