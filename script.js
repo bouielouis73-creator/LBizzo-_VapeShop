@@ -268,39 +268,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  // ---------- ✅ FIXED CART BUTTON ----------
-  function openCart() {
-    if (!cartSection) return;
-    renderCart();
-    cartSection.hidden = false;
-    cartSection.style.display = "block";
-    try { new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3").play(); } catch {}
-  }
+  // ---------- FIXED CART BUTTON ----------
+function openCart() {
+  if (!cartSection) return;
+  renderCart();
+  cartSection.classList.add("active");
+  try {
+    new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3").play();
+  } catch {}
+}
 
-  function closeCartPanel() {
-    if (!cartSection) return;
-    cartSection.hidden = true;
-    cartSection.style.display = "none";
-  }
+function closeCartPanel() {
+  if (!cartSection) return;
+  cartSection.classList.remove("active");
+}
 
-  if (cartBtn) {
-    const handleCartTap = (e) => {
+if (cartBtn) {
+  ["click", "touchstart", "touchend", "pointerup"].forEach(evt => {
+    cartBtn.addEventListener(evt, (e) => {
       e.preventDefault();
       e.stopPropagation();
       openCart();
-    };
-    ["click", "touchstart", "touchend", "pointerup"].forEach(evt => {
-      cartBtn.addEventListener(evt, handleCartTap, { passive: false });
-    });
-    cartBtn.style.cursor = "pointer";
-    console.log("✅ Cart button now works on all devices");
-  }
+    }, { passive: false });
+  });
+  cartBtn.style.cursor = "pointer";
+  console.log("✅ Cart button ready");
+}
 
-  if (closeCart) {
-    ["click", "touchstart", "touchend"].forEach(evt => {
-      closeCart.addEventListener(evt, closeCartPanel, { passive: false });
-    });
-  }
+if (closeCart) {
+  ["click", "touchstart", "touchend"].forEach(evt => {
+    closeCart.addEventListener(evt, closeCartPanel, { passive: false });
+  });
+}
 
   // ---------- EMAILJS ----------
   async function sendOrderEmail(payload) {
