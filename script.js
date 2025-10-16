@@ -1,6 +1,8 @@
 // =========================================================
-// ✅ LBizzo Vape Shop - Full Script + Scandit ID Verify (before checkout)
-// ✅ Fixed Firebase image URL loading
+// ✅ LBizzo Vape Shop - Full Script
+// ✅ Scandit ID Verify (before checkout)
+// ✅ Firebase image loading fixed
+// ✅ Price display fix (no more $0.00)
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
@@ -108,7 +110,7 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 Your existing app code + fixed Firebase image loading
+// 💾 Your existing app code + fixed Firebase image + price handling
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
@@ -141,15 +143,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => {
-      e.preventDefault();
-      overlay.style.display = "none";
-    });
-    no.addEventListener("click", (e) => {
-      e.preventDefault();
-      alert("Sorry, you must be 21+ to enter.");
-      location.href = "https://google.com";
-    });
+    yes.addEventListener("click", (e) => { e.preventDefault(); overlay.style.display = "none"; });
+    no.addEventListener("click", (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; });
   }
 
   // ---------- FIREBASE ----------
@@ -167,14 +162,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function getImageURL(path) {
     try {
       if (!path) return PLACEHOLDER_IMG;
-
-      // handle both direct paths and full gs:// URLs
       if (path.startsWith("gs://")) {
         const cleanPath = path.split(".appspot.com/")[1];
         return await storage.ref(cleanPath).getDownloadURL();
       }
       if (path.startsWith("http")) return path;
-
       return await storage.ref(path).getDownloadURL();
     } catch (err) {
       console.warn("⚠️ Firebase image failed:", path, err.message);
@@ -182,18 +174,39 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  // ---------- FIXED PRICE HANDLING ----------
   async function addCard(p) {
-    const priceNum = Number(p.price) || 0;
+    // ✅ ensure numeric price
+    let priceNum = 0;
+    if (typeof p.price === "number") {
+      priceNum = p.price;
+    } else if (typeof p.price === "string" && p.price.trim() !== "") {
+      priceNum = parseFloat(p.price);
+    }
+
     const imgURL = await getImageURL(p.image);
     const card = document.createElement("div");
     card.className = "product";
+
+    const priceDisplay = isNaN(priceNum) || priceNum <= 0
+      ? `<p style="color:#ff8c00;">Contact for Price</p>`
+      : `<p>$${priceNum.toFixed(2)}</p>`;
+
     card.innerHTML = `
       <img src="${imgURL}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed"}</h3>
-      <p>$${priceNum.toFixed(2)}</p>
+      ${priceDisplay}
       <button class="add-btn">Add to Cart</button>
     `;
-    card.querySelector(".add-btn").addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
+
+    const btn = card.querySelector(".add-btn");
+    if (isNaN(priceNum) || priceNum <= 0) {
+      btn.disabled = true;
+      btn.textContent = "Unavailable";
+    } else {
+      btn.addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
+    }
+
     productList.appendChild(card);
   }
 
@@ -342,5 +355,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo ready with Firebase images + Scandit verification");
+  console.log("🚀 LBizzo ready with Firebase images, prices, and Scandit verification");
 });
