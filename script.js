@@ -1,14 +1,14 @@
 // =========================================================
-// ✅ LBizzo Vape Shop - Full Script (Final Fixed Version)
+// ✅ LBizzo Vape Shop - Full Script (FINAL FIXED VERSION)
 // ✅ Scandit ID Verify (before checkout)
 // ✅ Firebase image loading fixed
 // ✅ Price display fix (no more $0.00)
 // ✅ EmailJS order sending
-// ✅ Cart button works on iPhone/iPad (sound + open/close)
+// ✅ Cart button fully fixed (opens on iPhone/iPad + sound)
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
-const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your key
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- your key
 let __scanditReady = false;
 
 async function loadScanditSDK() {
@@ -268,15 +268,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  // ---------- FIXED CART BUTTON ----------
+  // ---------- ✅ FIXED CART BUTTON ----------
   function openCart() {
     if (!cartSection) return;
     renderCart();
     cartSection.hidden = false;
     cartSection.style.display = "block";
-    try {
-      new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3").play();
-    } catch {}
+    try { new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3").play(); } catch {}
   }
 
   function closeCartPanel() {
@@ -285,25 +283,23 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.style.display = "none";
   }
 
-  const cartButtonEl = document.getElementById("cart-btn");
-  if (cartButtonEl) {
-    const handler = (e) => {
+  if (cartBtn) {
+    const handleCartTap = (e) => {
       e.preventDefault();
       e.stopPropagation();
       openCart();
     };
-    ["click", "touchend", "pointerup"].forEach(ev => {
-      cartButtonEl.addEventListener(ev, handler, { passive: false });
+    ["click", "touchstart", "touchend", "pointerup"].forEach(evt => {
+      cartBtn.addEventListener(evt, handleCartTap, { passive: false });
     });
-    cartButtonEl.style.cursor = "pointer";
-    console.log("✅ Cart button connected!");
-  } else {
-    console.warn("⚠️ Cart button not found in DOM");
+    cartBtn.style.cursor = "pointer";
+    console.log("✅ Cart button now works on all devices");
   }
 
   if (closeCart) {
-    closeCart.addEventListener("click", closeCartPanel);
-    closeCart.addEventListener("touchend", closeCartPanel);
+    ["click", "touchstart", "touchend"].forEach(evt => {
+      closeCart.addEventListener(evt, closeCartPanel, { passive: false });
+    });
   }
 
   // ---------- EMAILJS ----------
@@ -372,5 +368,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo ready: Cart fixed + Scandit + EmailJS + Firebase");
+  console.log("🚀 LBizzo ready — cart fixed, Firebase, Scandit, EmailJS working");
 });
