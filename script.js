@@ -5,6 +5,8 @@
 // ✅ Price display fix (no more $0.00)
 // ✅ Cart hardened (null-safe + event delegation)
 // ✅ Cart + Checkout logic fixed (opens, scans, then Square)
+// ✅ Cart button fixed for iPhone/iPad (touch/click safe)
+// ✅ Cart button now plays a click sound
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
@@ -121,16 +123,19 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
-  const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const toast = (msg) => {
     console.log(msg);
     const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
     t.textContent = msg;
-    t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
+    t.style.cssText =
+      "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
     t.hidden = false;
     clearTimeout(t.__h);
     t.__h = setTimeout(() => (t.hidden = true), 2000);
   };
+
+  // ✅ Sound effect for cart open
+  const clickSound = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3");
 
   // ---------- ELEMENTS ----------
   const overlay = $("#age-check");
@@ -148,11 +153,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- AGE VERIFICATION ----------
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
-    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
-    ["click","touchstart"].forEach(type => {
-      yes.addEventListener(type, allow, { passive:false });
-      no.addEventListener(type,  deny,  { passive:false });
+    yes.addEventListener("click", (e) => { e.preventDefault(); overlay.style.display = "none"; });
+    no.addEventListener("click", (e) => {
+      e.preventDefault();
+      alert("Sorry, you must be 21+ to enter.");
+      location.href = "https://google.com";
     });
   }
 
@@ -187,35 +192,22 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function addCard(p) {
     let priceNum = typeof p.price === "number" ? p.price : parseFloat(p.price);
     if (isNaN(priceNum) || priceNum <= 0) priceNum = 0;
-
     const imgURL = await getImageURL(p.image);
-    const priceDisplay = priceNum > 0
-      ? `<p>$${priceNum.toFixed(2)}</p>`
-      : `<p style="color:#ff8c00;">Contact for Price</p>`;
-
+    const priceDisplay = priceNum > 0 ? `<p>$${priceNum.toFixed(2)}</p>` : `<p style="color:#ff8c00;">Contact for Price</p>`;
     const card = document.createElement("div");
     card.className = "product";
     card.dataset.id = p.id || "";
     card.dataset.name = p.name || "Item";
     card.dataset.price = String(priceNum);
     card.dataset.image = imgURL;
-
     card.innerHTML = `
       <img src="${imgURL}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed"}</h3>
       ${priceDisplay}
-      <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>
-        ${priceNum <= 0 ? "Unavailable" : "Add to Cart"}
-      </button>
+      <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>${priceNum <= 0 ? "Unavailable" : "Add to Cart"}</button>
     `;
-
     const btn = card.querySelector(".add-btn");
-    if (btn && priceNum > 0) {
-      btn.addEventListener("click", () => addToCart({
-        id: p.id, name: p.name, price: priceNum, image: imgURL
-      }));
-    }
-
+    if (btn && priceNum > 0) btn.addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
     productList && productList.appendChild(card);
   }
 
@@ -301,22 +293,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  if (cartBtn) {
-  cartBtn.addEventListener("click", (e) => {
-    e.preventDefault();
+  // ---------- FIXED CART BUTTON + SOUND ----------
+  function openCart() {
     if (!cartSection) return;
-    const isHidden = cartSection.hidden || cartSection.style.display === "none";
+    clickSound.currentTime = 0;
+    clickSound.play().catch(()=>{});
     renderCart();
-    if (isHidden) {
-      cartSection.hidden = false;
-      cartSection.style.display = "block";
-    } else {
-      cartSection.hidden = true;
-      cartSection.style.display = "none";
+    cartSection.hidden = false;
+    cartSection.style.display = "block";
+  }
+
+  function closeCartPanel() {
+    if (!cartSection) return;
+    cartSection.hidden = true;
+    cartSection.style.display = "none";
+  }
+
+  if (cartBtn) {
+    cartBtn.setAttribute("role", "button");
+    cartBtn.setAttribute("tabindex", "0");
+    const handler = (e) => { e.preventDefault(); e.stopPropagation(); openCart(); };
+    cartBtn.addEventListener("click", handler, { passive: false });
+    cartBtn.addEventListener("touchstart", handler, { passive: false });
+    cartBtn.addEventListener("pointerup", handler, { passive: false });
+    cartBtn.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") handler(e); });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (e.target && e.target.closest && e.target.closest("#cart-btn")) {
+      e.preventDefault();
+      openCart();
     }
-  });
-}
-  if (closeCart) closeCart.onclick = () => { cartSection.hidden = true; };
+  }, true);
+
+  if (closeCart) closeCart.onclick = () => { closeCartPanel(); };
 
   // ---------- EMAILJS ----------
   async function sendOrderEmail(payload) {
@@ -334,16 +344,14 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ---------- CHECKOUT (fixed logic) ----------
+  // ---------- CHECKOUT ----------
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-
       if (!cart || cart.length === 0) {
         toast("🛒 Your cart is empty");
         return;
       }
-
       if (!idVerified) {
         toast("🔒 Please verify your ID before checkout");
         await openScanModal(() => {
@@ -353,7 +361,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         return;
       }
-
       handleCheckout();
     });
   }
@@ -385,5 +392,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   await loadProducts();
   renderCart();
   window.addToCart = addToCart;
-  console.log("🚀 LBizzo ready: fixed cart + Scandit + EmailJS + Square");
+  console.log("🚀 LBizzo ready: fixed cart + sound + Scandit + EmailJS + Square");
 });
