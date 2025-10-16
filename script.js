@@ -301,7 +301,21 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  if (cartBtn) cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
+  if (cartBtn) {
+  cartBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!cartSection) return;
+    const isHidden = cartSection.hidden || cartSection.style.display === "none";
+    renderCart();
+    if (isHidden) {
+      cartSection.hidden = false;
+      cartSection.style.display = "block";
+    } else {
+      cartSection.hidden = true;
+      cartSection.style.display = "none";
+    }
+  });
+}
   if (closeCart) closeCart.onclick = () => { cartSection.hidden = true; };
 
   // ---------- EMAILJS ----------
