@@ -1,10 +1,14 @@
 // =========================================================
 // ✅ LBizzo Vape Shop - Full Script
-// ✅ Fix: Cart button → Scandit ID scan → Square Checkout
+// ✅ Scandit ID Verify (before checkout)
+// ✅ Firebase image loading fixed
+// ✅ Price display fix (no more $0.00)
+// ✅ Cart hardened (null-safe + event delegation)
+// ✅ Cart + Checkout logic fixed (opens, scans, then Square)
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
-const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- your real key
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your key
 let __scanditReady = false;
 
 async function loadScanditSDK() {
@@ -31,7 +35,7 @@ async function ensureScanditConfigured() {
   return true;
 }
 
-// ---------- SCANDIT MODAL ----------
+// ---------- Scandit Scan UI ----------
 let __scanOverlay, __scanContainer, __scanPicker;
 function ensureIDScanUI() {
   if (__scanOverlay) return;
@@ -48,7 +52,7 @@ function ensureIDScanUI() {
   `;
   box.innerHTML = `
     <h2 style="margin:0 0 8px; color:#ff8c00;">Verify Your ID</h2>
-    <p style="margin:0 0 10px; color:#ccc;">Scan the barcode on the back of your ID.</p>
+    <p style="margin:0 0 10px; color:#ccc;">Scan the barcode on the back of your driver’s license.</p>
     <div id="lbizzo-scan-cam" style="width:100%; max-width:460px; margin:10px auto;"></div>
     <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
       <button id="lbizzo-scan-start" style="padding:10px 14px;border:1px solid #ff8c00;background:#111;color:#fff;border-radius:10px;">Start Scan</button>
@@ -85,13 +89,14 @@ async function openScanModal(onVerified) {
 
       __scanPicker.on("scan", (result) => {
         if (result.barcodes && result.barcodes.length) {
-          toast("✅ ID Verified — continuing to checkout...");
+          toast("✅ ID Verified — checkout unlocked");
           closeScanModal();
           onVerified && onVerified();
         }
       });
     } catch (err) {
-      toast("Camera error, please allow permission.");
+      console.error("❌ Scandit error:", err);
+      toast("Camera error. Check permissions.");
     }
   };
 
@@ -107,7 +112,7 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 LBizzo App Code
+// 💾 LBizzo App Code (hardened cart + fixed checkout)
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
@@ -116,7 +121,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
+  const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const toast = (msg) => {
+    console.log(msg);
     const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
     t.textContent = msg;
     t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
@@ -126,6 +133,10 @@ document.addEventListener("DOMContentLoaded", async () => {
   };
 
   // ---------- ELEMENTS ----------
+  const overlay = $("#age-check");
+  const yes = $("#yesBtn");
+  const no = $("#noBtn");
+  const productList = $("#product-list");
   const cartBtn = $("#cart-btn");
   const cartCount = $("#cart-count");
   const cartSection = $("#cart");
@@ -133,6 +144,97 @@ document.addEventListener("DOMContentLoaded", async () => {
   const totalEl = $("#total");
   const closeCart = $("#close-cart");
   const checkoutBtn = $("#checkout-btn");
+
+  // ---------- AGE VERIFICATION ----------
+  if (overlay && yes && no) {
+    overlay.style.display = "grid";
+    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
+    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
+    ["click","touchstart"].forEach(type => {
+      yes.addEventListener(type, allow, { passive:false });
+      no.addEventListener(type,  deny,  { passive:false });
+    });
+  }
+
+  // ---------- FIREBASE ----------
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+  const PLACEHOLDER_IMG =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
+        <rect width='100%' height='100%' fill='#0b0b0b'/>
+        <text x='50%' y='52%' fill='#ff8c00' font-family='Arial' font-size='22' text-anchor='middle'>Image coming soon</text>
+      </svg>`
+    );
+
+  async function getImageURL(path) {
+    try {
+      if (!path) return PLACEHOLDER_IMG;
+      if (path.startsWith("gs://")) {
+        const cleanPath = path.split(".appspot.com/")[1];
+        return await storage.ref(cleanPath).getDownloadURL();
+      }
+      if (path.startsWith("http")) return path;
+      return await storage.ref(path).getDownloadURL();
+    } catch (err) {
+      console.warn("⚠️ Firebase image failed:", path, err?.message || err);
+      return PLACEHOLDER_IMG;
+    }
+  }
+
+  // ---------- PRICE + PRODUCT CARD ----------
+  async function addCard(p) {
+    let priceNum = typeof p.price === "number" ? p.price : parseFloat(p.price);
+    if (isNaN(priceNum) || priceNum <= 0) priceNum = 0;
+
+    const imgURL = await getImageURL(p.image);
+    const priceDisplay = priceNum > 0
+      ? `<p>$${priceNum.toFixed(2)}</p>`
+      : `<p style="color:#ff8c00;">Contact for Price</p>`;
+
+    const card = document.createElement("div");
+    card.className = "product";
+    card.dataset.id = p.id || "";
+    card.dataset.name = p.name || "Item";
+    card.dataset.price = String(priceNum);
+    card.dataset.image = imgURL;
+
+    card.innerHTML = `
+      <img src="${imgURL}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <h3>${p.name || "Unnamed"}</h3>
+      ${priceDisplay}
+      <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>
+        ${priceNum <= 0 ? "Unavailable" : "Add to Cart"}
+      </button>
+    `;
+
+    const btn = card.querySelector(".add-btn");
+    if (btn && priceNum > 0) {
+      btn.addEventListener("click", () => addToCart({
+        id: p.id, name: p.name, price: priceNum, image: imgURL
+      }));
+    }
+
+    productList && productList.appendChild(card);
+  }
+
+  async function loadProducts() {
+    if (!productList) return;
+    productList.innerHTML = "";
+    try {
+      const snap = await db.collection("products").orderBy("name").get();
+      if (snap.empty) {
+        productList.innerHTML = "<p style='color:#eaeaea'>No products found.</p>";
+        return;
+      }
+      for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
+      console.log("✅ Firebase products loaded");
+    } catch (e) {
+      console.error("❌ loadProducts:", e);
+      productList.innerHTML = "<p style='color:red'>Failed to load products.</p>";
+    }
+  }
 
   // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("lbizzo_cart") || "[]");
@@ -148,7 +250,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (found) found.qty += 1;
     else cart.push({ ...item, qty: 1 });
     persist();
-    toast("Added to cart 🛒");
+    toast(`${item.name} added to cart 🛒`);
   }
 
   function removeFromCart(id) {
@@ -202,35 +304,72 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (cartBtn) cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
   if (closeCart) closeCart.onclick = () => { cartSection.hidden = true; };
 
-  // ---------- CHECKOUT WITH SCANDIT + SQUARE ----------
+  // ---------- EMAILJS ----------
+  async function sendOrderEmail(payload) {
+    if (!window.emailjs || !emailjs.send) return { ok: false, error: "EmailJS not loaded" };
+    try {
+      emailjs.init(window.EMAILJS_PUBLIC_KEY || "your_public_key");
+      const res = await emailjs.send(
+        window.EMAILJS_SERVICE_ID || "your_service_id",
+        window.EMAILJS_TEMPLATE_ID || "your_template_id",
+        payload
+      );
+      return { ok: true, res };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  // ---------- CHECKOUT (fixed logic) ----------
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", async (e) => {
       e.preventDefault();
+
+      if (!cart || cart.length === 0) {
+        toast("🛒 Your cart is empty");
+        return;
+      }
 
       if (!idVerified) {
         toast("🔒 Please verify your ID before checkout");
         await openScanModal(() => {
           idVerified = true;
-          toast("✅ ID Verified! Redirecting to payment...");
-          proceedToSquare();
+          toast("✅ ID Verified — redirecting to payment...");
+          handleCheckout();
         });
         return;
       }
 
-      proceedToSquare();
+      handleCheckout();
     });
   }
 
-  function proceedToSquare() {
+  async function handleCheckout() {
     const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
     const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
-    const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
-    window.open(squareLink, "_blank");
-    cart = [];
-    persist();
-    cartSection.hidden = true;
+    const payload = {
+      name: ($("#cust-name")?.value) || "N/A",
+      phone: ($("#cust-phone")?.value) || "N/A",
+      address: ($("#cust-address")?.value) || "N/A",
+      items: itemsStr,
+      total
+    };
+    const res = await sendOrderEmail(payload);
+    if (res.ok) {
+      toast("📧 Order sent! Redirecting to Square...");
+      const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
+      setTimeout(() => window.open(squareLink, "_blank"), 800);
+      cart = [];
+      persist();
+      if (cartSection) cartSection.hidden = true;
+    } else {
+      alert("Email failed: " + (res.error || "Unknown error"));
+    }
   }
 
+  // ---------- INIT ----------
+  await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo cart button → ID Scan → Square checkout flow fixed");
+  window.addToCart = addToCart;
+  console.log("🚀 LBizzo ready: fixed cart + Scandit + EmailJS + Square");
 });
