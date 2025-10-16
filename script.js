@@ -271,13 +271,35 @@ document.addEventListener("DOMContentLoaded", async () => {
           __scanPicker = null;
         }
         __scanPicker = await ScanditSDK.BarcodePicker.create(__scanContainer, {
-          playSoundOnScan: true,
-          vibrateOnScan: true,
-        });
-        const settings = new ScanditSDK.ScanSettings({
-          enabledSymbologies: ["pdf417"],
-          codeDuplicateFilter: 1000,
-        });
+  playSoundOnScan: true,
+  vibrateOnScan: true,
+  accessCamera: true,
+  cameraSettings: {
+    resolutionPreference: ScanditSDK.Camera.ResolutionPreference.FULL_HD,
+    zoom: 1.0,
+  },
+  scanningPaused: false,
+});
+
+const settings = new ScanditSDK.ScanSettings({
+  enabledSymbologies: ["pdf417"], // barcode type used on driver’s licenses
+  codeDuplicateFilter: 1000,
+  maxNumberOfCodesPerFrame: 5,
+});
+
+__scanPicker.applyScanSettings(settings);
+__scanPicker.setTorchEnabled(true); // enable flashlight automatically
+
+__scanPicker.on("scan", (result) => {
+  if (result && result.barcodes && result.barcodes.length) {
+    const code = result.barcodes[0].data;
+    console.log("✅ Scanned ID barcode:", code);
+    toast("✅ ID Verified — Checkout unlocked");
+    idVerified = true;
+    checkoutBtn.disabled = false;
+    closeScanModal();
+  }
+});
         __scanPicker.applyScanSettings(settings);
         __scanPicker.on("scan", (result) => {
           if (result?.barcodes?.length) {
