@@ -191,3 +191,21 @@ button.add-btn {
   bottom:16px;padding:10px 14px;background:#111;color:#fff;
   border:1px solid var(--orange);border-radius:8px;z-index:10000
 }
+/* === CART VISIBILITY FIX === */
+#cart {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  height: 100vh;
+  background: #0b0b0b;
+  color: #fff;
+  border-left: 2px solid #ff8c00;
+  overflow-y: auto;
+  padding: 20px;
+  display: none;  /* hidden by default */
+  z-index: 9998;
+}
+#cart.active {
+  display: block;
+}
