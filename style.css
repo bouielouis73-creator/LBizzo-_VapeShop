@@ -52,10 +52,9 @@ header {
   text-align: center;
 }
 
-/* ✅ fixed square image size */
 .product img {
   width: 100%;
-  aspect-ratio: 1 / 1;  /* makes every product image perfectly square */
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   border-radius: 8px;
   background: #000;
@@ -74,16 +73,50 @@ button.add-btn {
 
 #cart {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #000c;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
   color: white;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.cart-box {
+  background: var(--card);
+  padding: 20px;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid var(--orange);
+  width: 85%;
+  max-width: 400px;
+}
+
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 6px;
+  padding: 8px;
+  margin: 6px 0;
+}
+
+.cart-item img {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.cart-btns button {
+  background: var(--orange);
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  margin: 6px;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
 }
 
 .hidden {
@@ -93,9 +126,10 @@ button.add-btn {
 #age-check {
   position: fixed;
   inset: 0;
-  background: #000e;
+  background: rgba(0, 0, 0, 0.95);
   display: none;
   place-items: center;
+  z-index: 9999;
 }
 
 .modal {
@@ -104,6 +138,17 @@ button.add-btn {
   border-radius: 10px;
   text-align: center;
   color: white;
+  border: 2px solid var(--orange);
+}
+
+.modal .btns button {
+  margin: 6px;
+  background: var(--orange);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 #loyalty {
