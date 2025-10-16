@@ -209,3 +209,9 @@ button.add-btn {
 #cart.active {
   display: block;
 }
+#cart {
+  display: none;
+}
+#cart.active {
+  display: block;
+}
