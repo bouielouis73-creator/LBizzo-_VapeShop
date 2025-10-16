@@ -1,13 +1,10 @@
 // =========================================================
 // ✅ LBizzo Vape Shop - Full Script
-// ✅ Scandit ID Verify (before checkout)
-// ✅ Firebase image loading fixed
-// ✅ Price display fix (no more $0.00)
-// ✅ Cart hardened + Auto-Injected Cart UI
+// ✅ Fix: Cart button → Scandit ID scan → Square Checkout
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
-const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your Scandit key
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- your real key
 let __scanditReady = false;
 
 async function loadScanditSDK() {
@@ -34,7 +31,7 @@ async function ensureScanditConfigured() {
   return true;
 }
 
-// ---------- Scandit Scan UI ----------
+// ---------- SCANDIT MODAL ----------
 let __scanOverlay, __scanContainer, __scanPicker;
 function ensureIDScanUI() {
   if (__scanOverlay) return;
@@ -51,7 +48,7 @@ function ensureIDScanUI() {
   `;
   box.innerHTML = `
     <h2 style="margin:0 0 8px; color:#ff8c00;">Verify Your ID</h2>
-    <p style="margin:0 0 10px; color:#ccc;">Scan the barcode on the back of your driver’s license.</p>
+    <p style="margin:0 0 10px; color:#ccc;">Scan the barcode on the back of your ID.</p>
     <div id="lbizzo-scan-cam" style="width:100%; max-width:460px; margin:10px auto;"></div>
     <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
       <button id="lbizzo-scan-start" style="padding:10px 14px;border:1px solid #ff8c00;background:#111;color:#fff;border-radius:10px;">Start Scan</button>
@@ -88,14 +85,13 @@ async function openScanModal(onVerified) {
 
       __scanPicker.on("scan", (result) => {
         if (result.barcodes && result.barcodes.length) {
-          toast("✅ ID Verified — checkout unlocked");
+          toast("✅ ID Verified — continuing to checkout...");
           closeScanModal();
           onVerified && onVerified();
         }
       });
     } catch (err) {
-      console.error("❌ Scandit error:", err);
-      toast("Camera error. Check permissions.");
+      toast("Camera error, please allow permission.");
     }
   };
 
@@ -111,39 +107,12 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 LBizzo App Code (Auto-Injected Cart)
+// 💾 LBizzo App Code
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
   console.log("✅ LBizzo Vape Shop running...");
-
-  // ---------- Inject Cart HTML if missing ----------
-  if (!document.querySelector("#cart-btn")) {
-    const btn = document.createElement("button");
-    btn.id = "cart-btn";
-    btn.className = "cart-btn";
-    btn.innerHTML = `🛒 <span id="cart-count">0</span>`;
-    btn.style.cssText = "position:fixed;bottom:20px;right:20px;background:#ff8c00;color:#000;font-weight:bold;border:none;border-radius:50px;padding:12px 18px;z-index:9999;";
-    document.body.appendChild(btn);
-  }
-
-  if (!document.querySelector("#cart")) {
-    const cartHTML = `
-      <div id="cart" class="cart" hidden style="position:fixed;top:0;right:0;width:90%;max-width:420px;height:100%;background:#0b0b0b;color:#fff;border-left:2px solid #ff8c00;z-index:9998;display:flex;flex-direction:column;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #333;">
-          <h2>Your Cart</h2>
-          <button id="close-cart" style="background:none;border:none;color:#ff8c00;font-size:22px;">✕</button>
-        </div>
-        <ul id="cart-items" style="flex:1;overflow-y:auto;list-style:none;padding:10px;margin:0;"></ul>
-        <div style="border-top:1px solid #333;padding:10px;">
-          <div>Total: $<span id="total">0.00</span></div>
-          <button id="checkout-btn" disabled style="margin-top:8px;width:100%;padding:10px;background:#ff8c00;color:#000;border:none;border-radius:8px;font-weight:bold;">Checkout</button>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML("beforeend", cartHTML);
-  }
 
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
@@ -156,7 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     t.__h = setTimeout(() => (t.hidden = true), 2000);
   };
 
-  // ---------- CART ----------
+  // ---------- ELEMENTS ----------
   const cartBtn = $("#cart-btn");
   const cartCount = $("#cart-count");
   const cartSection = $("#cart");
@@ -165,6 +134,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeCart = $("#close-cart");
   const checkoutBtn = $("#checkout-btn");
 
+  // ---------- CART ----------
   let cart = JSON.parse(localStorage.getItem("lbizzo_cart") || "[]");
   let idVerified = false;
 
@@ -174,12 +144,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function addToCart(item) {
-    if (!item || !item.id) return;
     const found = cart.find(i => i.id === item.id);
     if (found) found.qty += 1;
     else cart.push({ ...item, qty: 1 });
     persist();
-    toast(`${item.name} added to cart 🛒`);
+    toast("Added to cart 🛒");
   }
 
   function removeFromCart(id) {
@@ -209,16 +178,19 @@ document.addEventListener("DOMContentLoaded", async () => {
       total += it.price * it.qty;
       const li = document.createElement("li");
       li.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div><strong>${it.name}</strong><br><small>$${it.price.toFixed(2)}</small></div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <button class="minus">−</button>
-            <span>${it.qty}</span>
-            <button class="plus">+</button>
-            <button class="remove">✕</button>
+        <div class="row">
+          <img src="${it.image}" alt="${it.name}" />
+          <div class="grow">
+            <strong>${it.name}</strong>
+            <div>$${it.price.toFixed(2)}</div>
+            <div class="qty">
+              <button class="minus">−</button>
+              <span>${it.qty}</span>
+              <button class="plus">+</button>
+            </div>
           </div>
-        </div>
-      `;
+          <button class="remove">✕</button>
+        </div>`;
       li.querySelector(".minus").onclick = () => changeQty(it.id, -1);
       li.querySelector(".plus").onclick = () => changeQty(it.id, +1);
       li.querySelector(".remove").onclick = () => removeFromCart(it.id);
@@ -227,42 +199,38 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  // ---------- CART BUTTONS ----------
-  cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
-  closeCart.onclick = () => { cartSection.hidden = true; };
+  if (cartBtn) cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
+  if (closeCart) closeCart.onclick = () => { cartSection.hidden = true; };
 
-  // ---------- SCANDIT ID SCAN ----------
-  async function startIDScan() {
-    toast("📷 Starting ID scan...");
-    try {
-      await openScanModal(() => {
-        idVerified = true;
-        checkoutBtn.disabled = false;
-      });
-    } catch {
-      toast("Could not start camera");
-    }
+  // ---------- CHECKOUT WITH SCANDIT + SQUARE ----------
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      if (!idVerified) {
+        toast("🔒 Please verify your ID before checkout");
+        await openScanModal(() => {
+          idVerified = true;
+          toast("✅ ID Verified! Redirecting to payment...");
+          proceedToSquare();
+        });
+        return;
+      }
+
+      proceedToSquare();
+    });
   }
 
-  // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", async (e) => {
-    if (!idVerified) {
-      e.preventDefault();
-      toast("Scan your ID to continue");
-      await startIDScan();
-      return;
-    }
-
+  function proceedToSquare() {
     const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
     const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
-    toast("📧 Order sent! Redirecting to payment...");
     const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
-    setTimeout(() => window.open(squareLink, "_blank"), 800);
+    window.open(squareLink, "_blank");
     cart = [];
     persist();
     cartSection.hidden = true;
-  });
+  }
 
   renderCart();
-  console.log("🚀 LBizzo ready with auto-cart and Scandit integration");
+  console.log("🚀 LBizzo cart button → ID Scan → Square checkout flow fixed");
 });
