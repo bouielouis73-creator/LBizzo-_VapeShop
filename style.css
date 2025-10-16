@@ -5,6 +5,8 @@
   --text: #fff;
 }
 
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -12,6 +14,7 @@ body {
   color: var(--text);
 }
 
+/* Header */
 header {
   background: #111;
   color: white;
@@ -19,6 +22,7 @@ header {
   justify-content: space-between;
   align-items: center;
   padding: 12px 18px;
+  border-bottom: 2px solid var(--orange);
 }
 
 #cart-btn {
@@ -28,8 +32,8 @@ header {
   padding: 8px 16px;
   border-radius: 20px;
   font-weight: bold;
+  cursor: pointer;
 }
-
 #cart-count {
   background: black;
   color: var(--orange);
@@ -38,7 +42,14 @@ header {
   margin-left: 4px;
 }
 
-#product-list {
+/* Loyalty */
+#loyalty { text-align: center; margin: 10px; }
+#stars { font-size: 22px; letter-spacing: 2px; }
+#stars .lit { color: var(--orange); }
+#stars span { color: #777; }
+
+/* Product Grid */
+#product-list.product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
@@ -50,15 +61,19 @@ header {
   padding: 10px;
   border-radius: 10px;
   text-align: center;
+  border: 1px solid #222;
 }
 
 .product img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1 / 1;   /* perfect squares */
   object-fit: cover;
   border-radius: 8px;
   background: #000;
 }
+
+.product h3 { margin: 8px 0 4px; color: var(--orange); font-size: 1rem; }
+.product p  { margin: 0; }
 
 button.add-btn {
   background: var(--orange);
@@ -71,67 +86,87 @@ button.add-btn {
   margin-top: 8px;
 }
 
+/* Cart */
 #cart {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  color: white;
+  background: rgba(0,0,0,.9);
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 9000; /* below age-check (9999) */
 }
+.hidden { display: none !important; }
 
 .cart-box {
   background: var(--card);
-  padding: 20px;
-  border-radius: 12px;
-  text-align: center;
   border: 2px solid var(--orange);
-  width: 85%;
-  max-width: 400px;
+  border-radius: 12px;
+  padding: 16px;
+  width: 92%;
+  max-width: 420px;
 }
 
-.cart-item {
-  display: flex;
-  justify-content: space-between;
+#cart-items {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+#cart-items li {
+  display: grid;
+  grid-template-columns: 52px 1fr auto;
   align-items: center;
+  gap: 8px;
   background: #1a1a1a;
-  border-radius: 6px;
   padding: 8px;
-  margin: 6px 0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+#cart-items img {
+  width: 52px; height: 52px; object-fit: cover; border-radius: 6px;
+}
+#cart-items .name { font-weight: 600; }
+#cart-items .price { color: var(--orange); }
+
+.qty {
+  display: inline-flex; align-items: center; gap: 6px;
+  background:#111; border:1px solid #333; border-radius: 999px; padding: 2px 6px;
+}
+.qty button { background: #222; color: #fff; border: 0; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; }
+
+.cart-total { text-align: right; margin: 6px 0 10px; }
+
+.checkout-form {
+  display: grid; gap: 8px; margin-bottom: 10px;
+}
+.checkout-form input {
+  width: 100%; background: #111; color: #fff; border: 1px solid #333; border-radius: 6px; padding: 10px;
 }
 
-.cart-item img {
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  object-fit: cover;
+.cart-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
 }
-
-.cart-btns button {
+.cart-actions button {
   background: var(--orange);
-  border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  margin: 6px;
   color: black;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
   font-weight: bold;
   cursor: pointer;
 }
 
-.hidden {
-  display: none;
-}
-
-#age-check {
+/* Age Gate */
+.overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.95);
+  background: rgba(0,0,0,.95);
   display: none;
   place-items: center;
   z-index: 9999;
 }
-
 .modal {
   background: var(--card);
   padding: 20px;
@@ -140,7 +175,6 @@ button.add-btn {
   color: white;
   border: 2px solid var(--orange);
 }
-
 .modal .btns button {
   margin: 6px;
   background: var(--orange);
@@ -151,11 +185,9 @@ button.add-btn {
   font-weight: bold;
 }
 
-#loyalty {
-  text-align: center;
-  margin: 10px;
-}
-
-#stars {
-  font-size: 22px;
+/* Toast */
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:16px;padding:10px 14px;background:#111;color:#fff;
+  border:1px solid var(--orange);border-radius:8px;z-index:10000
 }
