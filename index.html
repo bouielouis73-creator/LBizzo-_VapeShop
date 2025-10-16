@@ -19,12 +19,13 @@
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ App Scripts -->
+  <!-- ✅ Scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
+
 <body>
-  <!-- ✅ Age Gate -->
+  <!-- 🔒 Age Verification -->
   <div id="age-check" class="overlay">
     <div class="modal">
       <h2>Are you 21 or older?</h2>
@@ -35,13 +36,13 @@
     </div>
   </div>
 
-  <!-- ✅ Header -->
+  <!-- 🟧 Header -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">Cart <span id="cart-count">0</span></button>
   </header>
 
-  <!-- ✅ Loyalty Stars -->
+  <!-- ⭐ Loyalty -->
   <section id="loyalty">
     <div id="stars">
       <span>⭐</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
@@ -49,16 +50,20 @@
     <p>Free vape at 6 ⭐</p>
   </section>
 
-  <!-- ✅ Products -->
+  <!-- 🛍️ Product List -->
   <main id="product-list"></main>
 
-  <!-- ✅ Cart -->
+  <!-- 🛒 Cart -->
   <section id="cart" class="hidden">
-    <h2>Your Cart</h2>
-    <div id="cart-items"></div>
-    <p>Total: $<span id="total">0.00</span></p>
-    <button id="checkout-btn">Checkout</button>
-    <button id="close-cart">Keep Shopping</button>
+    <div class="cart-box">
+      <h2>Your Cart</h2>
+      <div id="cart-items"></div>
+      <p>Total: $<span id="total">0.00</span></p>
+      <div class="cart-btns">
+        <button id="checkout-btn">Checkout</button>
+        <button id="close-cart">Keep Shopping</button>
+      </div>
+    </div>
   </section>
 </body>
 </html>
