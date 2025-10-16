@@ -5,29 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- PWA -->
+  <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- Styles -->
+  <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Firebase (compat) -->
+  <!-- ✅ Firebase -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- EmailJS -->
+  <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- Scandit SDK (global ScanditSDK) -->
+  <!-- ✅ Scandit SDK -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/index.min.js"></script>
-  <!-- Set your Scandit key here OR via window.SCANDIT_LICENSE_KEY in script.js -->
-  <meta name="scandit-key" content="PASTE_YOUR_SCANDIT_KEY_HERE" />
 
-  <!-- App scripts -->
+  <!-- ✅ App Scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
@@ -45,11 +43,9 @@
   </div>
 
   <!-- Header -->
-  <header class="topbar">
+  <header>
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" type="button" aria-controls="cart" aria-expanded="false">
-      Cart <span id="cart-count">0</span>
-    </button>
+    <button id="cart-btn">Cart <span id="cart-count">0</span></button>
   </header>
 
   <!-- Loyalty -->
@@ -63,18 +59,14 @@
   <!-- Products -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- Cart Panel (same structure you use) -->
-  <section id="cart" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+  <!-- Cart Modal -->
+  <section id="cart" class="hidden">
     <div class="cart-box">
-      <h2 id="cart-title">Your Cart</h2>
-
+      <h2>Your Cart</h2>
       <ul id="cart-items"></ul>
+      <div class="cart-total">Total: <strong>$<span id="total">0.00</span></strong></div>
 
-      <div class="cart-total">
-        Total: <strong>$<span id="total">0.00</span></strong>
-      </div>
-
-      <!-- Buyer info (EmailJS) -->
+      <!-- Buyer info -->
       <div class="checkout-form">
         <input id="cust-name" type="text" placeholder="Name" autocomplete="name" />
         <input id="cust-phone" type="tel" placeholder="Phone" autocomplete="tel" />
@@ -82,13 +74,13 @@
       </div>
 
       <div class="cart-actions">
-        <button id="scan-id-btn" type="button">Scan ID</button>
-        <button id="checkout-btn" type="button" disabled>Checkout</button>
+        <button id="checkout-btn" type="button">Checkout</button>
         <button id="close-cart" type="button">Keep Shopping</button>
       </div>
     </div>
   </section>
 
-  <!-- Scandit overlay is created dynamically by script.js -->
+  <!-- Toast message -->
+  <div id="toast" hidden></div>
 </body>
 </html>
