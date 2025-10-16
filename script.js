@@ -1,9 +1,10 @@
 // =========================================================
 // ✅ LBizzo Vape Shop - Full Script + Scandit ID Verify (before checkout)
+// ✅ Fixed Firebase image URL loading
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
-const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your full key
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your key
 let __scanditReady = false;
 
 async function loadScanditSDK() {
@@ -32,7 +33,6 @@ async function ensureScanditConfigured() {
 
 // ---------- Scandit Scan UI ----------
 let __scanOverlay, __scanContainer, __scanPicker;
-
 function ensureIDScanUI() {
   if (__scanOverlay) return;
   __scanOverlay = document.createElement("div");
@@ -41,7 +41,6 @@ function ensureIDScanUI() {
     position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.9);
     display:none; align-items:center; justify-content:center; padding:16px;
   `;
-
   const box = document.createElement("div");
   box.style.cssText = `
     width:min(92vw,520px); background:#0b0b0b; border:1px solid #ff8c00;
@@ -64,11 +63,10 @@ function ensureIDScanUI() {
 async function openScanModal(onVerified) {
   ensureIDScanUI();
   __scanOverlay.style.display = "flex";
-
   const startBtn = __scanOverlay.querySelector("#lbizzo-scan-start");
   const cancelBtn = __scanOverlay.querySelector("#lbizzo-scan-cancel");
 
-  const startHandler = async () => {
+  startBtn.onclick = async () => {
     try {
       await ensureScanditConfigured();
       if (__scanPicker) {
@@ -80,12 +78,12 @@ async function openScanModal(onVerified) {
         vibrateOnScan: true,
       });
       const settings = new ScanditSDK.ScanSettings({
-        enabledSymbologies: ["pdf417"], // Driver’s license barcode
+        enabledSymbologies: ["pdf417"],
         codeDuplicateFilter: 1000
       });
       __scanPicker.applyScanSettings(settings);
 
-      __scanPicker.on("scan", result => {
+      __scanPicker.on("scan", (result) => {
         if (result.barcodes && result.barcodes.length) {
           toast("✅ ID Verified — checkout unlocked");
           closeScanModal();
@@ -98,12 +96,7 @@ async function openScanModal(onVerified) {
     }
   };
 
-  const cancelHandler = async () => {
-    closeScanModal();
-  };
-
-  startBtn.onclick = startHandler;
-  cancelBtn.onclick = cancelHandler;
+  cancelBtn.onclick = () => closeScanModal();
 }
 
 async function closeScanModal() {
@@ -115,16 +108,14 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 Your existing LBizzo Vape Shop code
+// 💾 Your existing app code + fixed Firebase image loading
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
   console.log("✅ LBizzo Vape Shop running...");
 
-  // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const toast = (msg) => {
     console.log(msg);
@@ -136,7 +127,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     t.__h = setTimeout(() => (t.hidden = true), 2200);
   };
 
-  // ---------- ELEMENTS ----------
   const overlay = $("#age-check");
   const yes = $("#yesBtn");
   const no = $("#noBtn");
@@ -149,71 +139,77 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeCart = $("#close-cart");
   const checkoutBtn = $("#checkout-btn");
 
-  // ---------- AGE VERIFICATION ----------
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
-    const deny = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
-    ["click", "touchstart"].forEach(type => {
-      yes.addEventListener(type, allow, { passive: false });
-      no.addEventListener(type, deny, { passive: false });
+    yes.addEventListener("click", (e) => {
+      e.preventDefault();
+      overlay.style.display = "none";
+    });
+    no.addEventListener("click", (e) => {
+      e.preventDefault();
+      alert("Sorry, you must be 21+ to enter.");
+      location.href = "https://google.com";
     });
   }
 
   // ---------- FIREBASE ----------
   const db = firebase.firestore();
   const storage = firebase.storage();
+  const PLACEHOLDER_IMG =
+    "data:image/svg+xml;utf8," +
+    encodeURIComponent(
+      `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
+        <rect width='100%' height='100%' fill='#0b0b0b'/>
+        <text x='50%' y='52%' fill='#ff8c00' font-family='Arial' font-size='22' text-anchor='middle'>Image coming soon</text>
+      </svg>`
+    );
 
-  const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
-      <rect width='100%' height='100%' fill='#0b0b0b'/>
-      <text x='50%' y='52%' fill='#ff8c00' font-family='Arial' font-size='22' text-anchor='middle'>Image coming soon</text>
-    </svg>`
-  );
-
-  async function getImageURL(pathOrGS) {
+  async function getImageURL(path) {
     try {
-      if (!pathOrGS) return null;
-      const path = pathOrGS.startsWith("gs://")
-        ? pathOrGS.split(".app/")[1] || pathOrGS.split(".com/")[1] || pathOrGS
-        : pathOrGS;
+      if (!path) return PLACEHOLDER_IMG;
+
+      // handle both direct paths and full gs:// URLs
+      if (path.startsWith("gs://")) {
+        const cleanPath = path.split(".appspot.com/")[1];
+        return await storage.ref(cleanPath).getDownloadURL();
+      }
+      if (path.startsWith("http")) return path;
+
       return await storage.ref(path).getDownloadURL();
     } catch (err) {
-      console.warn("Image fetch failed:", pathOrGS, err);
-      return null;
+      console.warn("⚠️ Firebase image failed:", path, err.message);
+      return PLACEHOLDER_IMG;
     }
   }
 
   async function addCard(p) {
     const priceNum = Number(p.price) || 0;
-    let imgURL = p.image ? await getImageURL(p.image) : null;
-
+    const imgURL = await getImageURL(p.image);
     const card = document.createElement("div");
     card.className = "product";
     card.innerHTML = `
-      <img src="${imgURL || PLACEHOLDER_IMG}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'"/>
+      <img src="${imgURL}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
       <h3>${p.name || "Unnamed"}</h3>
       <p>$${priceNum.toFixed(2)}</p>
       <button class="add-btn">Add to Cart</button>
     `;
-    const btn = card.querySelector(".add-btn");
-    on(btn, "click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL || PLACEHOLDER_IMG }));
-    productList && productList.appendChild(card);
+    card.querySelector(".add-btn").addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
+    productList.appendChild(card);
   }
 
   async function loadProducts() {
-    if (!productList) return;
     productList.innerHTML = "";
     try {
-      const snap = await db.collection("products").orderBy("name").limit(100).get();
+      const snap = await db.collection("products").orderBy("name").get();
       if (snap.empty) {
-        productList.innerHTML = `<p style="color:#eaeaea">No products found.</p>`;
+        productList.innerHTML = "<p style='color:#eaeaea'>No products found.</p>";
         return;
       }
       for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
+      console.log("✅ Firebase products loaded");
     } catch (e) {
-      console.error("loadProducts error", e);
-      productList.innerHTML = `<p style="color:#ff6666">Failed to load products.</p>`;
+      console.error("❌ loadProducts:", e);
+      productList.innerHTML = "<p style='color:red'>Failed to load products.</p>";
     }
   }
 
@@ -227,7 +223,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function addToCart(item) {
-    const found = cart.find(i => i.id === item.id);
+    const found = cart.find((i) => i.id === item.id);
     if (found) found.qty += 1;
     else cart.push({ ...item, qty: 1 });
     persist();
@@ -235,12 +231,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function removeFromCart(id) {
-    cart = cart.filter(i => i.id !== id);
+    cart = cart.filter((i) => i.id !== id);
     persist();
   }
 
   function changeQty(id, delta) {
-    const it = cart.find(i => i.id === id);
+    const it = cart.find((i) => i.id === id);
     if (!it) return;
     it.qty = Math.max(1, it.qty + delta);
     persist();
@@ -249,13 +245,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   function renderCart() {
     if (cartCount) cartCount.textContent = cart.reduce((a, c) => a + c.qty, 0);
     if (!cartItems || !totalEl) return;
-
     if (cart.length === 0) {
-      cartItems.innerHTML = `<li style="color:#aaa">Your cart is empty.</li>`;
+      cartItems.innerHTML = "<li style='color:#aaa'>Your cart is empty.</li>";
       totalEl.textContent = "$0.00";
       return;
     }
-
     cartItems.innerHTML = "";
     let total = 0;
     for (const it of cart) {
@@ -274,45 +268,41 @@ document.addEventListener("DOMContentLoaded", async () => {
             </div>
           </div>
           <button class="remove">✕</button>
-        </div>
-      `;
-      on(li.querySelector(".minus"), "click", () => changeQty(it.id, -1));
-      on(li.querySelector(".plus"), "click", () => changeQty(it.id, +1));
-      on(li.querySelector(".remove"), "click", () => removeFromCart(it.id));
+        </div>`;
+      li.querySelector(".minus").onclick = () => changeQty(it.id, -1);
+      li.querySelector(".plus").onclick = () => changeQty(it.id, +1);
+      li.querySelector(".remove").onclick = () => removeFromCart(it.id);
       cartItems.appendChild(li);
     }
     totalEl.textContent = "$" + total.toFixed(2);
   }
 
-  on(cartBtn, "click", () => cartSection && (cartSection.hidden = false));
-  on(closeCart, "click", () => cartSection && (cartSection.hidden = true));
+  cartBtn.onclick = () => (cartSection.hidden = false);
+  closeCart.onclick = () => (cartSection.hidden = true);
 
   // ---------- EMAILJS ----------
   async function sendOrderEmail(payload) {
-    if (!window.emailjs || !emailjs.send) {
-      console.warn("EmailJS not loaded");
-      return { ok: false, error: "EmailJS not loaded" };
-    }
+    if (!window.emailjs || !emailjs.send) return { ok: false, error: "EmailJS not loaded" };
     try {
-      const SERVICE_ID = window.EMAILJS_SERVICE_ID || "your_service_id";
-      const TEMPLATE_ID = window.EMAILJS_TEMPLATE_ID || "your_template_id";
-      const PUBLIC_KEY = window.EMAILJS_PUBLIC_KEY || "your_public_key";
-      emailjs.init(PUBLIC_KEY);
-      const res = await emailjs.send(SERVICE_ID, TEMPLATE_ID, payload);
+      emailjs.init(window.EMAILJS_PUBLIC_KEY || "your_public_key");
+      const res = await emailjs.send(
+        window.EMAILJS_SERVICE_ID || "your_service_id",
+        window.EMAILJS_TEMPLATE_ID || "your_template_id",
+        payload
+      );
       return { ok: true, res };
     } catch (e) {
-      console.error("EmailJS send failed", e);
-      return { ok: false, error: e?.message || String(e) };
+      return { ok: false, error: e.message };
     }
   }
 
-  // ---------- SCANDIT: real ID scan before checkout ----------
+  // ---------- SCANDIT ID SCAN ----------
   async function startIDScan() {
     toast("📷 Starting ID scan...");
     try {
       await openScanModal(() => {
         idVerified = true;
-        if (checkoutBtn) checkoutBtn.disabled = false;
+        checkoutBtn.disabled = false;
       });
     } catch (err) {
       console.error("❌ ID scan failed:", err);
@@ -321,42 +311,36 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   // ---------- CHECKOUT ----------
-  on(checkoutBtn, "click", async (e) => {
+  checkoutBtn.addEventListener("click", async (e) => {
     if (!idVerified) {
       e.preventDefault();
       toast("Scan your ID to continue");
-      await startIDScan(); // opens Scandit modal
+      await startIDScan();
       return;
     }
 
-    const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
+    const itemsStr = cart.map((i) => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
     const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
-
     const payload = {
-      name: ($("#cust-name") && $("#cust-name").value) || "N/A",
-      phone: ($("#cust-phone") && $("#cust-phone").value) || "N/A",
-      address: ($("#cust-address") && $("#cust-address").value) || "N/A",
+      name: ($("#cust-name")?.value) || "N/A",
+      phone: ($("#cust-phone")?.value) || "N/A",
+      address: ($("#cust-address")?.value) || "N/A",
       items: itemsStr,
       total
     };
-
     const res = await sendOrderEmail(payload);
-
     if (res.ok) {
       toast("📧 Order sent! Redirecting to payment...");
       const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
       setTimeout(() => window.open(squareLink, "_blank"), 800);
-
       cart = [];
       persist();
-      if (cartSection) cartSection.hidden = true;
-    } else {
-      alert("Email failed: " + (res.error || "Unknown error"));
-    }
+      cartSection.hidden = true;
+    } else alert("Email failed: " + (res.error || "Unknown error"));
   });
 
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo ready with Square checkout + Scandit verification");
+  console.log("🚀 LBizzo ready with Firebase images + Scandit verification");
 });
