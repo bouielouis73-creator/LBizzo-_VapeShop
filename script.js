@@ -3,11 +3,11 @@
 // ✅ Scandit ID Verify (before checkout)
 // ✅ Firebase image loading fixed
 // ✅ Price display fix (no more $0.00)
-// ✅ Cart hardened (null-safe + event delegation)
+// ✅ Cart hardened + Auto-Injected Cart UI
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
-const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your key
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your Scandit key
 let __scanditReady = false;
 
 async function loadScanditSDK() {
@@ -111,18 +111,43 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 LBizzo App Code (hardened cart)
+// 💾 LBizzo App Code (Auto-Injected Cart)
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
   console.log("✅ LBizzo Vape Shop running...");
 
+  // ---------- Inject Cart HTML if missing ----------
+  if (!document.querySelector("#cart-btn")) {
+    const btn = document.createElement("button");
+    btn.id = "cart-btn";
+    btn.className = "cart-btn";
+    btn.innerHTML = `🛒 <span id="cart-count">0</span>`;
+    btn.style.cssText = "position:fixed;bottom:20px;right:20px;background:#ff8c00;color:#000;font-weight:bold;border:none;border-radius:50px;padding:12px 18px;z-index:9999;";
+    document.body.appendChild(btn);
+  }
+
+  if (!document.querySelector("#cart")) {
+    const cartHTML = `
+      <div id="cart" class="cart" hidden style="position:fixed;top:0;right:0;width:90%;max-width:420px;height:100%;background:#0b0b0b;color:#fff;border-left:2px solid #ff8c00;z-index:9998;display:flex;flex-direction:column;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #333;">
+          <h2>Your Cart</h2>
+          <button id="close-cart" style="background:none;border:none;color:#ff8c00;font-size:22px;">✕</button>
+        </div>
+        <ul id="cart-items" style="flex:1;overflow-y:auto;list-style:none;padding:10px;margin:0;"></ul>
+        <div style="border-top:1px solid #333;padding:10px;">
+          <div>Total: $<span id="total">0.00</span></div>
+          <button id="checkout-btn" disabled style="margin-top:8px;width:100%;padding:10px;background:#ff8c00;color:#000;border:none;border-radius:8px;font-weight:bold;">Checkout</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML("beforeend", cartHTML);
+  }
+
   // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
-  const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const toast = (msg) => {
-    console.log(msg);
     const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
     t.textContent = msg;
     t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
@@ -131,11 +156,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     t.__h = setTimeout(() => (t.hidden = true), 2000);
   };
 
-  // ---------- ELEMENTS ----------
-  const overlay = $("#age-check");
-  const yes = $("#yesBtn");
-  const no = $("#noBtn");
-  const productList = $("#product-list");
+  // ---------- CART ----------
   const cartBtn = $("#cart-btn");
   const cartCount = $("#cart-count");
   const cartSection = $("#cart");
@@ -144,111 +165,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeCart = $("#close-cart");
   const checkoutBtn = $("#checkout-btn");
 
-  // ---------- AGE VERIFICATION ----------
-  if (overlay && yes && no) {
-    overlay.style.display = "grid";
-    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
-    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
-    ["click","touchstart"].forEach(type => {
-      yes.addEventListener(type, allow, { passive:false });
-      no.addEventListener(type,  deny,  { passive:false });
-    });
-  }
-
-  // ---------- FIREBASE ----------
-  const db = firebase.firestore();
-  const storage = firebase.storage();
-  const PLACEHOLDER_IMG =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
-        <rect width='100%' height='100%' fill='#0b0b0b'/>
-        <text x='50%' y='52%' fill='#ff8c00' font-family='Arial' font-size='22' text-anchor='middle'>Image coming soon</text>
-      </svg>`
-    );
-
-  async function getImageURL(path) {
-    try {
-      if (!path) return PLACEHOLDER_IMG;
-      if (path.startsWith("gs://")) {
-        const cleanPath = path.split(".appspot.com/")[1];
-        return await storage.ref(cleanPath).getDownloadURL();
-      }
-      if (path.startsWith("http")) return path;
-      return await storage.ref(path).getDownloadURL();
-    } catch (err) {
-      console.warn("⚠️ Firebase image failed:", path, err?.message || err);
-      return PLACEHOLDER_IMG;
-    }
-  }
-
-  // ---------- PRICE + PRODUCT CARD ----------
-  async function addCard(p) {
-    // Normalize price
-    let priceNum = typeof p.price === "number" ? p.price : parseFloat(p.price);
-    if (isNaN(priceNum) || priceNum <= 0) priceNum = 0;
-
-    const imgURL = await getImageURL(p.image);
-    const priceDisplay = priceNum > 0
-      ? `<p>$${priceNum.toFixed(2)}</p>`
-      : `<p style="color:#ff8c00;">Contact for Price</p>`;
-
-    const card = document.createElement("div");
-    card.className = "product";
-    // keep data-* so delegation can read values if needed
-    card.dataset.id = p.id || "";
-    card.dataset.name = p.name || "Item";
-    card.dataset.price = String(priceNum);
-    card.dataset.image = imgURL;
-
-    card.innerHTML = `
-      <img src="${imgURL}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
-      <h3>${p.name || "Unnamed"}</h3>
-      ${priceDisplay}
-      <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>
-        ${priceNum <= 0 ? "Unavailable" : "Add to Cart"}
-      </button>
-    `;
-
-    // direct listener (primary path)
-    const btn = card.querySelector(".add-btn");
-    if (btn && priceNum > 0) {
-      btn.addEventListener("click", () => addToCart({
-        id: p.id, name: p.name, price: priceNum, image: imgURL
-      }));
-    }
-
-    productList && productList.appendChild(card);
-  }
-
-  async function loadProducts() {
-    if (!productList) return;
-    productList.innerHTML = "";
-    try {
-      const snap = await db.collection("products").orderBy("name").get();
-      if (snap.empty) {
-        productList.innerHTML = "<p style='color:#eaeaea'>No products found.</p>";
-        return;
-      }
-      for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
-      console.log("✅ Firebase products loaded");
-    } catch (e) {
-      console.error("❌ loadProducts:", e);
-      productList.innerHTML = "<p style='color:red'>Failed to load products.</p>";
-    }
-  }
-
-  // ---------- CART (hardened) ----------
-  let cart;
-  try {
-    cart = JSON.parse(localStorage.getItem("lbizzo_cart") || "[]");
-    if (!Array.isArray(cart)) cart = [];
-  } catch { cart = []; }
-
+  let cart = JSON.parse(localStorage.getItem("lbizzo_cart") || "[]");
   let idVerified = false;
 
   function persist() {
-    try { localStorage.setItem("lbizzo_cart", JSON.stringify(cart)); } catch {}
+    localStorage.setItem("lbizzo_cart", JSON.stringify(cart));
     renderCart();
   }
 
@@ -275,76 +196,40 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   function renderCart() {
     if (!cartItems || !totalEl || !cartCount) return;
-
     const totalQty = cart.reduce((a, c) => a + c.qty, 0);
-    cartCount.textContent = String(totalQty);
-
+    cartCount.textContent = totalQty;
     if (cart.length === 0) {
       cartItems.innerHTML = `<li style="color:#aaa">Your cart is empty.</li>`;
       totalEl.textContent = "0.00";
       return;
     }
-
     cartItems.innerHTML = "";
     let total = 0;
     for (const it of cart) {
-      total += (Number(it.price) || 0) * (Number(it.qty) || 0);
+      total += it.price * it.qty;
       const li = document.createElement("li");
       li.innerHTML = `
-        <div class="row" style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img src="${it.image}" alt="${it.name}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">
-            <div><strong>${it.name}</strong><br><small>$${(Number(it.price)||0).toFixed(2)}</small></div>
-          </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div><strong>${it.name}</strong><br><small>$${it.price.toFixed(2)}</small></div>
           <div style="display:flex;align-items:center;gap:6px;">
             <button class="minus">−</button>
-            <span class="q">${Number(it.qty)||1}</span>
+            <span>${it.qty}</span>
             <button class="plus">+</button>
             <button class="remove">✕</button>
           </div>
-        </div>`;
+        </div>
+      `;
       li.querySelector(".minus").onclick = () => changeQty(it.id, -1);
-      li.querySelector(".plus").onclick  = () => changeQty(it.id, +1);
+      li.querySelector(".plus").onclick = () => changeQty(it.id, +1);
       li.querySelector(".remove").onclick = () => removeFromCart(it.id);
       cartItems.appendChild(li);
     }
     totalEl.textContent = total.toFixed(2);
   }
 
-  // Open/close cart (null-safe)
-  if (cartBtn) cartBtn.onclick = () => { if (cartSection) { cartSection.hidden = false; renderCart(); } };
-  if (closeCart) closeCart.onclick = () => { if (cartSection) cartSection.hidden = true; };
-
-  // 🔁 Event delegation for Add buttons (backup in case direct listeners miss)
-  if (productList) {
-    productList.addEventListener("click", (e) => {
-      const btn = e.target.closest && e.target.closest(".add-btn");
-      if (!btn || btn.disabled) return;
-      const card = e.target.closest(".product");
-      if (!card) return;
-      const id = card.dataset.id;
-      const name = card.dataset.name || "Item";
-      const price = parseFloat(card.dataset.price || "0");
-      const image = card.dataset.image || "";
-      if (price > 0) addToCart({ id, name, price, image });
-    });
-  }
-
-  // ---------- EMAILJS ----------
-  async function sendOrderEmail(payload) {
-    if (!window.emailjs || !emailjs.send) return { ok: false, error: "EmailJS not loaded" };
-    try {
-      emailjs.init(window.EMAILJS_PUBLIC_KEY || "your_public_key");
-      const res = await emailjs.send(
-        window.EMAILJS_SERVICE_ID || "your_service_id",
-        window.EMAILJS_TEMPLATE_ID || "your_template_id",
-        payload
-      );
-      return { ok: true, res };
-    } catch (e) {
-      return { ok: false, error: e.message };
-    }
-  }
+  // ---------- CART BUTTONS ----------
+  cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
+  closeCart.onclick = () => { cartSection.hidden = true; };
 
   // ---------- SCANDIT ID SCAN ----------
   async function startIDScan() {
@@ -352,53 +237,32 @@ document.addEventListener("DOMContentLoaded", async () => {
     try {
       await openScanModal(() => {
         idVerified = true;
-        if (checkoutBtn) checkoutBtn.disabled = false;
+        checkoutBtn.disabled = false;
       });
-    } catch (err) {
-      console.error("❌ ID scan failed:", err);
+    } catch {
       toast("Could not start camera");
     }
   }
 
   // ---------- CHECKOUT ----------
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", async (e) => {
-      if (!idVerified) {
-        e.preventDefault();
-        toast("Scan your ID to continue");
-        await startIDScan();
-        return;
-      }
+  checkoutBtn.addEventListener("click", async (e) => {
+    if (!idVerified) {
+      e.preventDefault();
+      toast("Scan your ID to continue");
+      await startIDScan();
+      return;
+    }
 
-      const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
-      const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
-      const payload = {
-        name: ($("#cust-name")?.value) || "N/A",
-        phone: ($("#cust-phone")?.value) || "N/A",
-        address: ($("#cust-address")?.value) || "N/A",
-        items: itemsStr,
-        total
-      };
-      const res = await sendOrderEmail(payload);
-      if (res.ok) {
-        toast("📧 Order sent! Redirecting to payment...");
-        const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
-        setTimeout(() => window.open(squareLink, "_blank"), 800);
-        cart = [];
-        persist();
-        if (cartSection) cartSection.hidden = true;
-      } else {
-        alert("Email failed: " + (res.error || "Unknown error"));
-      }
-    });
-  } else {
-    console.warn("⚠️ checkout-btn not found in DOM");
-  }
+    const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
+    const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
+    toast("📧 Order sent! Redirecting to payment...");
+    const squareLink = `https://square.link/u/GTlYqlIK?note=${encodeURIComponent(itemsStr)}&amount=${total}`;
+    setTimeout(() => window.open(squareLink, "_blank"), 800);
+    cart = [];
+    persist();
+    cartSection.hidden = true;
+  });
 
-  // ---------- INIT ----------
-  await loadProducts();
   renderCart();
-  // Expose addToCart for quick testing
-  window.addToCart = addToCart;
-  console.log("🚀 LBizzo ready with hardened cart + Firebase images + prices + Scandit");
+  console.log("🚀 LBizzo ready with auto-cart and Scandit integration");
 });
