@@ -1,12 +1,10 @@
 // =========================================================
-// ✅ LBizzo Vape Shop - Full Script
+// ✅ LBizzo Vape Shop - Full Script (Final Fixed Version)
 // ✅ Scandit ID Verify (before checkout)
 // ✅ Firebase image loading fixed
 // ✅ Price display fix (no more $0.00)
-// ✅ Cart hardened (null-safe + event delegation)
-// ✅ Cart + Checkout logic fixed (opens, scans, then Square)
-// ✅ Cart button fixed for iPhone/iPad (touch/click safe)
-// ✅ Cart button now plays a click sound
+// ✅ EmailJS order sending
+// ✅ Cart button works on iPhone/iPad (sound + open/close)
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
@@ -114,30 +112,24 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 LBizzo App Code (hardened cart + fixed checkout)
+// 💾 LBizzo App Code
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
   console.log("✅ LBizzo Vape Shop running...");
 
-  // ---------- HELPERS ----------
   const $ = (s, r = document) => r.querySelector(s);
   const toast = (msg) => {
     console.log(msg);
     const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
     t.textContent = msg;
-    t.style.cssText =
-      "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
+    t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
     t.hidden = false;
     clearTimeout(t.__h);
     t.__h = setTimeout(() => (t.hidden = true), 2000);
   };
 
-  // ✅ Sound effect for cart open
-  const clickSound = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3");
-
-  // ---------- ELEMENTS ----------
   const overlay = $("#age-check");
   const yes = $("#yesBtn");
   const no = $("#noBtn");
@@ -150,15 +142,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const closeCart = $("#close-cart");
   const checkoutBtn = $("#checkout-btn");
 
-  // ---------- AGE VERIFICATION ----------
+  // ---------- AGE GATE ----------
   if (overlay && yes && no) {
     overlay.style.display = "grid";
     yes.addEventListener("click", (e) => { e.preventDefault(); overlay.style.display = "none"; });
-    no.addEventListener("click", (e) => {
-      e.preventDefault();
-      alert("Sorry, you must be 21+ to enter.");
-      location.href = "https://google.com";
-    });
+    no.addEventListener("click", (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; });
   }
 
   // ---------- FIREBASE ----------
@@ -182,50 +170,37 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (path.startsWith("http")) return path;
       return await storage.ref(path).getDownloadURL();
-    } catch (err) {
-      console.warn("⚠️ Firebase image failed:", path, err?.message || err);
+    } catch {
       return PLACEHOLDER_IMG;
     }
   }
 
-  // ---------- PRICE + PRODUCT CARD ----------
   async function addCard(p) {
     let priceNum = typeof p.price === "number" ? p.price : parseFloat(p.price);
     if (isNaN(priceNum) || priceNum <= 0) priceNum = 0;
     const imgURL = await getImageURL(p.image);
-    const priceDisplay = priceNum > 0 ? `<p>$${priceNum.toFixed(2)}</p>` : `<p style="color:#ff8c00;">Contact for Price</p>`;
+    const priceDisplay = priceNum > 0
+      ? `<p>$${priceNum.toFixed(2)}</p>`
+      : `<p style="color:#ff8c00;">Contact for Price</p>`;
     const card = document.createElement("div");
     card.className = "product";
-    card.dataset.id = p.id || "";
-    card.dataset.name = p.name || "Item";
-    card.dataset.price = String(priceNum);
-    card.dataset.image = imgURL;
     card.innerHTML = `
-      <img src="${imgURL}" alt="${p.name || "Product"}" onerror="this.src='${PLACEHOLDER_IMG}'" />
+      <img src="${imgURL}" alt="${p.name || "Product"}" />
       <h3>${p.name || "Unnamed"}</h3>
       ${priceDisplay}
       <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>${priceNum <= 0 ? "Unavailable" : "Add to Cart"}</button>
     `;
-    const btn = card.querySelector(".add-btn");
-    if (btn && priceNum > 0) btn.addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
-    productList && productList.appendChild(card);
+    if (priceNum > 0) {
+      card.querySelector(".add-btn").onclick = () =>
+        addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL });
+    }
+    productList.appendChild(card);
   }
 
   async function loadProducts() {
-    if (!productList) return;
-    productList.innerHTML = "";
-    try {
-      const snap = await db.collection("products").orderBy("name").get();
-      if (snap.empty) {
-        productList.innerHTML = "<p style='color:#eaeaea'>No products found.</p>";
-        return;
-      }
-      for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
-      console.log("✅ Firebase products loaded");
-    } catch (e) {
-      console.error("❌ loadProducts:", e);
-      productList.innerHTML = "<p style='color:red'>Failed to load products.</p>";
-    }
+    const snap = await db.collection("products").orderBy("name").get();
+    for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
+    console.log("✅ Firebase products loaded");
   }
 
   // ---------- CART ----------
@@ -293,14 +268,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
   }
 
-  // ---------- FIXED CART BUTTON + SOUND ----------
+  // ---------- FIXED CART BUTTON ----------
   function openCart() {
     if (!cartSection) return;
-    clickSound.currentTime = 0;
-    clickSound.play().catch(()=>{});
     renderCart();
     cartSection.hidden = false;
     cartSection.style.display = "block";
+    try {
+      new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_9d3f7a4c25.mp3?filename=click-124467.mp3").play();
+    } catch {}
   }
 
   function closeCartPanel() {
@@ -309,24 +285,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     cartSection.style.display = "none";
   }
 
-  if (cartBtn) {
-    cartBtn.setAttribute("role", "button");
-    cartBtn.setAttribute("tabindex", "0");
-    const handler = (e) => { e.preventDefault(); e.stopPropagation(); openCart(); };
-    cartBtn.addEventListener("click", handler, { passive: false });
-    cartBtn.addEventListener("touchstart", handler, { passive: false });
-    cartBtn.addEventListener("pointerup", handler, { passive: false });
-    cartBtn.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") handler(e); });
+  const cartButtonEl = document.getElementById("cart-btn");
+  if (cartButtonEl) {
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCart();
+    };
+    ["click", "touchend", "pointerup"].forEach(ev => {
+      cartButtonEl.addEventListener(ev, handler, { passive: false });
+    });
+    cartButtonEl.style.cursor = "pointer";
+    console.log("✅ Cart button connected!");
+  } else {
+    console.warn("⚠️ Cart button not found in DOM");
   }
 
-  document.addEventListener("click", (e) => {
-    if (e.target && e.target.closest && e.target.closest("#cart-btn")) {
-      e.preventDefault();
-      openCart();
-    }
-  }, true);
-
-  if (closeCart) closeCart.onclick = () => { closeCartPanel(); };
+  if (closeCart) {
+    closeCart.addEventListener("click", closeCartPanel);
+    closeCart.addEventListener("touchend", closeCartPanel);
+  }
 
   // ---------- EMAILJS ----------
   async function sendOrderEmail(payload) {
@@ -348,10 +326,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", async (e) => {
       e.preventDefault();
-      if (!cart || cart.length === 0) {
+
+      if (!cart.length) {
         toast("🛒 Your cart is empty");
         return;
       }
+
       if (!idVerified) {
         toast("🔒 Please verify your ID before checkout");
         await openScanModal(() => {
@@ -361,6 +341,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         return;
       }
+
       handleCheckout();
     });
   }
@@ -391,6 +372,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  window.addToCart = addToCart;
-  console.log("🚀 LBizzo ready: fixed cart + sound + Scandit + EmailJS + Square");
+  console.log("🚀 LBizzo ready: Cart fixed + Scandit + EmailJS + Firebase");
 });
