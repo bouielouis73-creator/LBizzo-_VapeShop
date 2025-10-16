@@ -4,17 +4,17 @@ document.addEventListener("DOMContentLoaded", async () => {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 
-  // ---------- AGE VERIFICATION ----------
+  // ---------- AGE CHECK ----------
   const overlay = $("#age-check");
   const yes = $("#yesBtn");
   const no = $("#noBtn");
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => {
+    yes.addEventListener("click", e => {
       e.preventDefault();
       overlay.style.display = "none";
     });
-    no.addEventListener("click", (e) => {
+    no.addEventListener("click", e => {
       e.preventDefault();
       alert("Sorry, you must be 21+ to enter.");
       window.location.href = "https://google.com";
@@ -39,8 +39,9 @@ document.addEventListener("DOMContentLoaded", async () => {
       div.className = "cart-item";
       div.innerHTML = `
         <img src="${item.image}" alt="${item.name}" />
-        <p>${item.name} - $${item.price.toFixed(2)}</p>
-        <button data-i="${i}" class="remove">Remove</button>
+        <p>${item.name}</p>
+        <p>$${item.price.toFixed(2)}</p>
+        <button data-i="${i}" class="remove">✖</button>
       `;
       total += item.price;
       cartItems.appendChild(div);
@@ -48,8 +49,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     totalEl.textContent = total.toFixed(2);
     cartCount.textContent = cart.length;
     $$(".remove").forEach(btn => btn.onclick = e => {
-      const i = +e.target.dataset.i;
-      cart.splice(i, 1);
+      cart.splice(+e.target.dataset.i, 1);
       updateCart();
     });
   };
@@ -63,26 +63,27 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   async function getImageURL(path) {
     try {
-      return await storage.ref(path).getDownloadURL();
+      const url = await storage.ref(path).getDownloadURL();
+      return url;
     } catch (err) {
-      console.warn("⚠️ Image not found:", path, err);
-      return "https://via.placeholder.com/150?text=No+Image";
+      console.warn("⚠️ Image not found:", path);
+      return "https://via.placeholder.com/200?text=No+Image";
     }
   }
 
   async function loadProducts() {
     try {
-      const snap = await db.collection("products").get(); // ✅ lowercase collection
+      const snap = await db.collection("products").get();
       productList.innerHTML = "";
 
       if (snap.empty) {
-        productList.innerHTML = "<p>No products found in Firebase.</p>";
+        productList.innerHTML = "<p>No products found.</p>";
         return;
       }
 
       for (const doc of snap.docs) {
         const p = doc.data();
-        const imgURL = p.image ? await getImageURL(p.image) : "https://via.placeholder.com/150?text=No+Image";
+        const imgURL = p.image ? await getImageURL(p.image) : "https://via.placeholder.com/200?text=No+Image";
 
         const card = document.createElement("div");
         card.className = "product";
@@ -105,8 +106,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       console.log("🔥 Products loaded from Firestore!");
     } catch (err) {
-      console.error("❌ Failed to load products:", err);
-      productList.innerHTML = "<p>Error loading products.</p>";
+      console.error("❌ Error loading products:", err);
     }
   }
 
