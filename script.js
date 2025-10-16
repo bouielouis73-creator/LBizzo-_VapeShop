@@ -3,6 +3,7 @@
 // ✅ Scandit ID Verify (before checkout)
 // ✅ Firebase image loading fixed
 // ✅ Price display fix (no more $0.00)
+// ✅ Cart fully repaired
 // =========================================================
 
 // ---------- SCANDIT: dynamic loader + configure ----------
@@ -110,7 +111,7 @@ async function closeScanModal() {
 }
 
 // =========================================================
-// 💾 Your existing app code + fixed Firebase image + price handling
+// 💾 LBizzo App Code
 // =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
@@ -118,15 +119,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   console.log("✅ LBizzo Vape Shop running...");
 
   const $ = (s, r = document) => r.querySelector(s);
-  const on = (el, ev, fn, opts) => el && el.addEventListener(ev, fn, opts);
   const toast = (msg) => {
-    console.log(msg);
     const t = $("#toast") || Object.assign(document.body.appendChild(document.createElement("div")), { id: "toast" });
     t.textContent = msg;
     t.style.cssText = "position:fixed;left:50%;transform:translateX(-50%);bottom:16px;padding:10px 14px;background:#111;color:#fff;border:1px solid #ff8c00;border-radius:8px;z-index:9999";
     t.hidden = false;
     clearTimeout(t.__h);
-    t.__h = setTimeout(() => (t.hidden = true), 2200);
+    t.__h = setTimeout(() => (t.hidden = true), 2000);
   };
 
   const overlay = $("#age-check");
@@ -143,8 +142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   if (overlay && yes && no) {
     overlay.style.display = "grid";
-    yes.addEventListener("click", (e) => { e.preventDefault(); overlay.style.display = "none"; });
-    no.addEventListener("click", (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; });
+    yes.onclick = (e) => { e.preventDefault(); overlay.style.display = "none"; };
+    no.onclick = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com"; };
   }
 
   // ---------- FIREBASE ----------
@@ -168,65 +167,47 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
       if (path.startsWith("http")) return path;
       return await storage.ref(path).getDownloadURL();
-    } catch (err) {
-      console.warn("⚠️ Firebase image failed:", path, err.message);
+    } catch {
       return PLACEHOLDER_IMG;
     }
   }
 
-  // ---------- FIXED PRICE HANDLING ----------
+  // ---------- PRICE + PRODUCT CARD ----------
   async function addCard(p) {
-    // ✅ ensure numeric price
-    let priceNum = 0;
-    if (typeof p.price === "number") {
-      priceNum = p.price;
-    } else if (typeof p.price === "string" && p.price.trim() !== "") {
-      priceNum = parseFloat(p.price);
-    }
+    let priceNum = typeof p.price === "number" ? p.price : parseFloat(p.price);
+    if (isNaN(priceNum) || priceNum <= 0) priceNum = 0;
 
     const imgURL = await getImageURL(p.image);
+    const priceDisplay = priceNum > 0
+      ? `<p>$${priceNum.toFixed(2)}</p>`
+      : `<p style="color:#ff8c00;">Contact for Price</p>`;
+
     const card = document.createElement("div");
     card.className = "product";
-
-    const priceDisplay = isNaN(priceNum) || priceNum <= 0
-      ? `<p style="color:#ff8c00;">Contact for Price</p>`
-      : `<p>$${priceNum.toFixed(2)}</p>`;
-
     card.innerHTML = `
-      <img src="${imgURL}" alt="${p.name}" onerror="this.src='${PLACEHOLDER_IMG}'" />
-      <h3>${p.name || "Unnamed"}</h3>
+      <img src="${imgURL}" alt="${p.name}" />
+      <h3>${p.name}</h3>
       ${priceDisplay}
-      <button class="add-btn">Add to Cart</button>
+      <button class="add-btn" ${priceNum <= 0 ? "disabled" : ""}>
+        ${priceNum <= 0 ? "Unavailable" : "Add to Cart"}
+      </button>
     `;
-
     const btn = card.querySelector(".add-btn");
-    if (isNaN(priceNum) || priceNum <= 0) {
-      btn.disabled = true;
-      btn.textContent = "Unavailable";
-    } else {
-      btn.addEventListener("click", () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL }));
-    }
-
+    if (priceNum > 0) btn.onclick = () => addToCart({ id: p.id, name: p.name, price: priceNum, image: imgURL });
     productList.appendChild(card);
   }
 
   async function loadProducts() {
     productList.innerHTML = "";
-    try {
-      const snap = await db.collection("products").orderBy("name").get();
-      if (snap.empty) {
-        productList.innerHTML = "<p style='color:#eaeaea'>No products found.</p>";
-        return;
-      }
-      for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
-      console.log("✅ Firebase products loaded");
-    } catch (e) {
-      console.error("❌ loadProducts:", e);
-      productList.innerHTML = "<p style='color:red'>Failed to load products.</p>";
+    const snap = await db.collection("products").orderBy("name").get();
+    if (snap.empty) {
+      productList.innerHTML = "<p>No products found.</p>";
+      return;
     }
+    for (const doc of snap.docs) await addCard({ id: doc.id, ...doc.data() });
   }
 
-  // ---------- CART ----------
+  // ---------- CART (fully repaired) ----------
   let cart = JSON.parse(localStorage.getItem("lbizzo_cart") || "[]");
   let idVerified = false;
 
@@ -236,61 +217,63 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   function addToCart(item) {
-    const found = cart.find((i) => i.id === item.id);
+    if (!item || !item.id) return;
+    const found = cart.find(i => i.id === item.id);
     if (found) found.qty += 1;
     else cart.push({ ...item, qty: 1 });
     persist();
-    toast("Added to cart");
+    toast(`${item.name} added to cart 🛒`);
   }
 
   function removeFromCart(id) {
-    cart = cart.filter((i) => i.id !== id);
+    cart = cart.filter(i => i.id !== id);
     persist();
   }
 
   function changeQty(id, delta) {
-    const it = cart.find((i) => i.id === id);
+    const it = cart.find(i => i.id === id);
     if (!it) return;
     it.qty = Math.max(1, it.qty + delta);
     persist();
   }
 
   function renderCart() {
-    if (cartCount) cartCount.textContent = cart.reduce((a, c) => a + c.qty, 0);
     if (!cartItems || !totalEl) return;
+    cartCount.textContent = cart.reduce((a, c) => a + c.qty, 0);
+
     if (cart.length === 0) {
-      cartItems.innerHTML = "<li style='color:#aaa'>Your cart is empty.</li>";
-      totalEl.textContent = "$0.00";
+      cartItems.innerHTML = `<li style="color:#aaa">Your cart is empty.</li>`;
+      totalEl.textContent = "0.00";
       return;
     }
+
     cartItems.innerHTML = "";
     let total = 0;
     for (const it of cart) {
       total += it.price * it.qty;
       const li = document.createElement("li");
       li.innerHTML = `
-        <div class="row">
-          <img src="${it.image}" alt="${it.name}" />
-          <div class="grow">
-            <strong>${it.name}</strong>
-            <div>$${it.price.toFixed(2)}</div>
-            <div class="qty">
-              <button class="minus">−</button>
-              <span class="q">${it.qty}</span>
-              <button class="plus">+</button>
-            </div>
+        <div class="row" style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="${it.image}" style="width:50px;height:50px;object-fit:cover;border-radius:6px;">
+            <div><strong>${it.name}</strong><br><small>$${it.price.toFixed(2)}</small></div>
           </div>
-          <button class="remove">✕</button>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <button class="minus">−</button>
+            <span class="q">${it.qty}</span>
+            <button class="plus">+</button>
+            <button class="remove">✕</button>
+          </div>
         </div>`;
       li.querySelector(".minus").onclick = () => changeQty(it.id, -1);
       li.querySelector(".plus").onclick = () => changeQty(it.id, +1);
       li.querySelector(".remove").onclick = () => removeFromCart(it.id);
       cartItems.appendChild(li);
     }
-    totalEl.textContent = "$" + total.toFixed(2);
+    totalEl.textContent = total.toFixed(2);
   }
 
-  cartBtn.onclick = () => (cartSection.hidden = false);
+  cartBtn.onclick = () => { cartSection.hidden = false; renderCart(); };
   closeCart.onclick = () => (cartSection.hidden = true);
 
   // ---------- EMAILJS ----------
@@ -317,14 +300,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         idVerified = true;
         checkoutBtn.disabled = false;
       });
-    } catch (err) {
-      console.error("❌ ID scan failed:", err);
+    } catch {
       toast("Could not start camera");
     }
   }
 
   // ---------- CHECKOUT ----------
-  checkoutBtn.addEventListener("click", async (e) => {
+  checkoutBtn.onclick = async (e) => {
     if (!idVerified) {
       e.preventDefault();
       toast("Scan your ID to continue");
@@ -332,7 +314,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       return;
     }
 
-    const itemsStr = cart.map((i) => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
+    const itemsStr = cart.map(i => `${i.name} x${i.qty} — $${(i.price * i.qty).toFixed(2)}`).join("\n");
     const total = cart.reduce((a, c) => a + c.price * c.qty, 0).toFixed(2);
     const payload = {
       name: ($("#cust-name")?.value) || "N/A",
@@ -350,10 +332,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       persist();
       cartSection.hidden = true;
     } else alert("Email failed: " + (res.error || "Unknown error"));
-  });
+  };
 
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo ready with Firebase images, prices, and Scandit verification");
+  console.log("🚀 LBizzo ready with Firebase images, prices, Scandit, and working cart");
 });
