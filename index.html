@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- PWA (keep as you already have) -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
@@ -22,10 +22,10 @@
   <!-- EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- Scandit Web SDK (for PDF417 on IDs) -->
+  <!-- Scandit SDK (global ScanditSDK) -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/index.min.js"></script>
-  <!-- Put your Scandit license here or set window.SCANDIT_LICENSE in script.js -->
-  <meta name="scandit-key" content="YOUR_SCANDIT_LICENSE_KEY" />
+  <!-- Set your Scandit key here OR via window.SCANDIT_LICENSE_KEY in script.js -->
+  <meta name="scandit-key" content="PASTE_YOUR_SCANDIT_KEY_HERE" />
 
   <!-- App scripts -->
   <script defer src="firebase.js"></script>
@@ -45,9 +45,11 @@
   </div>
 
   <!-- Header -->
-  <header>
+  <header class="topbar">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">Cart <span id="cart-count">0</span></button>
+    <button id="cart-btn" type="button" aria-controls="cart" aria-expanded="false">
+      Cart <span id="cart-count">0</span>
+    </button>
   </header>
 
   <!-- Loyalty -->
@@ -61,10 +63,10 @@
   <!-- Products -->
   <main id="product-list" class="product-grid"></main>
 
-  <!-- Cart Modal -->
-  <section id="cart" class="hidden">
+  <!-- Cart Panel (same structure you use) -->
+  <section id="cart" role="dialog" aria-modal="true" aria-labelledby="cart-title">
     <div class="cart-box">
-      <h2>Your Cart</h2>
+      <h2 id="cart-title">Your Cart</h2>
 
       <ul id="cart-items"></ul>
 
@@ -72,7 +74,7 @@
         Total: <strong>$<span id="total">0.00</span></strong>
       </div>
 
-      <!-- Buyer info (for EmailJS) -->
+      <!-- Buyer info (EmailJS) -->
       <div class="checkout-form">
         <input id="cust-name" type="text" placeholder="Name" autocomplete="name" />
         <input id="cust-phone" type="tel" placeholder="Phone" autocomplete="tel" />
@@ -87,6 +89,6 @@
     </div>
   </section>
 
-  <!-- ID Scan viewport (created dynamically when needed) -->
+  <!-- Scandit overlay is created dynamically by script.js -->
 </body>
 </html>
