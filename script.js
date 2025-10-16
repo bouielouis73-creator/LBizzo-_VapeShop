@@ -1,3 +1,122 @@
+// =========================================================
+// ✅ LBizzo Vape Shop - Full Script + Scandit ID Verify (before checkout)
+// =========================================================
+
+// ---------- SCANDIT: dynamic loader + configure ----------
+const SCANDIT_LICENSE_KEY = "PASTE_YOUR_FULL_SCANDIT_KEY_HERE"; // <-- paste your full key
+let __scanditReady = false;
+
+async function loadScanditSDK() {
+  if (window.ScanditSDK) return true;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x";
+    s.async = true;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("Failed to load Scandit SDK"));
+    document.head.appendChild(s);
+  });
+  return true;
+}
+
+async function ensureScanditConfigured() {
+  if (__scanditReady) return true;
+  await loadScanditSDK();
+  await ScanditSDK.configure(SCANDIT_LICENSE_KEY, {
+    engineLocation: "https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/"
+  });
+  __scanditReady = true;
+  console.log("✅ Scandit SDK configured");
+  return true;
+}
+
+// ---------- Scandit Scan UI ----------
+let __scanOverlay, __scanContainer, __scanPicker;
+
+function ensureIDScanUI() {
+  if (__scanOverlay) return;
+  __scanOverlay = document.createElement("div");
+  __scanOverlay.id = "lbizzo-id-overlay";
+  __scanOverlay.style.cssText = `
+    position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,.9);
+    display:none; align-items:center; justify-content:center; padding:16px;
+  `;
+
+  const box = document.createElement("div");
+  box.style.cssText = `
+    width:min(92vw,520px); background:#0b0b0b; border:1px solid #ff8c00;
+    border-radius:14px; padding:16px; color:#eaeaea; text-align:center;
+  `;
+  box.innerHTML = `
+    <h2 style="margin:0 0 8px; color:#ff8c00;">Verify Your ID</h2>
+    <p style="margin:0 0 10px; color:#ccc;">Scan the barcode on the back of your driver’s license.</p>
+    <div id="lbizzo-scan-cam" style="width:100%; max-width:460px; margin:10px auto;"></div>
+    <div style="display:flex; gap:8px; justify-content:center; margin-top:10px;">
+      <button id="lbizzo-scan-start" style="padding:10px 14px;border:1px solid #ff8c00;background:#111;color:#fff;border-radius:10px;">Start Scan</button>
+      <button id="lbizzo-scan-cancel" style="padding:10px 14px;border:1px solid #444;background:#111;color:#ccc;border-radius:10px;">Cancel</button>
+    </div>
+  `;
+  __scanContainer = box.querySelector("#lbizzo-scan-cam");
+  __scanOverlay.appendChild(box);
+  document.body.appendChild(__scanOverlay);
+}
+
+async function openScanModal(onVerified) {
+  ensureIDScanUI();
+  __scanOverlay.style.display = "flex";
+
+  const startBtn = __scanOverlay.querySelector("#lbizzo-scan-start");
+  const cancelBtn = __scanOverlay.querySelector("#lbizzo-scan-cancel");
+
+  const startHandler = async () => {
+    try {
+      await ensureScanditConfigured();
+      if (__scanPicker) {
+        await __scanPicker.destroy();
+        __scanPicker = null;
+      }
+      __scanPicker = await ScanditSDK.BarcodePicker.create(__scanContainer, {
+        playSoundOnScan: true,
+        vibrateOnScan: true,
+      });
+      const settings = new ScanditSDK.ScanSettings({
+        enabledSymbologies: ["pdf417"], // Driver’s license barcode
+        codeDuplicateFilter: 1000
+      });
+      __scanPicker.applyScanSettings(settings);
+
+      __scanPicker.on("scan", result => {
+        if (result.barcodes && result.barcodes.length) {
+          toast("✅ ID Verified — checkout unlocked");
+          closeScanModal();
+          onVerified && onVerified();
+        }
+      });
+    } catch (err) {
+      console.error("❌ Scandit error:", err);
+      toast("Camera error. Check permissions.");
+    }
+  };
+
+  const cancelHandler = async () => {
+    closeScanModal();
+  };
+
+  startBtn.onclick = startHandler;
+  cancelBtn.onclick = cancelHandler;
+}
+
+async function closeScanModal() {
+  if (__scanPicker) {
+    try { await __scanPicker.destroy(); } catch {}
+    __scanPicker = null;
+  }
+  if (__scanOverlay) __scanOverlay.style.display = "none";
+}
+
+// =========================================================
+// 💾 Your existing LBizzo Vape Shop code
+// =========================================================
 document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
@@ -187,20 +306,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ---------- SCANDIT ----------
+  // ---------- SCANDIT: real ID scan before checkout ----------
   async function startIDScan() {
     toast("📷 Starting ID scan...");
-    idVerified = true;
-    if (checkoutBtn) checkoutBtn.disabled = false;
-    toast("✅ ID Verified — checkout unlocked");
+    try {
+      await openScanModal(() => {
+        idVerified = true;
+        if (checkoutBtn) checkoutBtn.disabled = false;
+      });
+    } catch (err) {
+      console.error("❌ ID scan failed:", err);
+      toast("Could not start camera");
+    }
   }
 
-  // ---------- CHECKOUT (EmailJS + Square) ----------
+  // ---------- CHECKOUT ----------
   on(checkoutBtn, "click", async (e) => {
     if (!idVerified) {
       e.preventDefault();
       toast("Scan your ID to continue");
-      await startIDScan();
+      await startIDScan(); // opens Scandit modal
       return;
     }
 
@@ -233,5 +358,5 @@ document.addEventListener("DOMContentLoaded", async () => {
   // ---------- INIT ----------
   await loadProducts();
   renderCart();
-  console.log("🚀 LBizzo ready with Square checkout integration");
+  console.log("🚀 LBizzo ready with Square checkout + Scandit verification");
 });
