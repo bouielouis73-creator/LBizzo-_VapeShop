@@ -5,28 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA -->
+  <!-- PWA (keep as you already have) -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs -->
+  <!-- Firebase (compat) -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
 
-  <!-- ✅ Scripts -->
+  <!-- EmailJS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+  <!-- Scandit Web SDK (for PDF417 on IDs) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/index.min.js"></script>
+  <!-- Put your Scandit license here or set window.SCANDIT_LICENSE in script.js -->
+  <meta name="scandit-key" content="YOUR_SCANDIT_LICENSE_KEY" />
+
+  <!-- App scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 
 <body>
-  <!-- 🔒 Age Verification -->
-  <div id="age-check" class="overlay">
+  <!-- Age Verification -->
+  <div id="age-check" class="overlay" style="display:none">
     <div class="modal">
       <h2>Are you 21 or older?</h2>
       <div class="btns">
@@ -36,34 +44,49 @@
     </div>
   </div>
 
-  <!-- 🟧 Header -->
+  <!-- Header -->
   <header>
     <h1>LBizzo Vape Shop</h1>
     <button id="cart-btn">Cart <span id="cart-count">0</span></button>
   </header>
 
-  <!-- ⭐ Loyalty -->
+  <!-- Loyalty -->
   <section id="loyalty">
-    <div id="stars">
-      <span>⭐</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
+    <div id="stars" aria-label="loyalty progress" title="Free vape at 6">
+      <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
     </div>
     <p>Free vape at 6 ⭐</p>
   </section>
 
-  <!-- 🛍️ Product List -->
-  <main id="product-list"></main>
+  <!-- Products -->
+  <main id="product-list" class="product-grid"></main>
 
-  <!-- 🛒 Cart -->
+  <!-- Cart Modal -->
   <section id="cart" class="hidden">
     <div class="cart-box">
       <h2>Your Cart</h2>
-      <div id="cart-items"></div>
-      <p>Total: $<span id="total">0.00</span></p>
-      <div class="cart-btns">
-        <button id="checkout-btn">Checkout</button>
-        <button id="close-cart">Keep Shopping</button>
+
+      <ul id="cart-items"></ul>
+
+      <div class="cart-total">
+        Total: <strong>$<span id="total">0.00</span></strong>
+      </div>
+
+      <!-- Buyer info (for EmailJS) -->
+      <div class="checkout-form">
+        <input id="cust-name" type="text" placeholder="Name" autocomplete="name" />
+        <input id="cust-phone" type="tel" placeholder="Phone" autocomplete="tel" />
+        <input id="cust-address" type="text" placeholder="Address" autocomplete="street-address" />
+      </div>
+
+      <div class="cart-actions">
+        <button id="scan-id-btn" type="button">Scan ID</button>
+        <button id="checkout-btn" type="button" disabled>Checkout</button>
+        <button id="close-cart" type="button">Keep Shopping</button>
       </div>
     </div>
   </section>
+
+  <!-- ID Scan viewport (created dynamically when needed) -->
 </body>
 </html>
