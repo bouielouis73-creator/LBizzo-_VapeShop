@@ -1,277 +1,291 @@
+<script>
 document.addEventListener("DOMContentLoaded", async () => {
-  if (window.__LBIZZO__) return;
-  window.__LBIZZO__ = true;
+  if (window.__LBIZZO_LOADED__) return;
+  window.__LBIZZO_LOADED__ = true;
 
-  // ====== CONFIG ======
-  const EMAILJS_PUBLIC_KEY = "jUx6gEqKI1tvL7yLs";
-  const EMAILJS_SERVICE_ID = "service_7o2u4kq";
-  const EMAILJS_TEMPLATE_ID = "template_6jlkofi";
-  const SCANDIT_LICENSE_KEY = "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDR";
-  const SQUARE_CHECKOUT_URL = "https://square.link/u/GTlYqlIK";
-
-  // ====== HELPERS ======
   const $  = (s, r=document) => r.querySelector(s);
-  const fmt = n => `$${(Number(n)||0).toFixed(2)}`;
-  const PLACEHOLDER = "data:image/svg+xml;utf8," + encodeURIComponent(
-    `<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'>
-      <rect width='100%' height='100%' fill='#0b0b0b'/>
-      <text x='50%' y='54%' text-anchor='middle' fill='#555' font-size='20'>image</text>
-    </svg>`
-  );
-  const debug = (m, ok=false) => { const d=$("#debug"); if(d){d.hidden=false; d.textContent=m; d.style.background=ok?"#022":"#220"; d.style.color=ok?"#7fffb3":"#ff8c8c";} };
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const debugBar = $("#debug");
+  const debug = (msg, ok=false) => {
+    if (!debugBar) return;
+    debugBar.textContent = msg;
+    debugBar.style.background = ok ? "#022" : "#220";
+    debugBar.style.color = ok ? "#91ffcf" : "#ff8c8c";
+    debugBar.hidden = false;
+    console.log(msg);
+  };
 
-  // ====== ELEMENTS ======
-  const overlay=$("#age-check"), yes=$("#yesBtn"), no=$("#noBtn");
+  // ---------- Elements ----------
+  const overlay = $("#age-check");
+  const yes = $("#yesBtn");
+  const no = $("#noBtn");
 
-  const scanSection=$("#id-scan-section");
-  const scannerHost=$("#scanner-host"), scannerView=$("#scanner-view");
-  const stopScanBtn=$("#stop-scan");
-  const fallbackWrap=$("#photo-fallback");
-  const idFront=$("#id-front"), idBack=$("#id-back"), markVerified=$("#mark-verified");
-  const verifyDot=$("#verify-dot"), verifyStatus=$("#verify-status");
+  const productList = $("#product-list");
 
-  const productList=$("#product-list");
+  const cartBtn = $("#cart-btn");
+  const cartDrawer = $("#cart");
+  const closeCart = $("#close-cart");
+  const keepShopping = $("#keep-shopping");
+  const cartItems = $("#cart-items");
+  const totalEl = $("#total");
+  const cartCount = $("#cart-count");
+  const checkoutBtn = $("#checkout-btn");
+  const checkoutTip = $("#checkout-tip");
 
-  const cartBtn=$("#cart-btn"), cart=$("#cart"), closeCart=$("#close-cart");
-  const cartItems=$("#cart-items"), totalEl=$("#total"), cartCount=$("#cart-count");
-  const checkoutBtn=$("#checkout-btn"), checkoutNote=$("#checkout-note"), checkoutStatus=$("#checkout-status");
-  const nameInput=$("#cust-name"), phoneInput=$("#cust-phone"), addrInput=$("#cust-address");
+  const scanSection = $("#id-scan-section");
+  const scanOpen = $("#scan-open");
+  const scanClose = $("#scan-close");
+  const scanStart = $("#scan-start");
+  const scanStop = $("#scan-stop");
+  const scanStatus = $("#scan-status");
+  const scanArrow = $("#scan-arrow");
+  const scanView = $("#scan-view");
 
-  // ====== STATE ======
-  let idVerified=false, cartArr=[];
-  let scandit = { loaded:false, camera:null, context:null, view:null, capture:null };
+  // ---------- Sounds ----------
+  const clickSound = new Audio("https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3"); // small click
 
-  // ====== EMAILJS INIT ======
-  try { emailjs.init(EMAILJS_PUBLIC_KEY); debug("EmailJS ready", true); } catch(e){ debug("EmailJS init failed"); }
+  // ---------- State ----------
+  const PLACEHOLDER_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns='http://www.w3.org/2000/svg' width='512' height='512'>
+      <rect width='100%' height='100%' fill='#0a0a0a'/>
+      <text x='50%' y='52%' font-size='28' fill='#444' text-anchor='middle' font-family='Arial'>Image</text>
+    </svg>
+  `);
 
-  // ====== AGE GATE (→ show products) ======
-  overlay.style.display="grid";
-  yes.addEventListener("click", (e)=>{
-    e.preventDefault();
-    overlay.style.display="none";       // allow browsing
-    scanSection.classList.add("hidden"); // no scan yet
-    debug("Age verified — browsing unlocked", true);
-  });
-  no.addEventListener("click", (e)=>{
-    e.preventDefault();
-    alert("Sorry, you must be 21+ to enter.");
-    location.href="https://google.com";
-  });
+  let cart = [];
+  let verified = false;
 
-  // ====== SCANDIT (PDF417 on IDs) ======
-  async function startScan() {
-    // show fallback first; enable live scanner if SDK is available
-    fallbackWrap.classList.remove("hidden");
-    scannerHost.classList.add("hidden");
+  // ---------- Age gate ----------
+  if (overlay && yes && no) {
+    overlay.style.display = "grid";
+    const allow = (e) => { e.preventDefault(); overlay.style.display = "none"; };
+    const deny  = (e) => { e.preventDefault(); alert("Sorry, you must be 21+ to enter."); window.location.href = "https://google.com"; };
+    ["click","touchstart"].forEach(ev => {
+      yes.addEventListener(ev, allow, {passive:false});
+      no.addEventListener(ev,  deny,  {passive:false});
+    });
+  }
 
-    if (!window.Scandit) {
-      debug("Scandit SDK not loaded — using photo fallback.");
-      return;
-    }
+  // ---------- EmailJS init ----------
+  // Replace with your actual public key (you said it changed)
+  try { emailjs.init({ publicKey: "YOUR_EMAILJS_PUBLIC_KEY" }); } catch(e){ console.warn(e); }
 
+  // ---------- Products (Firestore 'products' collection) ----------
+  async function loadProducts() {
+    productList.innerHTML = "";
     try {
-      const SD = window.Scandit;
-      const ctx = await SD.DataCaptureContext.create(SCANDIT_LICENSE_KEY);
-      const camera = SD.Camera.default;
-      await ctx.setFrameSource(camera);
+      const snap = await db.collection("products").orderBy("name").get();
+      if (snap.empty) {
+        productList.innerHTML = `<p class="muted">No products yet. Add docs in Firestore “products” with fields: <code>name</code>, <code>price</code>, <code>image</code> (Storage path like <code>products/yourfile.jpg</code>).</p>`;
+        return;
+      }
+      snap.forEach(doc => addCard({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      debug("Load products error: " + e.message);
+    }
+  }
 
-      const settings = new SD.barcodes.BarcodeCaptureSettings();
-      settings.setSymbologyEnabled(SD.barcodes.Symbology.PDF417, true);
+  async function addCard(p) {
+    const card = document.createElement("div");
+    card.className = "product";
 
-      const capture = await SD.barcodes.BarcodeCapture.forContext(ctx, settings);
-      capture.isEnabled = true;
+    const priceNum = Number(p.price) || 0;
+    const url = await window.getStorageURL(p.image);
+    const imgSrc = url || PLACEHOLDER_IMG;
 
-      const view = await SD.ui.DataCaptureView.create(ctx, scannerView);
-      await SD.barcodes.BarcodeCaptureOverlay.withBarcodeCaptureForView(capture, view);
+    card.innerHTML = `
+      <div class="img-wrap"><img src="${imgSrc}" alt="${p.name || "Product"}" /></div>
+      <h3>${p.name || "Unnamed"}</h3>
+      <p>$${priceNum.toFixed(2)}</p>
+      <button class="add-btn">Add to Cart</button>
+    `;
+    card.querySelector(".add-btn").addEventListener("click", () => {
+      clickSound.currentTime = 0; clickSound.play().catch(()=>{});
+      addToCart({ id: p.id, name: p.name || "Item", price: priceNum, image: imgSrc });
+    });
+    productList.appendChild(card);
+  }
 
-      capture.addListener({
-        didScan: (_, session) => {
-          const code = session.newlyRecognizedBarcodes?.[0];
-          if (!code) return;
-          onVerified("scan");
-          stopScan();
+  // ---------- Cart ----------
+  function openCart(){ cartDrawer.hidden = false; }
+  function closeCartDrawer(){ cartDrawer.hidden = true; }
+  cartBtn?.addEventListener("click", openCart);
+  closeCart?.addEventListener("click", closeCartDrawer);
+  keepShopping?.addEventListener("click", closeCartDrawer);
+
+  function addToCart(item){
+    const found = cart.find(i => i.id === item.id);
+    if (found) found.qty += 1; else cart.push({...item, qty:1});
+    renderCart();
+  }
+  function removeFromCart(id){
+    cart = cart.filter(i => i.id !== id);
+    renderCart();
+  }
+  function changeQty(id, delta){
+    const it = cart.find(i => i.id === id);
+    if (!it) return;
+    it.qty = Math.max(1, it.qty + delta);
+    renderCart();
+  }
+  function renderCart(){
+    cartItems.innerHTML = "";
+    let total = 0;
+    cart.forEach(i => {
+      const row = document.createElement("div");
+      row.className = "cart-item";
+      total += i.price * i.qty;
+      row.innerHTML = `
+        <img src="${i.image}" alt="${i.name}">
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <strong>${i.name}</strong>
+            <span>$${(i.price * i.qty).toFixed(2)}</span>
+          </div>
+          <div class="row" style="margin-top:6px">
+            <button class="icon-btn" data-d="-1">−</button>
+            <span>${i.qty}</span>
+            <button class="icon-btn" data-d="1">＋</button>
+            <button class="icon-btn" data-remove>Remove</button>
+          </div>
+        </div>
+      `;
+      row.querySelector("[data-d='-1']").onclick = ()=>changeQty(i.id,-1);
+      row.querySelector("[data-d='1']").onclick  = ()=>changeQty(i.id, 1);
+      row.querySelector("[data-remove']").onclick = ()=>removeFromCart(i.id);
+      cartItems.appendChild(row);
+    });
+    totalEl.textContent = "$" + total.toFixed(2);
+    cartCount.textContent = String(cart.reduce((n,i)=>n+i.qty,0));
+
+    // Lock checkout until ID verified
+    checkoutBtn.disabled = !verified || total === 0;
+    checkoutTip.textContent = verified ? "ID verified — you can checkout." : "Checkout unlocks after ID is verified.";
+  }
+
+  // ---------- Checkout (Square + EmailJS) ----------
+  const SQUARE_LINK = "https://square.link/u/GTlYqlIK"; // your link
+  async function sendOrderEmail(payload){
+    // Create an EmailJS template with variables: name, phone, address, items, total
+    try {
+      const resp = await emailjs.send(
+        "YOUR_EMAILJS_SERVICE_ID",
+        "YOUR_EMAILJS_TEMPLATE_ID",
+        payload
+      );
+      console.log("EmailJS OK:", resp);
+      return true;
+    } catch (e) {
+      console.warn("EmailJS error:", e);
+      return false;
+    }
+  }
+
+  checkoutBtn?.addEventListener("click", async () => {
+    if (!verified) return alert("Please verify your ID first.");
+    if (!cart.length) return;
+
+    // Collect a quick modal-style prompt (simple)
+    const name = prompt("Name for the order:");
+    if (!name) return;
+    const phone = prompt("Phone:");
+    const address = prompt("Address:");
+    const itemsStr = cart.map(i => `${i.qty} x ${i.name} @ $${i.price.toFixed(2)}`).join("\n");
+    const totalStr = totalEl.textContent.replace("$","");
+
+    await sendOrderEmail({ name, phone, address, items: itemsStr, total: totalStr });
+
+    // Redirect to Square checkout
+    window.location.href = SQUARE_LINK;
+  });
+
+  // ---------- Scandit Setup (Live Scan) ----------
+  const SCANDIT_LICENSE_KEY = "YOUR_SCANDIT_LICENSE_KEY_HERE"; // paste your real key
+
+  let context = null;
+  let barcodeCapture = null;
+  let camera = null;
+  let view = null;
+
+  async function initScandit() {
+    try {
+      if (!window.Scandit || !window.Scandit.DataCaptureContext) {
+        debug("Scandit not loaded yet. Check network/CDN.", false);
+        return;
+      }
+
+      const SDC = Scandit;
+      context = await SDC.DataCaptureContext.create(SCANDIT_LICENSE_KEY);
+
+      // Camera
+      camera = SDC.Camera.default;
+      await context.setFrameSource(camera);
+
+      // Settings: enable PDF417 (driver license)
+      const settings = new SDC.BarcodeCaptureSettings();
+      settings.enableSymbologies([SDC.Symbology.PDF417]);
+
+      barcodeCapture = await SDC.BarcodeCapture.forContext(context, settings);
+
+      barcodeCapture.addListener({
+        didScan: (ctrl, session) => {
+          const code = session.newlyRecognizedBarcodes[0];
+          if (code) {
+            verified = true;
+            renderCart();
+            scanArrow.classList.add("verified");
+            scanStatus.textContent = "Verified ✔";
+            scanStatus.style.color = "var(--ok)";
+            debug("ID verified via PDF417", true);
+            // optional: stop after success
+            stopCamera();
+          }
         }
       });
 
-      scannerHost.classList.remove("hidden");
-      fallbackWrap.classList.add("hidden");
+      // View overlay
+      view = await SDC.DataCaptureView.forContext(context);
+      view.connectToElement(scanView);
+      const overlay = await SDC.BarcodeCaptureOverlay.withBarcodeCaptureForView(barcodeCapture, view);
+      overlay.viewfinder = new SDC.RectangularViewfinder();
 
-      await camera.switchToDesiredState(SD.CameraState.On);
-      scandit = { loaded:true, camera, context:ctx, view, capture };
-      debug("Scanner ready", true);
+      debug("Scandit initialized", true);
     } catch (e) {
-      console.error(e);
-      debug("Scan failed — fallback mode", false);
-      scannerHost.classList.add("hidden");
-      fallbackWrap.classList.remove("hidden");
+      debug("Scandit init error: " + e.message);
     }
   }
 
-  async function stopScan(){
-    try{
-      if (scandit.capture) scandit.capture.isEnabled = false;
-      if (scandit.camera) await scandit.camera.switchToDesiredState(window.Scandit.CameraState.Off);
-      if (scandit.context) await scandit.context.dispose();
-    }catch{}
-    scannerHost.classList.add("hidden");
-    fallbackWrap.classList.remove("hidden");
+  async function startCamera(){
+    try {
+      if (!context) await initScandit();
+      if (!camera || !barcodeCapture) return debug("Camera not ready", false);
+      await camera.switchToDesiredState(Scandit.FrameSourceState.On);
+      barcodeCapture.isEnabled = true;
+      scanStatus.textContent = verified ? "Verified ✔" : "Scanning…";
+      debug("Camera started", true);
+    } catch (e) {
+      debug("Start camera error: " + e.message);
+    }
   }
-  stopScanBtn.addEventListener("click", stopScan);
-
-  function onVerified(mode){
-    idVerified = true;
-    verifyDot.classList.remove("pulse");
-    verifyDot.style.background = "var(--ok)";
-    verifyStatus.textContent = "Verified ✓";
-    checkoutBtn.disabled = false;
-    checkoutNote.textContent = "ID verified. You can checkout now.";
-    debug(`ID verified via ${mode}`, true);
-  }
-
-  markVerified.addEventListener("click", ()=>{
-    if (!idFront.files[0] || !idBack.files[0]) { alert("Please upload front and back of your ID first."); return; }
-    onVerified("photo");
-  });
-
-  // ====== FIREBASE PRODUCTS ======
-  async function getImageURL(path){
-    if(!path) return null;
-    try { return await storage.ref(path).getDownloadURL(); }
-    catch(e){ console.warn("Storage getDownloadURL failed:", path, e); return null; }
-  }
-
-  async function loadProducts(){
-    productList.innerHTML = "";
-    try{
-      const snap = await db.collection("products").get(); // lowercase 'products'
-      if (snap.empty){
-        productList.innerHTML = `<p class="muted">No products yet. Add docs to Firestore “products”.</p>`;
-        return;
-      }
-      for (const doc of snap.docs){
-        const p = { id: doc.id, ...doc.data() };
-        const priceNum = Number(p.price)||0;
-        const url = p.image ? await getImageURL(p.image) : null;
-
-        const card = document.createElement("div");
-        card.className = "product";
-        card.innerHTML = `
-          <img src="${url || PLACEHOLDER}" alt="${p.name||''}" onerror="this.src='${PLACEHOLDER}'" />
-          <div class="pad">
-            <h3>${p.name||'Unnamed'}</h3>
-            <p>${fmt(priceNum)}</p>
-            <button class="btn add-btn">Add to Cart</button>
-          </div>
-        `;
-        card.querySelector(".add-btn").addEventListener("click", ()=>addToCart({id:p.id, name:p.name||"Unnamed", price:priceNum, imageURL:url}));
-        productList.appendChild(card);
-      }
-      debug("Products loaded", true);
-    }catch(e){
-      console.error(e);
-      debug("Failed to load products (check Firestore rules/collection).");
+  async function stopCamera(){
+    try {
+      if (barcodeCapture) barcodeCapture.isEnabled = false;
+      if (camera) await camera.switchToDesiredState(Scandit.FrameSourceState.Off);
+      debug("Camera stopped", true);
+    } catch (e) {
+      debug("Stop camera error: " + e.message);
     }
   }
 
-  // ====== CART ======
-  function beep(){
-    try{
-      const ctx = new (window.AudioContext||window.webkitAudioContext)();
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type="square"; o.frequency.value=650; g.gain.value=0.02;
-      o.connect(g); g.connect(ctx.destination); o.start();
-      setTimeout(()=>{o.stop();ctx.close();},120);
-    }catch{}
-  }
-  function addToCart(p){
-    const i = cartArr.findIndex(x=>x.id===p.id);
-    if (i>=0) cartArr[i].qty += 1; else cartArr.push({...p, qty:1});
-    renderCart(); beep();
-  }
-  function changeQty(id, d){
-    const it = cartArr.find(x=>x.id===id); if(!it) return;
-    it.qty += d; if (it.qty<=0) cartArr = cartArr.filter(x=>x.id!==id);
-    renderCart();
-  }
-  function cartTotal(){ return cartArr.reduce((s,i)=>s+(Number(i.price)||0)*i.qty,0); }
-  function renderCart(){
-    cartItems.innerHTML = "";
-    cartArr.forEach(it=>{
-      const row = document.createElement("div");
-      row.className = "cart-item";
-      row.innerHTML = `
-        <img src="${it.imageURL || PLACEHOLDER}" alt="${it.name}">
-        <div>
-          <div><strong>${it.name}</strong></div>
-          <div class="muted small">${fmt(it.price)}</div>
-          <div class="qty">
-            <button aria-label="decrease">-</button>
-            <span>${it.qty}</span>
-            <button aria-label="increase">+</button>
-          </div>
-        </div>
-        <button class="icon-btn" aria-label="remove">🗑</button>
-      `;
-      const [dec,,inc] = row.querySelectorAll(".qty button");
-      const rm = row.querySelector(".icon-btn");
-      dec.addEventListener("click", ()=>changeQty(it.id,-1));
-      inc.addEventListener("click", ()=>changeQty(it.id,+1));
-      rm.addEventListener("click", ()=>{ cartArr = cartArr.filter(x=>x.id!==it.id); renderCart(); });
-      cartItems.appendChild(row);
-    });
-    totalEl.textContent = fmt(cartTotal());
-    cartCount.textContent = String(cartArr.reduce((s,i)=>s+i.qty,0));
-  }
+  // Scan UI events
+  scanOpen?.addEventListener("click", () => { scanSection.hidden = false; });
+  scanClose?.addEventListener("click", () => { scanSection.hidden = true; });
+  scanStart?.addEventListener("click", startCamera);
+  scanStop?.addEventListener("click", stopCamera);
 
-  cartBtn.addEventListener("click", ()=>cart.classList.remove("hidden"));
-  closeCart.addEventListener("click", ()=>cart.classList.add("hidden"));
-
-  // ====== CHECKOUT (Flow: Ask for ID → after verified: Square → Email) ======
-  checkoutBtn.addEventListener("click", async ()=>{
-    // If not verified, open the scanner step first
-    if (!idVerified) {
-      cart.classList.add("hidden");
-      scanSection.classList.remove("hidden");
-      await startScan();
-      return;
-    }
-
-    if (cartArr.length===0){ alert("Your cart is empty."); return; }
-
-    const name = (nameInput.value||"").trim();
-    const phone = (phoneInput.value||"").trim();
-    const address = (addrInput.value||"").trim();
-    if (!name || !phone || !address){
-      alert("Please enter name, phone, and address.");
-      return;
-    }
-
-    const items = cartArr.map(i=>`${i.name} x${i.qty} — ${fmt((Number(i.price)||0)*i.qty)}`).join("\n");
-    const total = fmt(cartTotal());
-
-    // Your order email will be sent AFTER opening Square (as you requested).
-    // We open Square in a new tab to not block the email send.
-    window.open(SQUARE_CHECKOUT_URL, "_blank");
-
-    checkoutStatus.textContent = "Sending order details…";
-    try{
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-        name,
-        phone,
-        address,
-        items,
-        total,
-        to_email: "lbizzocustomers@outlook.com"
-      });
-      checkoutStatus.textContent = "Order email sent ✔";
-      cartArr = []; renderCart(); cart.classList.add("hidden");
-    }catch(e){
-      console.error(e);
-      checkoutStatus.textContent = "Email failed. Check EmailJS keys/template.";
-      alert("Email failed. Recheck EmailJS settings.");
-    }
-  });
-
-  // ====== INIT ======
+  // ---------- Boot ----------
   await loadProducts();
+  renderCart();
+  debug("LBizzo ready", true);
 });
+</script>
