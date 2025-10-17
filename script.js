@@ -2,11 +2,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO__) return;
   window.__LBIZZO__ = true;
 
-  // ====== CONFIG KEYS ======
+  // ====== CONFIG ======
   const EMAILJS_PUBLIC_KEY = "jUx6gEqKI1tvL7yLs";
   const EMAILJS_SERVICE_ID = "service_7o2u4kq";
   const EMAILJS_TEMPLATE_ID = "template_6jlkofi";
-  const SCANDIT_LICENSE_KEY = "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDR";
+  const SCANDIT_LICENSE_KEY = "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDR";
   const SQUARE_CHECKOUT_URL = "https://square.link/u/GTlYqlIK";
 
   // ====== HELPERS ======
@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   // ====== ELEMENTS ======
   const overlay=$("#age-check"), yes=$("#yesBtn"), no=$("#noBtn");
+
   const scanSection=$("#id-scan-section");
   const scannerHost=$("#scanner-host"), scannerView=$("#scanner-view");
   const stopScanBtn=$("#stop-scan");
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const verifyDot=$("#verify-dot"), verifyStatus=$("#verify-status");
 
   const productList=$("#product-list");
+
   const cartBtn=$("#cart-btn"), cart=$("#cart"), closeCart=$("#close-cart");
   const cartItems=$("#cart-items"), totalEl=$("#total"), cartCount=$("#cart-count");
   const checkoutBtn=$("#checkout-btn"), checkoutNote=$("#checkout-note"), checkoutStatus=$("#checkout-status");
@@ -40,19 +42,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   let scandit = { loaded:false, camera:null, context:null, view:null, capture:null };
 
   // ====== EMAILJS INIT ======
-  try {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-    debug("EmailJS ready", true);
-  } catch(e){
-    debug("EmailJS failed to init");
-  }
+  try { emailjs.init(EMAILJS_PUBLIC_KEY); debug("EmailJS ready", true); } catch(e){ debug("EmailJS init failed"); }
 
-  // ====== AGE GATE ======
+  // ====== AGE GATE (→ show products) ======
   overlay.style.display="grid";
   yes.addEventListener("click", (e)=>{
     e.preventDefault();
-    overlay.style.display="none";
-    scanSection.classList.add("hidden");
+    overlay.style.display="none";       // allow browsing
+    scanSection.classList.add("hidden"); // no scan yet
     debug("Age verified — browsing unlocked", true);
   });
   no.addEventListener("click", (e)=>{
@@ -61,8 +58,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href="https://google.com";
   });
 
-  // ====== SCANDIT (PDF417) ======
+  // ====== SCANDIT (PDF417 on IDs) ======
   async function startScan() {
+    // show fallback first; enable live scanner if SDK is available
     fallbackWrap.classList.remove("hidden");
     scannerHost.classList.add("hidden");
 
@@ -90,7 +88,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         didScan: (_, session) => {
           const code = session.newlyRecognizedBarcodes?.[0];
           if (!code) return;
-          debug(`ID scanned ✓`, true);
           onVerified("scan");
           stopScan();
         }
@@ -104,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       debug("Scanner ready", true);
     } catch (e) {
       console.error(e);
-      debug("Scan failed — showing fallback", false);
+      debug("Scan failed — fallback mode", false);
       scannerHost.classList.add("hidden");
       fallbackWrap.classList.remove("hidden");
     }
@@ -132,10 +129,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   markVerified.addEventListener("click", ()=>{
-    if (!idFront.files[0] || !idBack.files[0]) {
-      alert("Please upload front and back of your ID first.");
-      return;
-    }
+    if (!idFront.files[0] || !idBack.files[0]) { alert("Please upload front and back of your ID first."); return; }
     onVerified("photo");
   });
 
@@ -149,7 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadProducts(){
     productList.innerHTML = "";
     try{
-      const snap = await db.collection("products").get();
+      const snap = await db.collection("products").get(); // lowercase 'products'
       if (snap.empty){
         productList.innerHTML = `<p class="muted">No products yet. Add docs to Firestore “products”.</p>`;
         return;
@@ -175,7 +169,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       debug("Products loaded", true);
     }catch(e){
       console.error(e);
-      debug("Failed to load products (check Firestore rules/collection name).");
+      debug("Failed to load products (check Firestore rules/collection).");
     }
   }
 
@@ -232,14 +226,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   cartBtn.addEventListener("click", ()=>cart.classList.remove("hidden"));
   closeCart.addEventListener("click", ()=>cart.classList.add("hidden"));
 
-  // ====== CHECKOUT (verify → emailjs → square) ======
+  // ====== CHECKOUT (Flow: Ask for ID → after verified: Square → Email) ======
   checkoutBtn.addEventListener("click", async ()=>{
+    // If not verified, open the scanner step first
     if (!idVerified) {
       cart.classList.add("hidden");
       scanSection.classList.remove("hidden");
       await startScan();
       return;
     }
+
     if (cartArr.length===0){ alert("Your cart is empty."); return; }
 
     const name = (nameInput.value||"").trim();
@@ -253,7 +249,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     const items = cartArr.map(i=>`${i.name} x${i.qty} — ${fmt((Number(i.price)||0)*i.qty)}`).join("\n");
     const total = fmt(cartTotal());
 
-    checkoutStatus.textContent = "Sending order…";
+    // Your order email will be sent AFTER opening Square (as you requested).
+    // We open Square in a new tab to not block the email send.
+    window.open(SQUARE_CHECKOUT_URL, "_blank");
+
+    checkoutStatus.textContent = "Sending order details…";
     try{
       await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
         name,
@@ -263,9 +263,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         total,
         to_email: "lbizzocustomers@outlook.com"
       });
-      checkoutStatus.textContent = "Order sent ✔ Opening Square checkout…";
+      checkoutStatus.textContent = "Order email sent ✔";
       cartArr = []; renderCart(); cart.classList.add("hidden");
-      window.open(SQUARE_CHECKOUT_URL, "_blank");
     }catch(e){
       console.error(e);
       checkoutStatus.textContent = "Email failed. Check EmailJS keys/template.";
