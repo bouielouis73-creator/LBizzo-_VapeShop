@@ -5,107 +5,110 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- PWA -->
+  <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- Styles -->
+  <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Scandit SDK (for ID barcode scanning) -->
-  <script src="https://cdn.scandit.com/sdk/web/datacapture/6.21.0/scandit-datacapture-sdk.min.js"></script>
+  <!-- ✅ Firebase SDKs (compat v9) -->
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+
+  <!-- ✅ EmailJS -->
+  <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+  <!-- ✅ Scandit Web SDK -->
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/engine/index.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/js/index.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6.x/build/js/index.min.js"></script>
+
+  <!-- ✅ App scripts -->
+  <script defer src="firebase.js"></script>
+  <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- AGE CHECK -->
-  <section id="age-check" class="overlay">
-    <div class="modal">
+  <!-- 21+ overlay -->
+  <section id="age-check" class="overlay" style="display:none;">
+    <div class="card">
       <h2>Are you 21 or older?</h2>
       <div class="row">
-        <button id="yesBtn" class="btn">Yes</button>
-        <button id="noBtn" class="btn btn-outline">No</button>
+        <button id="yesBtn" class="btn yes">Yes</button>
+        <button id="noBtn"  class="btn no">No</button>
       </div>
-      <p class="muted">You must be 21+ to enter.</p>
+      <p class="muted">You must be 21+ to enter LBizzo.</p>
     </div>
   </section>
 
-  <!-- TOP BAR -->
+  <!-- Top bar -->
   <header class="topbar">
     <div class="brand">
-      <span class="lb">LB</span>
-      <span class="title">LBizzo Vape Shop</span>
+      <span class="lb">LB</span> <strong>LBizzo Vape Shop</strong>
     </div>
     <div class="actions">
+      <button id="scan-open" class="btn outline">Verify ID</button>
       <button id="cart-btn" class="btn">
-        🛒 Cart <span id="cart-count" class="badge">0</span>
+        Cart <span id="cart-count" class="pill">0</span>
       </button>
     </div>
   </header>
 
-  <!-- ID SCAN (only shown when user clicks Checkout and isn't verified yet) -->
-  <section id="id-scan-section" class="card hidden">
-    <h3>Age Verification</h3>
-    <p class="muted">Hold your ID steady in the frame. If the camera fails, upload photos.</p>
-
-    <div id="scanner-host" class="scanner-host hidden">
-      <div id="scanner-view"></div>
-      <div class="row">
-        <button id="stop-scan" class="btn btn-outline">Stop</button>
-      </div>
+  <!-- ID Scan section -->
+  <section id="id-scan-section" class="scan-wrap" hidden>
+    <h3>Verify your ID</h3>
+    <p class="muted">Point your camera at the barcode (PDF417) on the back of your ID. Arrow glows until verified.</p>
+    <div class="arrow-wrap">
+      <div class="arrow" id="scan-arrow">▼</div>
     </div>
-
-    <div id="photo-fallback" class="fallback">
-      <label class="file">
-        <span>Front of ID</span>
-        <input id="id-front" type="file" accept="image/*;capture=camera" />
-      </label>
-      <label class="file">
-        <span>Back of ID</span>
-        <input id="id-back" type="file" accept="image/*;capture=camera" />
-      </label>
-      <button id="mark-verified" class="btn">Mark Verified (photo)</button>
+    <div id="scan-view" class="scan-view"></div>
+    <div class="row space">
+      <button id="scan-start" class="btn">Start Scan</button>
+      <button id="scan-stop" class="btn outline">Stop</button>
+      <button id="scan-close" class="btn ghost">Close</button>
     </div>
-
-    <p id="verify-status" class="muted small">
-      <span class="dot pulse" id="verify-dot"></span> Verification required before checkout.
-    </p>
+    <p id="scan-status" class="status muted">Not verified</p>
   </section>
 
-  <!-- PRODUCTS -->
-  <main>
-    <h2 class="section-title">Products</h2>
-    <div id="product-list" class="product-grid"></div>
+  <!-- Product grid -->
+  <main class="wrap">
+    <h2>Products</h2>
+    <div id="product-list" class="grid"></div>
   </main>
 
-  <!-- CART -->
-  <aside id="cart" class="cart hidden">
-    <div class="cart-header">
-      <strong>Your Cart</strong>
-      <button id="close-cart" class="icon-btn">✕</button>
+  <!-- Cart drawer -->
+  <aside id="cart" class="drawer" hidden>
+    <div class="drawer-head">
+      <h3>Your Cart</h3>
+      <button id="close-cart" class="icon-btn" aria-label="Close cart">✕</button>
     </div>
     <div id="cart-items" class="cart-items"></div>
-    <div class="cart-footer">
-      <div class="total-row"><span>Total:</span> <strong id="total">$0.00</strong></div>
-      <div class="field"><input id="cust-name" placeholder="Name" /></div>
-      <div class="field"><input id="cust-phone" placeholder="Phone" inputmode="tel" /></div>
-      <div class="field"><input id="cust-address" placeholder="Address" /></div>
-      <button id="checkout-btn" class="btn btn-primary" disabled>Checkout</button>
-      <p id="checkout-note" class="muted small">Verify your ID to unlock checkout.</p>
-      <p id="checkout-status" class="muted small"></p>
+    <div class="cart-foot">
+      <div class="total-row">
+        <span>Total</span>
+        <strong id="total">$0.00</strong>
+      </div>
+      <div class="row">
+        <button id="keep-shopping" class="btn ghost">Keep shopping</button>
+        <button id="checkout-btn" class="btn" disabled>Checkout</button>
+      </div>
+      <small class="muted" id="checkout-tip">Checkout unlocks after ID is verified.</small>
     </div>
   </aside>
 
+  <!-- Debug bar -->
   <div id="debug" class="debug" hidden></div>
 
-  <!-- SDKs -->
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-
-  <!-- App files -->
-  <script defer src="firebase.js"></script>
-  <script defer src="script.js"></script>
+  <!-- PWA: register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js').catch(console.warn);
+      });
+    }
+  </script>
 </body>
 </html>
