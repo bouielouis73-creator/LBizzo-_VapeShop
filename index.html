@@ -2,18 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
   <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase -->
+  <!-- ✅ Firebase SDKs -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
@@ -21,44 +22,87 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/engine/index.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/js/index.min.js"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6.x/build/js/index.min.js"></script>
-
-  <!-- ✅ Your scripts -->
+  <!-- ✅ App Files -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- ✅ Age check -->
-  <section id="age-check">
-    <div class="age-box">
+  <!-- 🔞 Age Check -->
+  <section id="age-check" class="overlay">
+    <div class="card">
       <h2>Are you 21 or older?</h2>
       <div class="row">
-        <button id="yesBtn" class="btn yes">Yes</button>
-        <button id="noBtn" class="btn no">No</button>
+        <button id="yesBtn" class="btn primary">Yes</button>
+        <button id="noBtn" class="btn">No</button>
       </div>
     </div>
   </section>
 
-  <!-- ✅ Header -->
-  <header>
+  <!-- 🔝 Header -->
+  <header class="bar">
     <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
-    <button id="verify-id" class="btn">Verify ID</button>
+    <button id="cart-btn" class="cart-cta">Cart <span id="cart-count">0</span></button>
   </header>
 
-  <!-- ✅ Product List -->
-  <main id="product-list" class="grid"></main>
+  <!-- 🛍️ Product Grid -->
+  <main>
+    <div id="product-list" class="grid"></div>
+  </main>
 
-  <!-- ✅ Cart -->
-  <section id="cart" class="cart hidden">
-    <h2>Your Cart</h2>
-    <ul id="cart-items"></ul>
-    <p id="total">Total: $0.00</p>
-    <button id="checkout-btn" class="btn" disabled>Checkout</button>
-    <button id="close-cart" class="btn ghost">Close</button>
+  <!-- ⭐ Loyalty -->
+  <footer class="footer">
+    <div class="stars" id="loyalty">
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      <span class="star">★</span><span class="star">★</span><span class="star">★</span>
+    </div>
+    <small>6 stars = 1 free vape</small>
+  </footer>
+
+  <!-- 🛒 Cart Drawer -->
+  <section id="cart" class="drawer">
+    <div class="drawer-inner">
+      <div class="drawer-head">
+        <h2>Your Cart</h2>
+        <button id="close-cart" class="icon-btn" aria-label="Close">✕</button>
+      </div>
+
+      <div id="cart-items"></div>
+      <div class="total-row">
+        <strong>Total:</strong> <span id="total">$0.00</span>
+      </div>
+
+      <div class="cart-actions">
+        <button id="keep-shopping" class="btn">Keep Shopping</button>
+        <button id="checkout-btn" class="btn primary">Checkout</button>
+      </div>
+
+      <!-- 📩 ID Upload Form -->
+      <form id="orderForm" class="id-panel" enctype="multipart/form-data">
+        <h3>Upload Your ID to Continue</h3>
+        <p class="tiny">Front and back required for delivery. Clear photos only.</p>
+
+        <div class="form-grid">
+          <label><span>Full Name</span><input name="name" id="name" required /></label>
+          <label><span>Email</span><input name="email" id="email" type="email" required /></label>
+          <label><span>Phone</span><input name="phone" id="phone" type="tel" required /></label>
+          <label class="wide"><span>Address</span><input name="address" id="address" required /></label>
+        </div>
+
+        <div class="upload-grid">
+          <label class="upload"><span>Front of ID</span><input name="idFront" id="idFront" type="file" accept="image/*" required /></label>
+          <label class="upload"><span>Back of ID</span><input name="idBack" id="idBack" type="file" accept="image/*" required /></label>
+        </div>
+
+        <input type="hidden" name="items" id="itemsField" />
+        <input type="hidden" name="total" id="totalField" />
+
+        <div class="actions">
+          <button id="sendOrder" class="btn primary" type="submit" disabled>Send Order</button>
+          <span class="tiny">Enabled when all fields + both photos are provided.</span>
+        </div>
+        <p class="refund">If ID is not provided or invalid upon arrival, your order will be refunded minus a 10% fee.</p>
+      </form>
+    </div>
   </section>
 </body>
 </html>
