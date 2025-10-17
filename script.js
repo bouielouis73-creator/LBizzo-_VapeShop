@@ -2,11 +2,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (window.__LBIZZO__) return;
   window.__LBIZZO__ = true;
 
-  // ====== YOUR REAL KEYS ======
+  // ====== CONFIG KEYS ======
   const EMAILJS_PUBLIC_KEY = "jUx6gEqKI1tvL7yLs";
   const EMAILJS_SERVICE_ID = "service_7o2u4kq";
   const EMAILJS_TEMPLATE_ID = "template_6jlkofi";
   const SCANDIT_LICENSE_KEY = "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDR";
+  const SQUARE_CHECKOUT_URL = "https://square.link/u/GTlYqlIK";
 
   // ====== HELPERS ======
   const $  = (s, r=document) => r.querySelector(s);
@@ -39,15 +40,20 @@ document.addEventListener("DOMContentLoaded", async () => {
   let scandit = { loaded:false, camera:null, context:null, view:null, capture:null };
 
   // ====== EMAILJS INIT ======
-  try { emailjs.init(EMAILJS_PUBLIC_KEY); debug("EmailJS ready", true); } catch(e){ debug("EmailJS failed to init"); }
+  try {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+    debug("EmailJS ready", true);
+  } catch(e){
+    debug("EmailJS failed to init");
+  }
 
   // ====== AGE GATE ======
   overlay.style.display="grid";
-  yes.addEventListener("click", async (e)=>{
+  yes.addEventListener("click", (e)=>{
     e.preventDefault();
     overlay.style.display="none";
-    scanSection.classList.remove("hidden");
-    await startScan(); // auto start scan after "Yes"
+    scanSection.classList.add("hidden");
+    debug("Age verified — browsing unlocked", true);
   });
   no.addEventListener("click", (e)=>{
     e.preventDefault();
@@ -55,13 +61,15 @@ document.addEventListener("DOMContentLoaded", async () => {
     location.href="https://google.com";
   });
 
-  // ====== SCANDIT (PDF417 barcode on IDs) ======
+  // ====== SCANDIT (PDF417) ======
   async function startScan() {
-    // show fallback first; enable live scanner if SDK is available
     fallbackWrap.classList.remove("hidden");
     scannerHost.classList.add("hidden");
 
-    if (!window.Scandit) { debug("Scandit not available. Using photo fallback."); return; }
+    if (!window.Scandit) {
+      debug("Scandit SDK not loaded — using photo fallback.");
+      return;
+    }
 
     try {
       const SD = window.Scandit;
@@ -69,7 +77,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       const camera = SD.Camera.default;
       await ctx.setFrameSource(camera);
 
-      // PDF417 is the barcode used on most driver's licenses
       const settings = new SD.barcodes.BarcodeCaptureSettings();
       settings.setSymbologyEnabled(SD.barcodes.Symbology.PDF417, true);
 
@@ -83,7 +90,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         didScan: (_, session) => {
           const code = session.newlyRecognizedBarcodes?.[0];
           if (!code) return;
-          debug(`ID barcode scanned: ${String(code.data).slice(0,12)}…`, true);
+          debug(`ID scanned ✓`, true);
           onVerified("scan");
           stopScan();
         }
@@ -94,10 +101,10 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       await camera.switchToDesiredState(SD.CameraState.On);
       scandit = { loaded:true, camera, context:ctx, view, capture };
-      debug("Scanner running…", true);
+      debug("Scanner ready", true);
     } catch (e) {
       console.error(e);
-      debug("Scanner failed — photo fallback mode", false);
+      debug("Scan failed — showing fallback", false);
       scannerHost.classList.add("hidden");
       fallbackWrap.classList.remove("hidden");
     }
@@ -125,11 +132,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
 
   markVerified.addEventListener("click", ()=>{
-    if (!idFront.files[0] || !idBack.files[0]) { alert("Please upload front and back of your ID."); return; }
+    if (!idFront.files[0] || !idBack.files[0]) {
+      alert("Please upload front and back of your ID first.");
+      return;
+    }
     onVerified("photo");
   });
 
-  // ====== PRODUCTS (Firestore + Storage) ======
+  // ====== FIREBASE PRODUCTS ======
   async function getImageURL(path){
     if(!path) return null;
     try { return await storage.ref(path).getDownloadURL(); }
@@ -139,7 +149,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   async function loadProducts(){
     productList.innerHTML = "";
     try{
-      const snap = await db.collection("products").get(); // lowercase 'products'
+      const snap = await db.collection("products").get();
       if (snap.empty){
         productList.innerHTML = `<p class="muted">No products yet. Add docs to Firestore “products”.</p>`;
         return;
@@ -169,7 +179,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
-  // ====== CART (all buttons wired) ======
+  // ====== CART ======
   function beep(){
     try{
       const ctx = new (window.AudioContext||window.webkitAudioContext)();
@@ -222,9 +232,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   cartBtn.addEventListener("click", ()=>cart.classList.remove("hidden"));
   closeCart.addEventListener("click", ()=>cart.classList.add("hidden"));
 
-  // ====== CHECKOUT (EmailJS) ======
+  // ====== CHECKOUT (verify → emailjs → square) ======
   checkoutBtn.addEventListener("click", async ()=>{
-    if (!idVerified){ alert("Please verify your ID first."); return; }
+    if (!idVerified) {
+      cart.classList.add("hidden");
+      scanSection.classList.remove("hidden");
+      await startScan();
+      return;
+    }
     if (cartArr.length===0){ alert("Your cart is empty."); return; }
 
     const name = (nameInput.value||"").trim();
@@ -240,16 +255,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     checkoutStatus.textContent = "Sending order…";
     try{
-      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { name, phone, address, items, total });
-      checkoutStatus.textContent = "Order sent ✔ Check your email.";
+      await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        name,
+        phone,
+        address,
+        items,
+        total,
+        to_email: "lbizzocustomers@outlook.com"
+      });
+      checkoutStatus.textContent = "Order sent ✔ Opening Square checkout…";
       cartArr = []; renderCart(); cart.classList.add("hidden");
+      window.open(SQUARE_CHECKOUT_URL, "_blank");
     }catch(e){
       console.error(e);
       checkoutStatus.textContent = "Email failed. Check EmailJS keys/template.";
-      alert("Email failed. Recheck EmailJS Public Key / Service / Template IDs.");
+      alert("Email failed. Recheck EmailJS settings.");
     }
   });
 
   // ====== INIT ======
-  await loadProducts(); // products visible even before verifying
+  await loadProducts();
 });
