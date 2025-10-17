@@ -1,3 +1,4 @@
+// Firebase config (confirmed)
 const firebaseConfig = {
   apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
   authDomain: "lbizzodelivery.firebaseapp.com",
