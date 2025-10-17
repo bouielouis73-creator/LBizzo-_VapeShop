@@ -13,76 +13,95 @@
 
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- AGE CHECK -->
+  <section id="age-check" class="overlay">
+    <div class="modal">
+      <h2>Are you 21 or older?</h2>
+      <div class="row">
+        <button id="yesBtn" class="btn">Yes</button>
+        <button id="noBtn" class="btn btn-outline">No</button>
+      </div>
+      <p class="muted">You must be 21+ to enter.</p>
+    </div>
+  </section>
 
-  <!-- ✅ Firebase (compat) -->
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="lb">LB</span>
+      <span class="title">LBizzo Vape Shop</span>
+    </div>
+    <div class="actions">
+      <button id="scan-id-btn" class="btn btn-verify">
+        🔒 Verify ID <span id="verify-dot" class="dot pulse"></span>
+      </button>
+      <button id="cart-btn" class="btn">
+        🛒 Cart <span id="cart-count" class="badge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ID SCAN -->
+  <section id="id-scan-section" class="card hidden">
+    <h3>Age Verification</h3>
+    <p class="muted">Use live scan (preferred). If camera fails, upload front & back photos.</p>
+
+    <div id="scanner-host" class="scanner-host hidden">
+      <div id="scanner-view"></div>
+      <div class="row">
+        <button id="stop-scan" class="btn btn-outline">Stop</button>
+      </div>
+    </div>
+
+    <div id="photo-fallback" class="fallback">
+      <label class="file">
+        <span>Front of ID</span>
+        <input id="id-front" type="file" accept="image/*;capture=camera" />
+      </label>
+      <label class="file">
+        <span>Back of ID</span>
+        <input id="id-back" type="file" accept="image/*;capture=camera" />
+      </label>
+      <button id="mark-verified" class="btn">Mark Verified (photo)</button>
+    </div>
+  </section>
+
+  <!-- PRODUCTS -->
+  <main>
+    <h2 class="section-title">Products</h2>
+    <div id="product-list" class="product-grid"></div>
+  </main>
+
+  <!-- CART -->
+  <aside id="cart" class="cart hidden">
+    <div class="cart-header">
+      <strong>Your Cart</strong>
+      <button id="close-cart" class="icon-btn">✕</button>
+    </div>
+    <div id="cart-items" class="cart-items"></div>
+    <div class="cart-footer">
+      <div class="total-row"><span>Total:</span> <strong id="total">$0.00</strong></div>
+      <div class="field"><input id="cust-name" placeholder="Name" /></div>
+      <div class="field"><input id="cust-phone" placeholder="Phone" inputmode="tel" /></div>
+      <div class="field"><input id="cust-address" placeholder="Address" /></div>
+      <button id="checkout-btn" class="btn btn-primary" disabled>Checkout (Email)</button>
+      <p id="checkout-note" class="muted small">Verify your ID to unlock checkout.</p>
+      <p id="checkout-status" class="muted small"></p>
+    </div>
+  </aside>
+
+  <div id="debug" class="debug" hidden></div>
+
+  <!-- SDKs -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-
-  <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit SDK -->
-  <script defer src="https://cdn.jsdelivr.net/npm/scandit-sdk@5.x/build/browser/index.min.js"></script>
-
-  <!-- ✅ App Scripts -->
+  <!-- App files -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
-</head>
-
-<body>
-  <!-- 🔞 Age Verification -->
-  <div id="age-check" class="overlay" style="display:none">
-    <div class="modal">
-      <h2>Are you 21 or older?</h2>
-      <div class="btns">
-        <button id="yesBtn">Yes</button>
-        <button id="noBtn">No</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 🔸 Header -->
-  <header class="topbar">
-    <h1>LBizzo Vape Shop</h1>
-    <button id="cart-btn" type="button" aria-controls="cart" aria-expanded="false">
-      Cart <span id="cart-count">0</span>
-    </button>
-  </header>
-
-  <!-- ⭐ Loyalty -->
-  <section id="loyalty">
-    <div id="stars" aria-label="loyalty progress" title="Free vape at 6">
-      <span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>
-    </div>
-    <p>Free vape at 6 ⭐</p>
-  </section>
-
-  <!-- 🛍️ Products -->
-  <main id="product-list" class="product-grid"></main>
-
-  <!-- 🛒 Cart Modal -->
-  <section id="cart" role="dialog" aria-modal="true" aria-labelledby="cart-title">
-    <div class="cart-box">
-      <h2 id="cart-title">Your Cart</h2>
-      <ul id="cart-items"></ul>
-      <div class="cart-total">Total: <strong>$<span id="total">0.00</span></strong></div>
-
-      <!-- 🧾 Checkout Form -->
-      <div class="checkout-form">
-        <input id="cust-name" type="text" placeholder="Name" autocomplete="name" />
-        <input id="cust-phone" type="tel" placeholder="Phone" autocomplete="tel" />
-        <input id="cust-address" type="text" placeholder="Address" autocomplete="street-address" />
-      </div>
-
-      <div class="cart-actions">
-        <button id="scan-id-btn" type="button">Scan ID</button>
-        <button id="checkout-btn" type="button" disabled>Checkout</button>
-        <button id="close-cart" type="button">Keep Shopping</button>
-      </div>
-    </div>
-  </section>
-
-  <div id="toast" hidden></div>
 </body>
 </html>
