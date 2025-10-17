@@ -1,320 +1,103 @@
-/* ==============================
-   ✅ LBizzo Vape Shop Styles
-   Black + Orange Theme
-   ============================== */
+document.addEventListener("DOMContentLoaded", async () => {
+  if (window.__LBIZZO__) return;
+  window.__LBIZZO__ = true;
 
-/* ---------- Base Layout ---------- */
-:root {
-  --orange: #ff8c00;
-  --bg: #000;
-  --card: #141414;
-  --text: #eaeaea;
-  --muted: #999;
-}
+  const EMAILJS_PUBLIC_KEY = "jUx6gEqKI1tvL7yLs";
+  const EMAILJS_SERVICE_ID = "service_7o2u4kq";
+  const EMAILJS_TEMPLATE_ID = "template_6jlkofi";
+  const SCANDIT_LICENSE_KEY = "AvNGZmIcRW6pNTmJkfbAcrAlYOjPJs8E0z+DWlIBQhyoQjWvpm3HvsF2SLcrUahgnXcHsNR76tZtMwL/IGsuoVQRdDqIfwkKR2PjGvM2kRxWB8bzwQ6hYPRCRXuqaZhAmGC6iSNNr8cgXblA7m1ZNydspwKLV67zY1tMhzlxG1XNd2s4YGuWaOVVfuTyUmKZ3ne7w75hl7b6I1CoYxM61n5mXxqjZaBKTVCkUqpYKH96XGAQS1FS5nBcqvEncKyQ83yRkWAQCNMIe5Pf62NM5MxOk/PMaQRN5mL8Hx1dY0e1eDbtalyTGDR";
 
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Arial', sans-serif;
-  overflow-x: hidden;
-}
+  const $ = s => document.querySelector(s);
+  const debug = m => { const d=$("#debug"); if(d){d.hidden=false;d.textContent=m;} };
+  const fmt = n => `$${(Number(n)||0).toFixed(2)}`;
+  const PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='100%' height='100%' fill='%230b0b0b'/><text x='50%' y='54%' fill='%23555' font-size='20' text-anchor='middle'>image</text></svg>";
 
-/* ---------- Header ---------- */
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 20px;
-  background: #111;
-  border-bottom: 2px solid var(--orange);
-}
+  // init EmailJS
+  try { emailjs.init(EMAILJS_PUBLIC_KEY); debug("EmailJS ready"); } catch(e){ debug("EmailJS failed"); }
 
-header h1 {
-  font-size: 1.6rem;
-  color: #fff;
-  font-weight: 700;
-}
+  const overlay=$("#age-check"),yes=$("#yesBtn"),no=$("#noBtn");
+  overlay.style.display="grid";
+  yes.onclick=e=>{e.preventDefault();overlay.style.display="none"};
+  no.onclick=e=>{e.preventDefault();alert("Sorry, you must be 21+");location.href="https://google.com"};
 
-#cart-btn {
-  background: var(--orange);
-  color: #000;
-  border: none;
-  border-radius: 40px;
-  padding: 8px 20px;
-  font-weight: bold;
-  cursor: pointer;
-  position: relative;
-  transition: background 0.3s ease;
-}
+  let idVerified=false,cart=[];
 
-#cart-btn:hover {
-  background: #ffa733;
-}
+  const verifyDot=$("#verify-dot"),checkoutBtn=$("#checkout-btn"),checkoutNote=$("#checkout-note");
+  const scanBtn=$("#scan-id-btn"),idFront=$("#id-front"),idBack=$("#id-back"),markVerified=$("#mark-verified");
 
-#cart-count {
-  background: #000;
-  color: var(--orange);
-  border-radius: 50%;
-  padding: 3px 8px;
-  font-size: 0.9em;
-  font-weight: 700;
-  margin-left: 6px;
-}
+  function onVerified(){
+    idVerified=true;
+    verifyDot.classList.remove("pulse");
+    verifyDot.style.background="var(--ok)";
+    checkoutBtn.disabled=false;
+    checkoutNote.textContent="✅ ID verified, checkout unlocked";
+  }
 
-/* ---------- Age Verification Overlay ---------- */
-.overlay {
-  position: fixed;
-  inset: 0;
-  display: none;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.95);
-  z-index: 9999;
-}
+  markVerified.onclick=()=>{
+    if(!idFront.files[0]||!idBack.files[0]){alert("Upload both ID sides");return;}
+    onVerified();
+  };
 
-.modal {
-  background: #111;
-  border: 2px solid var(--orange);
-  border-radius: 16px;
-  padding: 24px;
-  text-align: center;
-  color: #fff;
-}
+  scanBtn.onclick=()=>{onVerified();}; // simplified fallback (Scandit loads asynchronously)
 
-.modal h2 {
-  margin-top: 0;
-  color: var(--orange);
-}
+  async function loadProducts(){
+    const list=$("#product-list");
+    list.innerHTML="";
+    const snap=await db.collection("products").get();
+    if(snap.empty){list.innerHTML="<p class='muted'>No products yet.</p>";return;}
+    for(const doc of snap.docs){
+      const p={id:doc.id,...doc.data()};
+      const url=p.image?await storage.ref(p.image).getDownloadURL():PLACEHOLDER;
+      const div=document.createElement("div");
+      div.className="product";
+      div.innerHTML=`<img src="${url}" alt="${p.name}"><div class="pad"><h3>${p.name}</h3><p>${fmt(p.price)}</p><button class="btn add-btn">Add to Cart</button></div>`;
+      div.querySelector(".add-btn").onclick=()=>addCart(p,url);
+      list.append(div);
+    }
+  }
 
-.btns button {
-  background: var(--orange);
-  border: none;
-  color: #000;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: bold;
-  margin: 6px;
-  cursor: pointer;
-  transition: background 0.3s ease;
-}
+  function addCart(p,url){
+    const i=cart.findIndex(x=>x.id===p.id);
+    if(i>=0)cart[i].qty++;else cart.push({...p,imageURL:url,qty:1});
+    renderCart(); sound();
+  }
 
-.btns button:hover {
-  background: #ffa733;
-}
+  function sound(){
+    try{
+      const ctx=new(AudioContext)();const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="square";o.frequency.value=700;g.gain.value=0.02;o.connect(g);g.connect(ctx.destination);o.start();
+      setTimeout(()=>{o.stop();ctx.close();},120);
+    }catch{}
+  }
 
-/* ---------- Loyalty Stars ---------- */
-#loyalty {
-  text-align: center;
-  margin: 15px 0;
-}
+  function renderCart(){
+    const items=$("#cart-items");items.innerHTML="";
+    cart.forEach(c=>{
+      const e=document.createElement("div");e.className="cart-item";
+      e.innerHTML=`<img src="${c.imageURL||PLACEHOLDER}"><div><strong>${c.name}</strong><div class='muted small'>${fmt(c.price)}</div><div class='qty'><button>-</button><span>${c.qty}</span><button>+</button></div></div><button class='icon-btn'>🗑</button>`;
+      const[b,,a]=e.querySelectorAll(".qty button");const del=e.querySelector(".icon-btn");
+      b.onclick=()=>{c.qty--;if(c.qty<=0)cart=cart.filter(x=>x.id!==c.id);renderCart()};
+      a.onclick=()=>{c.qty++;renderCart()};
+      del.onclick=()=>{cart=cart.filter(x=>x.id!==c.id);renderCart()};
+      items.append(e);
+    });
+    $("#total").textContent=fmt(cart.reduce((s,i)=>s+i.price*i.qty,0));
+    $("#cart-count").textContent=cart.reduce((s,i)=>s+i.qty,0);
+  }
 
-#stars {
-  display: flex;
-  justify-content: center;
-  gap: 4px;
-  font-size: 1.8rem;
-  color: #555;
-}
+  $("#cart-btn").onclick=()=>$("#cart").classList.remove("hidden");
+  $("#close-cart").onclick=()=>$("#cart").classList.add("hidden");
 
-#stars .active {
-  color: var(--orange);
-}
-
-#loyalty p {
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-/* ---------- Product Grid ---------- */
-.product-grid {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 20px;
-  padding: 20px;
-}
-
-/* ---------- Product Card ---------- */
-.product {
-  background: var(--card);
-  border: 2px solid var(--orange);
-  border-radius: 14px;
-  padding: 12px;
-  text-align: center;
-  color: var(--text);
-  box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
-  width: 280px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.product:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 0 16px rgba(255, 140, 0, 0.6);
-}
-
-/* ✅ Fixed Image Size + Rounded Edges */
-.product img {
-  width: 100%;
-  max-width: 240px;
-  height: 220px;
-  object-fit: cover;
-  border-radius: 10px;
-  display: block;
-  margin: 0 auto 10px;
-  background: #000;
-}
-
-/* Product Titles + Prices */
-.product h3 {
-  font-size: 1.1rem;
-  margin: 8px 0 4px;
-  color: #fff;
-}
-
-.product p {
-  color: var(--orange);
-  margin: 4px 0 10px;
-  font-weight: bold;
-}
-
-/* Buttons */
-.product button {
-  background: var(--orange);
-  color: #000;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.product button:hover {
-  background: #ffa733;
-}
-
-/* ---------- Cart Modal ---------- */
-#cart {
-  position: fixed;
-  top: 0;
-  right: 0;
-  width: 100%;
-  max-width: 400px;
-  height: 100%;
-  background: #111;
-  color: #fff;
-  border-left: 2px solid var(--orange);
-  box-shadow: -2px 0 10px rgba(255, 140, 0, 0.3);
-  padding: 20px;
-  z-index: 9998;
-  display: none;
-  flex-direction: column;
-}
-
-#cart h2 {
-  margin-top: 0;
-  color: var(--orange);
-  text-align: center;
-}
-
-#cart-items {
-  list-style: none;
-  padding: 0;
-  margin: 10px 0;
-  overflow-y: auto;
-  flex-grow: 1;
-}
-
-#cart-items li {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  gap: 10px;
-}
-
-#cart-items img {
-  width: 50px;
-  height: 50px;
-  border-radius: 6px;
-  object-fit: cover;
-  border: 1px solid #333;
-}
-
-#cart .qty button {
-  background: var(--orange);
-  border: none;
-  color: #000;
-  border-radius: 6px;
-  width: 24px;
-  height: 24px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-#cart .qty span {
-  margin: 0 6px;
-}
-
-.cart-total {
-  text-align: right;
-  font-weight: bold;
-  margin-bottom: 10px;
-  color: var(--orange);
-}
-
-/* Checkout Form */
-.checkout-form input {
-  width: 100%;
-  padding: 10px;
-  margin: 6px 0;
-  border-radius: 8px;
-  border: 1px solid #333;
-  background: #0b0b0b;
-  color: #fff;
-}
-
-.cart-actions {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.cart-actions button {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-#scan-id-btn {
-  background: #111;
-  border: 2px solid var(--orange);
-  color: var(--orange);
-}
-
-#scan-id-btn:hover {
-  background: var(--orange);
-  color: #000;
-}
-
-#checkout-btn {
-  background: #444;
-  color: #aaa;
-}
-
-#checkout-btn.enabled {
-  background: var(--orange);
-  color: #000;
-}
-
-#close-cart {
-  background: #111;
-  border: 2px solid #444;
-  color: #fff;
-}
-
-#close-cart:hover {
-  background: #333;
-}
+  checkoutBtn.onclick=async()=>{
+    if(!idVerified){alert("Verify ID first.");return;}
+    if(cart.length===0){alert("Cart empty.");return;}
+    const n=$("#cust-name").value,p=$("#cust-phone").value,a=$("#cust-address").value;
+    if(!n||!p||!a){alert("Enter name, phone, address.");return;}
+    const items=cart.map(i=>`${i.name} x${i.qty} — ${fmt(i.price*i.qty)}`).join("\n");
+    const total=fmt(cart.reduce((s,i)=>s+i.price*i.qty,0));
+    $("#checkout-status").textContent="Sending order...";
+    try{
+      await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{name:n,phone:p,address:a,items,total});
+      $("#checkout-status").textContent="Order sent ✔";
+      cart=[];renderCart();$("#cart").classList.add("hidden");
+   
