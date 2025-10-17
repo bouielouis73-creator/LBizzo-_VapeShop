@@ -14,7 +14,7 @@
   <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Scandit SDK (needed for live ID barcode scan) -->
+  <!-- Scandit SDK (for ID barcode scanning) -->
   <script src="https://cdn.scandit.com/sdk/web/datacapture/6.21.0/scandit-datacapture-sdk.min.js"></script>
 </head>
 <body>
@@ -43,12 +43,11 @@
     </div>
   </header>
 
-  <!-- ID SCAN (auto-opens after "Yes") -->
+  <!-- ID SCAN (only shown when user clicks Checkout and isn't verified yet) -->
   <section id="id-scan-section" class="card hidden">
     <h3>Age Verification</h3>
-    <p class="muted">Hold your ID steady in the frame. If camera fails, upload photos.</p>
+    <p class="muted">Hold your ID steady in the frame. If the camera fails, upload photos.</p>
 
-    <!-- Live Scandit container -->
     <div id="scanner-host" class="scanner-host hidden">
       <div id="scanner-view"></div>
       <div class="row">
@@ -56,7 +55,6 @@
       </div>
     </div>
 
-    <!-- Photo fallback -->
     <div id="photo-fallback" class="fallback">
       <label class="file">
         <span>Front of ID</span>
@@ -70,7 +68,7 @@
     </div>
 
     <p id="verify-status" class="muted small">
-      <span class="dot pulse" id="verify-dot"></span> Verifying required before checkout.
+      <span class="dot pulse" id="verify-dot"></span> Verification required before checkout.
     </p>
   </section>
 
@@ -92,7 +90,7 @@
       <div class="field"><input id="cust-name" placeholder="Name" /></div>
       <div class="field"><input id="cust-phone" placeholder="Phone" inputmode="tel" /></div>
       <div class="field"><input id="cust-address" placeholder="Address" /></div>
-      <button id="checkout-btn" class="btn btn-primary" disabled>Checkout (Email)</button>
+      <button id="checkout-btn" class="btn btn-primary" disabled>Checkout</button>
       <p id="checkout-note" class="muted small">Verify your ID to unlock checkout.</p>
       <p id="checkout-status" class="muted small"></p>
     </div>
