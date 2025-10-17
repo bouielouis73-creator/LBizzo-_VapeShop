@@ -5,14 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
-  <!-- ✅ PWA -->
+  <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
-  <!-- ✅ Styles -->
+  <!-- Styles -->
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Scandit SDK (needed for live ID barcode scan) -->
+  <script src="https://cdn.scandit.com/sdk/web/datacapture/6.21.0/scandit-datacapture-sdk.min.js"></script>
 </head>
 <body>
   <!-- AGE CHECK -->
@@ -34,20 +37,18 @@
       <span class="title">LBizzo Vape Shop</span>
     </div>
     <div class="actions">
-      <button id="scan-id-btn" class="btn btn-verify">
-        🔒 Verify ID <span id="verify-dot" class="dot pulse"></span>
-      </button>
       <button id="cart-btn" class="btn">
         🛒 Cart <span id="cart-count" class="badge">0</span>
       </button>
     </div>
   </header>
 
-  <!-- ID SCAN -->
+  <!-- ID SCAN (auto-opens after "Yes") -->
   <section id="id-scan-section" class="card hidden">
     <h3>Age Verification</h3>
-    <p class="muted">Use live scan (preferred). If camera fails, upload front & back photos.</p>
+    <p class="muted">Hold your ID steady in the frame. If camera fails, upload photos.</p>
 
+    <!-- Live Scandit container -->
     <div id="scanner-host" class="scanner-host hidden">
       <div id="scanner-view"></div>
       <div class="row">
@@ -55,6 +56,7 @@
       </div>
     </div>
 
+    <!-- Photo fallback -->
     <div id="photo-fallback" class="fallback">
       <label class="file">
         <span>Front of ID</span>
@@ -66,6 +68,10 @@
       </label>
       <button id="mark-verified" class="btn">Mark Verified (photo)</button>
     </div>
+
+    <p id="verify-status" class="muted small">
+      <span class="dot pulse" id="verify-dot"></span> Verifying required before checkout.
+    </p>
   </section>
 
   <!-- PRODUCTS -->
