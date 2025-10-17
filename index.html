@@ -2,19 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>LBizzo Vape Shop</title>
 
   <!-- ✅ PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#ff8c00" />
   <link rel="apple-touch-icon" href="icons/icon-512.png" />
-  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
 
   <!-- ✅ Styles -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- ✅ Firebase SDKs (compat v9) -->
+  <!-- ✅ Firebase -->
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
   <script defer src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
@@ -22,93 +21,44 @@
   <!-- ✅ EmailJS -->
   <script defer src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
-  <!-- ✅ Scandit Web SDK -->
+  <!-- ✅ Scandit SDK -->
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/engine/index.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-core@6.x/build/js/index.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/scandit-web-datacapture-barcode@6.x/build/js/index.min.js"></script>
 
-  <!-- ✅ App scripts -->
+  <!-- ✅ Your scripts -->
   <script defer src="firebase.js"></script>
   <script defer src="script.js"></script>
 </head>
 <body>
-  <!-- 21+ overlay -->
-  <section id="age-check" class="overlay" style="display:none;">
-    <div class="card">
+  <!-- ✅ Age check -->
+  <section id="age-check">
+    <div class="age-box">
       <h2>Are you 21 or older?</h2>
       <div class="row">
         <button id="yesBtn" class="btn yes">Yes</button>
-        <button id="noBtn"  class="btn no">No</button>
+        <button id="noBtn" class="btn no">No</button>
       </div>
-      <p class="muted">You must be 21+ to enter LBizzo.</p>
     </div>
   </section>
 
-  <!-- Top bar -->
-  <header class="topbar">
-    <div class="brand">
-      <span class="lb">LB</span> <strong>LBizzo Vape Shop</strong>
-    </div>
-    <div class="actions">
-      <button id="scan-open" class="btn outline">Verify ID</button>
-      <button id="cart-btn" class="btn">
-        Cart <span id="cart-count" class="pill">0</span>
-      </button>
-    </div>
+  <!-- ✅ Header -->
+  <header>
+    <h1>LBizzo Vape Shop</h1>
+    <button id="cart-btn">🛒 Cart (<span id="cart-count">0</span>)</button>
+    <button id="verify-id" class="btn">Verify ID</button>
   </header>
 
-  <!-- ID Scan section -->
-  <section id="id-scan-section" class="scan-wrap" hidden>
-    <h3>Verify your ID</h3>
-    <p class="muted">Point your camera at the barcode (PDF417) on the back of your ID. Arrow glows until verified.</p>
-    <div class="arrow-wrap">
-      <div class="arrow" id="scan-arrow">▼</div>
-    </div>
-    <div id="scan-view" class="scan-view"></div>
-    <div class="row space">
-      <button id="scan-start" class="btn">Start Scan</button>
-      <button id="scan-stop" class="btn outline">Stop</button>
-      <button id="scan-close" class="btn ghost">Close</button>
-    </div>
-    <p id="scan-status" class="status muted">Not verified</p>
+  <!-- ✅ Product List -->
+  <main id="product-list" class="grid"></main>
+
+  <!-- ✅ Cart -->
+  <section id="cart" class="cart hidden">
+    <h2>Your Cart</h2>
+    <ul id="cart-items"></ul>
+    <p id="total">Total: $0.00</p>
+    <button id="checkout-btn" class="btn" disabled>Checkout</button>
+    <button id="close-cart" class="btn ghost">Close</button>
   </section>
-
-  <!-- Product grid -->
-  <main class="wrap">
-    <h2>Products</h2>
-    <div id="product-list" class="grid"></div>
-  </main>
-
-  <!-- Cart drawer -->
-  <aside id="cart" class="drawer" hidden>
-    <div class="drawer-head">
-      <h3>Your Cart</h3>
-      <button id="close-cart" class="icon-btn" aria-label="Close cart">✕</button>
-    </div>
-    <div id="cart-items" class="cart-items"></div>
-    <div class="cart-foot">
-      <div class="total-row">
-        <span>Total</span>
-        <strong id="total">$0.00</strong>
-      </div>
-      <div class="row">
-        <button id="keep-shopping" class="btn ghost">Keep shopping</button>
-        <button id="checkout-btn" class="btn" disabled>Checkout</button>
-      </div>
-      <small class="muted" id="checkout-tip">Checkout unlocks after ID is verified.</small>
-    </div>
-  </aside>
-
-  <!-- Debug bar -->
-  <div id="debug" class="debug" hidden></div>
-
-  <!-- PWA: register service worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js').catch(console.warn);
-      });
-    }
-  </script>
 </body>
 </html>
