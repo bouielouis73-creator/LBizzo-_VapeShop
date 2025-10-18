@@ -56,9 +56,9 @@
   const setStars = n => localStorage.setItem("lb_stars", String(n));
   const renderStars = () => {
     const n = getStars(); starsWrap.innerHTML = "";
-    for (let i=1;i<=6;i++){
+    for (let i = 1; i <= 6; i++) {
       const el = document.createElement("div");
-      el.className = "star" + (i<=n ? " active":"");
+      el.className = "star" + (i <= n ? " active" : "");
       el.textContent = "★";
       starsWrap.appendChild(el);
     }
@@ -92,7 +92,7 @@
       <button class="btn add">Add to Cart</button>
     `;
     card.querySelector(".add").addEventListener("click", () => {
-      addToCart({ id, name: p.name, price: Number(p.price)||0, image: p.image });
+      addToCart({ id, name: p.name, price: Number(p.price) || 0, image: p.image });
       beep();
     });
     productList.appendChild(card);
@@ -116,8 +116,8 @@
 
   let cart = JSON.parse(localStorage.getItem("lb_cart") || "[]");
   const saveCart = () => localStorage.setItem("lb_cart", JSON.stringify(cart));
-  const syncCount = () => cartCount.textContent = String(cart.reduce((a,c)=>a+c.qty,0));
-  const total = () => cart.reduce((a,c)=>a + c.price*c.qty, 0);
+  const syncCount = () => cartCount.textContent = String(cart.reduce((a, c) => a + c.qty, 0));
+  const total = () => cart.reduce((a, c) => a + c.price * c.qty, 0);
 
   const renderCart = async () => {
     cartItems.innerHTML = "";
@@ -133,17 +133,17 @@
           <button class="btn ghost plus">+</button>
           <button class="btn ghost remove">🗑</button>
         </div>`;
-      row.querySelector(".minus").onclick = () => { item.qty=Math.max(1,item.qty-1); saveCart(); renderCart(); syncCount();};
-      row.querySelector(".plus").onclick  = () => { item.qty++; saveCart(); renderCart(); syncCount();};
-      row.querySelector(".remove").onclick= () => { cart=cart.filter(c=>c!==item); saveCart(); renderCart(); syncCount();};
+      row.querySelector(".minus").onclick = () => { item.qty = Math.max(1, item.qty - 1); saveCart(); renderCart(); syncCount(); };
+      row.querySelector(".plus").onclick = () => { item.qty++; saveCart(); renderCart(); syncCount(); };
+      row.querySelector(".remove").onclick = () => { cart = cart.filter(c => c !== item); saveCart(); renderCart(); syncCount(); };
       cartItems.appendChild(row);
     }
     totalEl.textContent = fmt(total());
   };
 
   const addToCart = (p) => {
-    const existing = cart.find(c => c.id===p.id);
-    if (existing) existing.qty++; else cart.push({...p, qty:1});
+    const existing = cart.find(c => c.id === p.id);
+    if (existing) existing.qty++; else cart.push({ ...p, qty: 1 });
     saveCart(); syncCount();
   };
 
@@ -152,13 +152,13 @@
   });
   closeCart?.addEventListener("click", () => cartDrawer.classList.remove("open"));
   keepShopping?.addEventListener("click", () => cartDrawer.classList.remove("open"));
-  clearCartBtn?.addEventListener("click", () => { cart=[]; saveCart(); renderCart(); syncCount(); });
+  clearCartBtn?.addEventListener("click", () => { cart = []; saveCart(); renderCart(); syncCount(); });
   syncCount();
 
   // ======= ID / CHECKOUT =======
   const idForm = $("#id-form"), idFront = $("#idFront"), idBack = $("#idBack");
   const orderItems = $("#orderItems"), orderTotal = $("#orderTotal");
-  const itemsText = () => cart.map(c => `• ${c.name} — $${fmt(c.price)} x ${c.qty} = $${fmt(c.price*c.qty)}`).join("\n");
+  const itemsText = () => cart.map(c => `• ${c.name} — $${fmt(c.price)} x ${c.qty} = $${fmt(c.price * c.qty)}`).join("\n");
 
   idForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
