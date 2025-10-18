@@ -166,7 +166,13 @@
     if (!idFront.files?.length || !idBack.files?.length) return alert("Please upload both front and back of your ID.");
     orderItems.value = itemsText(); orderTotal.value = fmt(total());
     try {
-      await emailjs.sendForm("service_7o2u4kq", "template_6jlkofi", idForm);
+      await emailjs.send("service_7o2u4kq", "template_6jlkofi", {
+  name: $("#custName").value,
+  phone: $("#custPhone").value,
+  address: $("#custAddress").value,
+  items: itemsText(),
+  total: fmt(total())
+});
       let s = getStars() + 1; if (s >= 6) { alert("🎉 6 stars! 1 free vape next time."); s = 0; }
       setStars(s); renderStars();
       window.location.href = SQUARE_LINK;
