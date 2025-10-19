@@ -1,21 +1,23 @@
 (() => {
   if (window.__LBIZZO_LOADED__) return;
   window.__LBIZZO_LOADED__ = true;
-// ======= FIREBASE CONFIG =======
-const firebaseConfig = {
-  apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
-  authDomain: "lbizzodelivery.firebaseapp.com",
-  projectId: "lbizzodelivery",
-  storageBucket: "lbizzodelivery.appspot.com",
-  messagingSenderId: "614540837455",
-  appId: "1:614540837455:web:42709d7b585bbdc2b8203a",
-  databaseURL: "https://lbizzodelivery-default-rtdb.firebaseio.com"
-};
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const storage = firebase.storage();
+  // ======= FIREBASE CONFIG =======
+  const firebaseConfig = {
+    apiKey: "AIzaSyAMSTyqnUMfyaNMEusapADjoCqSYfjZCs",
+    authDomain: "lbizzodelivery.firebaseapp.com",
+    projectId: "lbizzodelivery",
+    storageBucket: "lbizzodelivery.appspot.com",
+    messagingSenderId: "614540837455",
+    appId: "1:614540837455:web:42709d7b585bbdc2b8203a",
+    databaseURL: "https://lbizzodelivery-default-rtdb.firebaseio.com"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const storage = firebase.storage();
+
   // ======= CONSTANTS =======
   const COLLECTION = "products";
   const STORAGE_FOLDER = "products";
@@ -48,7 +50,9 @@ const storage = firebase.storage();
     e.preventDefault(); ageOverlay.style.display = "none";
   });
   $("#noBtn")?.addEventListener("click", e => {
-    e.preventDefault(); alert("Sorry, you must be 21+ to enter."); location.href = "https://google.com";
+    e.preventDefault();
+    alert("Sorry, you must be 21+ to enter.");
+    location.href = "https://google.com";
   });
   if (ageOverlay) ageOverlay.style.display = "grid";
 
@@ -62,7 +66,8 @@ const storage = firebase.storage();
     deferredPrompt.prompt(); await deferredPrompt.userChoice;
     installBtn.hidden = true; deferredPrompt = null;
   });
-  if ("serviceWorker" in navigator) navigator.serviceWorker.register("service-worker.js");
+  if ("serviceWorker" in navigator)
+    navigator.serviceWorker.register("service-worker.js");
 
   // ======= LOYALTY =======
   const starsWrap = $("#stars");
@@ -117,7 +122,10 @@ const storage = firebase.storage();
       if (snap.empty) { emptyProducts.hidden = false; return; }
       emptyProducts.hidden = true; productList.innerHTML = "";
       for (const doc of snap.docs) await addCard(doc.data(), doc.id);
-    } catch (e) { console.error("Product load failed:", e); emptyProducts.hidden = false; }
+    } catch (e) {
+      console.error("Product load failed:", e);
+      emptyProducts.hidden = false;
+    }
   };
   loadProducts();
 
@@ -129,7 +137,8 @@ const storage = firebase.storage();
 
   let cart = JSON.parse(localStorage.getItem("lb_cart") || "[]");
   const saveCart = () => localStorage.setItem("lb_cart", JSON.stringify(cart));
-  const syncCount = () => cartCount.textContent = String(cart.reduce((a, c) => a + c.qty, 0));
+  const syncCount = () =>
+    (cartCount.textContent = String(cart.reduce((a, c) => a + c.qty, 0)));
   const total = () => cart.reduce((a, c) => a + c.price * c.qty, 0);
 
   const renderCart = async () => {
@@ -140,15 +149,24 @@ const storage = firebase.storage();
       row.className = "cart-item";
       row.innerHTML = `
         <img src="${url || ""}" alt="">
-        <div><h4>${item.name}</h4><div class="muted">$${fmt(item.price)} × ${item.qty}</div></div>
+        <div><h4>${item.name}</h4>
+          <div class="muted">$${fmt(item.price)} × ${item.qty}</div>
+        </div>
         <div>
           <button class="btn ghost minus">−</button>
           <button class="btn ghost plus">+</button>
           <button class="btn ghost remove">🗑</button>
         </div>`;
-      row.querySelector(".minus").onclick = () => { item.qty = Math.max(1, item.qty - 1); saveCart(); renderCart(); syncCount(); };
-      row.querySelector(".plus").onclick = () => { item.qty++; saveCart(); renderCart(); syncCount(); };
-      row.querySelector(".remove").onclick = () => { cart = cart.filter(c => c !== item); saveCart(); renderCart(); syncCount(); };
+      row.querySelector(".minus").onclick = () => {
+        item.qty = Math.max(1, item.qty - 1); saveCart(); renderCart(); syncCount();
+      };
+      row.querySelector(".plus").onclick = () => {
+        item.qty++; saveCart(); renderCart(); syncCount();
+      };
+      row.querySelector(".remove").onclick = () => {
+        cart = cart.filter(c => c !== item);
+        saveCart(); renderCart(); syncCount();
+      };
       cartItems.appendChild(row);
     }
     totalEl.textContent = fmt(total());
@@ -163,20 +181,31 @@ const storage = firebase.storage();
   cartBtn?.addEventListener("click", () => {
     cartDrawer.classList.add("open"); renderCart();
   });
-  closeCart?.addEventListener("click", () => cartDrawer.classList.remove("open"));
-  keepShopping?.addEventListener("click", () => cartDrawer.classList.remove("open"));
-  clearCartBtn?.addEventListener("click", () => { cart = []; saveCart(); renderCart(); syncCount(); });
+  closeCart?.addEventListener("click", () =>
+    cartDrawer.classList.remove("open"));
+  keepShopping?.addEventListener("click", () =>
+    cartDrawer.classList.remove("open"));
+  clearCartBtn?.addEventListener("click", () => {
+    cart = []; saveCart(); renderCart(); syncCount();
+  });
   syncCount();
 
   // ======= ID / CHECKOUT =======
   const idForm = $("#id-form"), idFront = $("#idFront"), idBack = $("#idBack");
   const orderItems = $("#orderItems"), orderTotal = $("#orderTotal");
-  const itemsText = () => cart.map(c => `• ${c.name} — $${fmt(c.price)} x ${c.qty} = $${fmt(c.price * c.qty)}`).join("\n");
+  const itemsText = () =>
+    cart
+      .map(
+        c =>
+          `• ${c.name} — $${fmt(c.price)} x ${c.qty} = $${fmt(c.price * c.qty)}`
+      )
+      .join("\n");
 
   idForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (!cart.length) return alert("Cart is empty.");
-    if (!idFront.files?.length || !idBack.files?.length) return alert("Please upload both front and back of your ID.");
+    if (!idFront.files?.length || !idBack.files?.length)
+      return alert("Please upload both front and back of your ID.");
     orderItems.value = itemsText(); orderTotal.value = fmt(total());
     try {
       await emailjs.send("service_7o2u4kq", "template_6jlkofi", {
@@ -186,29 +215,31 @@ const storage = firebase.storage();
         items: itemsText(),
         total: fmt(total())
       });
-      let s = getStars() + 1; if (s >= 6) { alert("🎉 6 stars! 1 free vape next time."); s = 0; }
+      let s = getStars() + 1;
+      if (s >= 6) {
+        alert("🎉 6 stars! 1 free vape next time."); s = 0;
+      }
       setStars(s); renderStars();
       window.location.href = SQUARE_LINK;
     } catch (err) {
-      console.error(err); alert("EmailJS send failed. Please try again.");
+      console.error(err);
+      alert("EmailJS send failed. Please try again.");
     }
   });
 
-  // ======= ✅ NEW SQUARE CHECKOUT BUTTON LISTENER =======
+  // ======= ✅ SQUARE CHECKOUT BUTTON =======
   const checkoutBtn = document.getElementById("checkout-btn");
   if (checkoutBtn) {
     checkoutBtn.addEventListener("click", async () => {
       if (!cart.length) return alert("Your cart is empty!");
-
       const res = await fetch("/.netlify/functions/create-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ items: cart })
       });
-
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.url; // takes you to Square checkout
+        window.location.href = data.url; // redirect to Square checkout
       } else {
         alert("Error creating checkout link");
         console.error(data);
@@ -216,4 +247,4 @@ const storage = firebase.storage();
     });
   }
 
-})(); 
+})();
