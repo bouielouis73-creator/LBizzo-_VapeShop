@@ -108,5 +108,14 @@
   </aside>
 
   <!-- tiny beep via WebAudio (generated in JS) -->
+<!-- 🔐 LOGIN SECTION (hidden by default, only shows if not logged in) -->
+<section id="login-section" style="display:none; text-align:center; padding:20px;">
+  <h2>Login or Sign Up</h2>
+  <input type="email" id="email" placeholder="Email" autocomplete="email" /><br>
+  <input type="password" id="password" placeholder="Password" autocomplete="current-password" /><br>
+  <button id="login-btn">Login</button>
+  <button id="signup-btn">Sign Up</button>
+  <p id="login-status" style="color:#ff8c00; margin-top:10px;"></p>
+</section>
 </body>
 </html>
