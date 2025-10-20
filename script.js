@@ -14,7 +14,50 @@
       window.__EMAILJS_INIT__ = true;
     }
   });
+idForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!cart.length) return alert("Cart is empty.");
+  if (!idFront.files?.length || !idBack.files?.length) return alert("Please upload both front and back of your ID.");
+  orderItems.value = itemsText(); orderTotal.value = fmt(total());
+  try {
+    await emailjs.send("service_7o2u4kq", "template_6jlkofi", {
+      name: $("#custName").value,
+      phone: $("#custPhone").value,
+      address: $("#custAddress").value,
+      items: itemsText(),
+      total: fmt(total())
+    });
 
+    // ⭐ Loyalty stars
+    let s = getStars() + 1;
+    if (s >= 6) { alert("🎉 6 stars! 1 free vape next time."); s = 0; }
+    setStars(s); renderStars();
+
+    // ✅ After successful ID upload, mark user as verified in Firestore
+    try {
+      const user = firebase.auth().currentUser;
+      if (user) {
+        await firebase.firestore().collection("users").doc(user.uid).update({
+          verified: true,
+          verifiedAt: new Date().toISOString()
+        });
+        console.log("✅ ID verified and Firestore updated");
+        alert("✅ ID verified! You’re all set.");
+        const idScan = document.getElementById("id-scan-section");
+        if (idScan) idScan.style.display = "none";
+      }
+    } catch (err) {
+      console.error("Error marking verified:", err);
+    }
+
+    // ✅ Continue to Square Checkout
+    window.location.href = SQUARE_LINK;
+
+  } catch (err) {
+    console.error(err);
+    alert("EmailJS send failed. Please try again.");
+  }
+});
   // ======= HELPERS =======
   const $ = (s, r = document) => r.querySelector(s);
   const fmt = n => Number(n || 0).toFixed(2);
