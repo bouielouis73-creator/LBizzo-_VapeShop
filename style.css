@@ -77,3 +77,27 @@ h1,h2,h3,h4{margin:0 0 .6rem}
 
 .hint{color:#ffd7a3;text-shadow:var(--orange-glow)}
 code{background:#1c1c1c;padding:2px 6px;border-radius:6px}
+/* 🔐 LOGIN FORM (added safely) */
+#login-section input {
+  width: 80%;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 1em;
+}
+
+#login-section button {
+  background: #ff8c00;
+  border: none;
+  padding: 10px 18px;
+  margin: 5px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #000;
+}
+
+#login-section h2 {
+  color: #ff8c00;
+}
