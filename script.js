@@ -179,6 +179,73 @@
     } catch (err) {
       console.error(err); alert("EmailJS send failed. Please try again.");
     }
+ // ========== LOGIN SYSTEM (adds without breaking anything) ==========
+try {
+  const auth = firebase.auth();
+  const db = firebase.firestore();
+
+  const loginSection = document.getElementById("login-section");
+
+  // Show login form only if no one is logged in
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) {
+      console.log("🚪 No user logged in — showing login section");
+      if (loginSection) loginSection.style.display = "block";
+      return;
+    }
+
+    // User logged in — check verification
+    const docRef = db.collection("users").doc(user.uid);
+    const docSnap = await docRef.get();
+
+    if (docSnap.exists && docSnap.data().verified) {
+      console.log("✅ Verified user:", docSnap.data().email);
+      if (loginSection) loginSection.style.display = "none";
+      const idScan = document.getElementById("id-scan-section");
+      if (idScan) idScan.style.display = "none";
+    } else {
+      console.log("⚠️ User not verified yet — must upload ID");
+      if (loginSection) loginSection.style.display = "none";
+      const idScan = document.getElementById("id-scan-section");
+      if (idScan) idScan.style.display = "block";
+    }
+  });
+
+  // Login button
+  document.getElementById("login-btn")?.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if (!email || !password) return alert("Enter email and password");
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      document.getElementById("login-status").textContent = "✅ Logged in!";
+      loginSection.style.display = "none";
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+
+  // Sign-up button
+  document.getElementById("signup-btn")?.addEventListener("click", async () => {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    if (!email || !password) return alert("Enter email and password");
+    try {
+      const userCred = await auth.createUserWithEmailAndPassword(email, password);
+      await db.collection("users").doc(userCred.user.uid).set({
+        email,
+        verified: false,
+        createdAt: new Date().toISOString()
+      });
+      alert("Account created! Please upload your ID before checkout.");
+      loginSection.style.display = "none";
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+} catch (err) {
+  console.error("Login system error:", err);
+}
   });
 
 })();
