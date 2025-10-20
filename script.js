@@ -351,3 +351,49 @@
     console.error("Login system error:", err);
   }
 })();
+// ======= ID PHOTO UPLOAD + VERIFY =======
+async function sendIdToVerify(imageUrl, name, email) {
+  try {
+    const res = await fetch("/api/verify-id", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ imageUrl, name, email })
+    });
+    const data = await res.json();
+    console.log("🆔 Verify Response:", data);
+
+    if (data.success) {
+      alert("✅ ID verified successfully — you can continue to checkout.");
+      document.querySelector("#checkout-btn")?.removeAttribute("disabled");
+    } else {
+      alert("❌ Verification failed. Please try again.");
+    }
+  } catch (err) {
+    console.error("Verify ID Error:", err);
+    alert("Error verifying ID, please retry.");
+  }
+}
+
+document.querySelector("#send-id-btn")?.addEventListener("click", async () => {
+  const frontFile = document.querySelector("#front-id")?.files[0];
+  const backFile = document.querySelector("#back-id")?.files[0];
+  const name = document.querySelector("#custName")?.value || "Customer";
+  const email = document.querySelector("#custEmail")?.value || "";
+
+  if (!frontFile || !backFile) {
+    alert("Please upload both sides of your ID.");
+    return;
+  }
+
+  const frontRef = storage.ref(`ids/${frontFile.name}`);
+  const backRef = storage.ref(`ids/${backFile.name}`);
+
+  await frontRef.put(frontFile);
+  await backRef.put(backFile);
+
+  const frontUrl = await frontRef.getDownloadURL();
+  const backUrl = await backRef.getDownloadURL();
+
+  // Send only the front image to the Netlify function (can modify if needed)
+  await sendIdToVerify(frontUrl, name, email);
+});
