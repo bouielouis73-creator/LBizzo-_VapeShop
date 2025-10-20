@@ -101,8 +101,20 @@
         <input type="hidden" name="items" id="orderItems" />
         <input type="hidden" name="total" id="orderTotal" />
 
-        <button id="checkout-btn" type="submit" class="btn primary">Submit & Checkout</button>
-        <p id="id-hint" class="hint">⬇️ Please upload both images first</p>
+        <!-- ✅ New ID Upload + Verify Section -->
+<div id="id-upload-section">
+  <label>Front of ID:</label>
+  <input type="file" id="front-id" accept="image/*" />
+
+  <label>Back of ID:</label>
+  <input type="file" id="back-id" accept="image/*" />
+
+  <button id="send-id-btn" class="btn">Upload & Verify ID</button>
+</div>
+
+<!-- Checkout button stays below -->
+<button id="checkout-btn" type="submit" class="btn primary" disabled>Submit & Checkout</button>
+<p id="id-hint" class="hint">⬇️ Please upload and verify ID first</p>
       </form>
     </div>
   </aside>
