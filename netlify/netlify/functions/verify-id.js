@@ -1,5 +1,7 @@
 // netlify/functions/createCheckout.js
-// Creates a Square Payment Link dynamically from your cart (names, qty, prices)
+// ✅ Creates a Square Payment Link dynamically from your cart (names, qty, prices)
+
+import crypto from "crypto";
 
 export async function handler(event) {
   try {
@@ -16,7 +18,7 @@ export async function handler(event) {
       };
     }
 
-    // ENV (set these in Netlify)
+    // ✅ Environment Variables
     const ACCESS_TOKEN = process.env.SQUARE_ACCESS_TOKEN;
     const LOCATION_ID  = process.env.SQUARE_LOCATION_ID;
 
@@ -27,8 +29,7 @@ export async function handler(event) {
       };
     }
 
-    // Normalize items: { name, qty, price } → Square order line_items
-    // Square wants cents as an integer (e.g., 12.99 → 1299).
+    // ✅ Convert app cart items → Square line items
     const line_items = items.map((i) => {
       const qty   = Number(i.qty || 1);
       const price = Number(i.price || 0);
@@ -47,24 +48,19 @@ export async function handler(event) {
       };
     });
 
-    // Build the order payload
+    // ✅ Order payload
     const order = {
       location_id: LOCATION_ID,
       line_items,
-      // Optional: add a note that will show in Square dashboard
-      // (e.g., include your cart id, Firebase uid, etc.)
       ...(note ? { note: String(note) } : {})
     };
 
-    // Build the payment link request
+    // ✅ Payment link payload
     const payload = {
-      idempotency_key: cryptoRandom(), // prevents accidental duplicates
+      idempotency_key: crypto.randomUUID(), // built-in safe UUID
       quick_pay: {
         name: "LBizzo Order",
         price_money: {
-          // Square requires price_money OR order. We use "order" for multi-line items,
-          // but quick_pay also needs a price; Square will override with order total.
-          // To be safe, compute a subtotal for quick_pay:
           amount: line_items.reduce((sum, li) => {
             const cents = Number(li.base_price_money?.amount || 0);
             const qty   = Number(li.quantity || "1");
@@ -77,23 +73,21 @@ export async function handler(event) {
       order
     };
 
-    // Optional: pre-populate buyer contact on the hosted checkout page
     if (customer && (customer.email || customer.name || customer.phone)) {
       payload.pre_populated_data = {
         buyer_email: customer.email || undefined,
         buyer_phone_number: customer.phone || undefined,
-        buyer_address: undefined,
         buyer_name: customer.name || undefined
       };
     }
 
-    // Call Square Payment Links API
+    // ✅ Native fetch (built-in to Node 18+)
     const resp = await fetch("https://connect.squareup.com/v2/online-checkout/payment-links", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${ACCESS_TOKEN}`,
         "Content-Type": "application/json",
-        "Square-Version": "2024-08-15" // or any recent stable version
+        "Square-Version": "2024-08-15"
       },
       body: JSON.stringify(payload)
     });
@@ -102,10 +96,7 @@ export async function handler(event) {
 
     if (!resp.ok) {
       console.error("Square Error:", data);
-      return {
-        statusCode: resp.status,
-        body: JSON.stringify({ error: data })
-      };
+      return { statusCode: resp.status, body: JSON.stringify({ error: data }) };
     }
 
     const checkoutUrl = data?.payment_link?.url;
@@ -127,11 +118,4 @@ export async function handler(event) {
       body: JSON.stringify({ error: err.message || "Server error" })
     };
   }
-}
-
-// Minimal crypto-safe idempotency key
-function cryptoRandom() {
-  // Netlify Node runtime supports Web Crypto
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
 }
