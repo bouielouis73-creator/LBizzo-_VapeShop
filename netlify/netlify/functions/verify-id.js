@@ -1,7 +1,7 @@
 // netlify/functions/createCheckout.js
 // ✅ Creates a Square Payment Link dynamically from your cart (names, qty, prices)
 
-import crypto from "crypto";
+const fetch = globalThis.fetch;
 
 export async function handler(event) {
   try {
