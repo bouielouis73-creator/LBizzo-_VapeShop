@@ -6,7 +6,26 @@
   const COLLECTION = "products";
   const STORAGE_FOLDER = "products";
   const SQUARE_LINK = "https://square.link/u/GTlYqlIK";
+// ✅ Convert ID photos to Base64 and attach to EmailJS
+const toBase64 = (file) => new Promise((res, rej) => {
+  const reader = new FileReader();
+  reader.onload = () => res(reader.result.split(",")[1]); // remove prefix
+  reader.onerror = (err) => rej(err);
+  reader.readAsDataURL(file);
+});
 
+const frontFile = idFront.files[0];
+const backFile = idBack.files[0];
+let frontBase64 = "";
+let backBase64 = "";
+
+try {
+  if (frontFile) frontBase64 = await toBase64(frontFile);
+  if (backFile) backBase64 = await toBase64(backFile);
+  console.log("✅ ID images converted to Base64");
+} catch (err) {
+  console.error("⚠️ Failed to convert ID images:", err);
+}
   // ======= EMAILJS =======
   document.addEventListener("DOMContentLoaded", () => {
     if (window.emailjs && !window.__EMAILJS_INIT__) {
